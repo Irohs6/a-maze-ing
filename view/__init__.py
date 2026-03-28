@@ -3,3 +3,8 @@
 # pour que le contrôleur puisse les instancier sans connaître l'organisation interne
 # du package. Peut contenir une factory permettant de choisir le mode d'affichage
 # selon la configuration ou les arguments passés au programme.
+
+from .terminal_view import TerminalView
+# from .mlx_view import MlxView  # Uncomment if MlxView is implemented
+
+__all__ = ['TerminalView']  # Add 'MlxView' if implemented
