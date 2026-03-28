@@ -1,7 +1,45 @@
-# pyproject.toml — Configuration du paquet Python réutilisable mazegen.
-# Définit les métadonnées du paquet : nom (mazegen), version, auteurs, description,
-# licence, version Python minimale requise, et dépendances.
-# Configure l'outil de build (setuptools ou hatchling) pour empaqueter
-# le module mazegen en .whl et .tar.gz.
-# Contient également les sections de configuration pour mypy, flake8 et pytest
-# afin de centraliser tous les paramètres d'outils en un seul fichier.
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mazegen"
+version = "1.0.0"
+description = "A reusable maze generator library"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "gacattan"},
+    {name = "cyakisan"},
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Repository = "https://github.com/Irohs6/a-maze-ing"
+
+[tool.setuptools.packages.find]
+include = ["mazegen*"]
+
+# ── pytest ──────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+# ── mypy ────────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_ignores = true
+ignore_missing_imports = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+
+# ── flake8 (via flake8-pyproject) ───────────────────────
+[tool.flake8]
+max-line-length = 80
+exclude = [".venv", "__pycache__", ".mypy_cache", "build", "dist"]
