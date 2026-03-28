@@ -1,0 +1,8 @@
+# requirements.txt — Liste des dépendances Python du projet.
+# Contient les paquets nécessaires à l'exécution et au développement :
+#   - les bibliothèques de rendu graphique si MiniLibX ou équivalent est utilisé
+#   - pytest et pytest-cov pour les tests unitaires et la couverture de code
+#   - mypy pour la vérification statique des types
+#   - flake8 pour le respect du standard de codage
+#   - les éventuels paquets tiers utilisés pour les algorithmes ou l'affichage
+# Chaque dépendance doit être épinglée à une version précise pour la reproductibilité.

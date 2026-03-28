@@ -1,0 +1,16 @@
+# Fichier de configuration par défaut du labyrinthe.
+# Contient les paires CLE=VALEUR définissant les paramètres de génération :
+# dimensions du labyrinthe (WIDTH, HEIGHT), coordonnées d'entrée (ENTRY) et de sortie (EXIT),
+# nom du fichier de sortie (OUTPUT_FILE), mode parfait (PERFECT), graine aléatoire (SEED)
+# et algorithme de génération (ALGORITHM).
+# Les lignes commençant par # sont des commentaires ignorés par le parseur.
+# Ce fichier sert d'exemple et est utilisé par défaut lors des tests et démonstrations.
+
+WIDTH=20
+HEIGHT=15
+ENTRY=0,0
+EXIT=19,14
+OUTPUT_FILE=maze.txt
+PERFECT=True
+# SEED=42
+# ALGORITHM=recursive_backtracker
