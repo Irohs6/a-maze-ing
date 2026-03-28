@@ -8,8 +8,8 @@
 #   - la vérification que les coordonnées d'entrée/sortie sont dans les limites du labyrinthe
 #   - les clés optionnelles (SEED, ALGORITHM) avec leurs valeurs par défaut
 # Lève des exceptions descriptives pour chaque type d'erreur rencontré.
-
 from typing import Any
+# import random
 
 
 class ConfigParser:
@@ -22,12 +22,15 @@ class ConfigParser:
     REQUIRED_KEYS: list[str] = [
         'WIDTH', 'HEIGHT', 'ENTRY', 'EXIT', 'OUTPUT_FILE', 'PERFECT'
     ]
+    OPTIONAL_KEYS: list[str] = [
+        'SEED', 'ALGORITHM'
+    ]
 
     def __init__(self, config_file: str) -> None:
         self.config_file: str = config_file
-        self.config: dict[str, Any] = {}
+        self.__config: dict[str, Any] = {}
 
-    def parse(self) -> dict[str, Any]:
+    def parse(self) -> None:
         """Read and validate the configuration file.
 
         Returns:
@@ -43,13 +46,12 @@ class ConfigParser:
                     if line.startswith('#') or not line.strip():
                         continue  # Ignore comments and blank lines
                     self._parse_line(line)
-            return self.config
         except FileNotFoundError:
             raise FileNotFoundError(
                 f"Configuration file '{self.config_file}' not found."
             )
 
-    def _parse_line(self, line: str) -> tuple[str, str]:
+    def _parse_line(self, line: str) -> None:
         if '=' not in line:
             raise ValueError(
                     f"Invalid line in config: '{line.strip()}' (missing '=')"
@@ -63,20 +65,45 @@ class ConfigParser:
             raise ValueError(
                 f"Empty value for key '{key}' in line: '{line.strip()}'"
             )
-        self.config[key] = value
-        return key, value
+        self.__config[key] = value
 
     def _validate_required_keys(self) -> None:
-        pass
+        for key in self.REQUIRED_KEYS:
+            if key in self.__config.keys():
+                continue
+            else:
+                raise KeyError(f"'{key}' has not properly been defined in "
+                               "the config.txt file")
 
-    def _parse_coordinates(self, raw: str, key_name: str) -> tuple[int, int]:
-        pass
+    def _parse_coordinates(self) -> None:
+        try:
+            for key in ['WIDTH', 'HEIGHT']:
+                self.__config[key] = int(self.__config[key])
+                self._validate_coordinates(key)
+            for key in ['ENTRY', 'EXIT']:
+                self.__config[key] = tuple(int(value) for value in
+                                           self.__config[key].split(','))
+                self._validate_coordinates(key)
+        except ValueError as error:
+            raise ValueError(error)
 
-    def _convert_types(self) -> None:
-        pass
+    def _validate_coordinates(self, key: str) -> None:
+        if key in ['WIDTH', 'HEIGHT']:
+            if self.__config[key] <= 0:
+                raise ValueError(f"{key} value is invalid ("
+                                 f"{self.__config[key]})")
+        else:
+            if (len(self.__config[key]) != 2 or self.__config[key][0] < 0
+               or self.__config[key][0] > self.__config['WIDTH']
+               or self.__config[key][1] < 0 or
+               self.__config[key][1] > self.__config['HEIGHT']):
+                raise ValueError(f"'{key}' needs 2 positive integers that "
+                                 "fits within 'WIDTH' and 'HEIGTH' and "
+                                 "separated by ','")
 
-    def _validate_coordinates(self) -> None:
-        pass
+    # def _parse_optionals(self) -> None:
+    #     for key in self.OPTIONAL_KEYS:
+    #         if not key in self.__config.keys():
 
-    def _apply_defaults(self) -> None:
-        pass
+    def _get_config(self) -> dict[str, Any]:
+        return self.__config

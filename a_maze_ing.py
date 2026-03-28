@@ -15,15 +15,18 @@ def main():
         sys.exit(1)
 
     config_file = sys.argv[1]
-    print(f"Configuration loaded successfully: config = {config_file}")
     try:
         config_parser = ConfigParser(config_file)
-        config = config_parser.parse()
+        config_parser.parse()
+        print(f"Configuration loaded successfully: config = {config_file}")
+        config_parser._validate_required_keys()
+        config_parser._parse_coordinates()
+        config = config_parser._get_config()
         print(f"Configuration parsed successfully: {config}")
     except FileNotFoundError as error:
         print(error)
         sys.exit(1)
-    except ValueError as error:
+    except (ValueError, KeyError) as error:
         print(f"Error in configuration file: {error}")
         sys.exit(1)
 

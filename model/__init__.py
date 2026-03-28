@@ -4,5 +4,4 @@
 # Maze, ConfigParser et PathFinder sont rendus accessibles
 # directement via "from model import ...".
 from .config_parser import ConfigParser
-
 __all__ = ['ConfigParser']
