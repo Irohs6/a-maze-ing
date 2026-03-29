@@ -10,9 +10,6 @@
 # Utilise des annotations de type et des docstrings conformes à PEP 257.
 
 
-from view.terminal_view import TerminalView
-
-
 class Maze:
     """Represents a maze as a grid of cells with walls.
 
@@ -62,11 +59,6 @@ class Maze:
 
 
 if __name__ == "__main__":
-    # Example usage: create a 5x5 maze and print its grid
     maze = Maze(5, 5)
     for row in maze.grid:
         print(row)
-
-    # Display the maze using TerminalView
-    view = TerminalView(maze)
-    view.print_unicode()

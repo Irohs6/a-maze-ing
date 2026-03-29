@@ -74,3 +74,11 @@ class TerminalView:
                     if ix < w:
                         mid += "   "
                 print(mid)
+
+
+if __name__ == "__main__":
+    from model.maze import Maze
+
+    maze = Maze(5, 5)
+    view = TerminalView(maze)
+    view.print_unicode()
