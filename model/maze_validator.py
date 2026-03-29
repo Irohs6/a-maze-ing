@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 # import deque for BFS in connectivity check
-# from collections import deque
+from collections import deque
 
 # typing.TYPE_CHECKING is used
 # to avoid circular imports when type hinting with Maze.
@@ -141,7 +141,54 @@ class MazeValidator:
         Fully-walled cells (value == 15) belong to the "42" pattern and are
         intentionally isolated; they are excluded from the reachability count.
         """
-        pass
+        maze: Maze = self._maze
+        width, height = maze.width, maze.height
+
+        # Count isolated cells (value == 15)
+        isolated = sum(
+            1 for row in maze.grid for cell in row if cell == 15
+        )
+
+        queue = deque([(0, 0)])
+        visited = set()
+        reachable = 0
+
+        # Direction offsets: (offset_x, offset_y)
+        directions = {
+            'N': (0, -1),
+            'E': (1, 0),
+            'S': (0, 1),
+            'W': (-1, 0),
+        }
+
+        while queue:
+            x, y = queue.popleft()
+
+            # Skip fully-walled cells
+            if maze.grid[y][x] == 15:
+                continue
+
+            # Skip already visited cells
+            if (x, y) in visited:
+                continue
+
+            # Visit the cell
+            visited.add((x, y))
+            reachable += 1
+
+            # Explore neighbors
+            for direction, (offset_x, offset_y) in directions.items():
+                if not maze.has_wall(x, y, direction):
+                    nx = x + offset_x
+                    ny = y + offset_y
+
+                    # Check boundaries
+                    if 0 <= nx < width and 0 <= ny < height:
+                        if (nx, ny) not in visited:
+                            queue.append((nx, ny))
+
+        total_cells = width * height
+        return reachable + isolated == total_cells
 
     def _validate_42_pattern(self) -> bool:
         """Return True if the "42" pattern is present,

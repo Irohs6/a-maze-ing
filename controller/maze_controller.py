@@ -7,9 +7,12 @@
 #      et déclencher la génération avec les paramètres de la config
 #   4. Instancier PathFinder et calculer le chemin solution
 #   5. Écrire le fichier de sortie au format hexadécimal requis
-#   6. Instancier la vue appropriée (TerminalView ou MlxView) et lancer l'affichage
-#   7. Gérer les actions utilisateur transmises par la vue (régénérer, afficher solution, etc.)
-#   8. Propager les erreurs sous forme de messages clairs sans planter le programme.
+#   6. Instancier la vue appropriée (TerminalView ou MlxView) et lancer
+# l'affichage
+#   7. Gérer les actions utilisateur transmises par la vue (régénérer, afficher
+# solution, etc.)
+#   8. Propager les erreurs sous forme de messages clairs sans planter le
+# programme.
 
 from typing import Any
 from model.config_parser import ConfigParser
@@ -18,7 +21,8 @@ from view.terminal_view import TerminalView
 
 
 class MazeController:
-    """Central orchestrator: loads config, generates maze, finds path, renders view."""
+    """Central orchestrator: loads config, generates maze, finds path, 
+    renders view."""
 
     def __init__(self, config_file: str) -> None:
         self._config_file: str = config_file
