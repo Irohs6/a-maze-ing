@@ -6,7 +6,7 @@
 # et affiche un message d'aide à l'utilisateur en cas de mauvaise utilisation.
 
 import sys
-from model.config_parser import ConfigParser
+from controller.maze_controller import MazeController
 
 
 def main():
@@ -14,16 +14,13 @@ def main():
         print("Usage: python3 a_maze_ing.py <config.txt>")
         sys.exit(1)
 
-    config_file = sys.argv[1]
-    print(f"Configuration loaded successfully: config = {config_file}")
     try:
-        config_parser = ConfigParser(config_file)
-        config = config_parser.parse()
-        print(f"Configuration parsed successfully: {config}")
+        controller = MazeController(sys.argv[1])
+        controller.run()
     except FileNotFoundError as error:
         print(error)
         sys.exit(1)
-    except ValueError as error:
+    except (ValueError, KeyError) as error:
         print(f"Error in configuration file: {error}")
         sys.exit(1)
 
