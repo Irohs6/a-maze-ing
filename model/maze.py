@@ -1,12 +1,10 @@
 # model/maze.py — Structure de données représentant le labyrinthe.
 # Contient la classe Maze qui stocke la grille de cellules et leurs murs.
-# Chaque cellule est représentée par un entier sur 4 bits (Nord, Est, Sud, Ouest).
+# Chaque cellule est un entier sur 4 bits (Nord, Est, Sud, Ouest).
 # La classe fournit des méthodes pour :
 #   - accéder et modifier les murs d'une cellule donnée
-#   - vérifier la validité des données (cohérence des murs entre cellules voisines)
-#   - détecter les zones ouvertes interdites (aucune zone 3x3 sans murs)
-#   - encoder le labyrinthe en hexadécimal pour l'écriture dans le fichier de sortie
-#   - placer et vérifier le motif "42" dans la grille
+#   - encoder le labyrinthe en hexadécimal pour la sortie
+# La validation est déléguée à MazeValidator (model/maze_validator.py).
 # Utilise des annotations de type et des docstrings conformes à PEP 257.
 
 
@@ -19,8 +17,8 @@ class Maze:
         - bit 2 (4): wall to the South
         - bit 3 (8): wall to the West
 
-    Provides methods to access and modify cell walls, validate maze structure,
-    detect forbidden open areas, encode the maze for output, and handle the "42" pattern.
+    Provides methods to access and modify cell walls and encode the
+    maze for output. Validation is handled by MazeValidator.
     """
 
     def __init__(self, width: int, height: int) -> None:
@@ -45,7 +43,7 @@ class Maze:
             raise ValueError(f"Invalid direction: {direction}")
 
     def has_wall(self, x: int, y: int, direction: str) -> bool:
-        """Check if there is a wall in the specified direction for the cell at (x, y)."""
+        """Check if there is a wall in the given direction for cell (x, y)."""
         if direction == 'N':
             return (self.grid[y][x] & 1) != 0
         elif direction == 'E':
