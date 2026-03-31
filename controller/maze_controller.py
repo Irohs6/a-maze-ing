@@ -53,3 +53,4 @@ class MazeController:
         self._build_maze()
         view = TerminalView(self._maze)
         view.print_unicode()
+        print(self._maze.encode_hex())

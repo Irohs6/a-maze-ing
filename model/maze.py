@@ -92,6 +92,15 @@ class Maze:
 #          +------------+ +------------+ +------------+
 
     def encode_hex(self) -> str:
+        """Encode the maze grid as a hexadecimal string."""
+        hex_string = ""
+        for row in self.grid:
+            for cell in row:
+                hex_string += f"{cell:X}"
+            hex_string += "\n"
+        return hex_string
+
+
 if __name__ == "__main__":
     maze = Maze(5, 5)
     for row in maze.grid:
