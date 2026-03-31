@@ -1,56 +1,49 @@
-# controller/maze_controller.py — Orchestrateur central du programme.
-# Contient la classe MazeController qui fait le lien entre le modèle et la vue.
-# Responsabilités :
-#   1. Recevoir le chemin du fichier de configuration depuis a_maze_ing.py
-#   2. Instancier ConfigParser et lire la configuration
-#   3. Instancier le générateur de labyrinthe (MazeGenerator depuis mazegen)
-#      et déclencher la génération avec les paramètres de la config
-#   4. Instancier PathFinder et calculer le chemin solution
-#   5. Écrire le fichier de sortie au format hexadécimal requis
-#   6. Instancier la vue appropriée (TerminalView ou MlxView) et lancer
-# l'affichage
-#   7. Gérer les actions utilisateur transmises par la vue (régénérer, afficher
-# solution, etc.)
-#   8. Propager les erreurs sous forme de messages clairs sans planter le
-# programme.
-
 from typing import Any
 from model.config_parser import ConfigParser
-from model.maze import Maze
+from mazegen.maze_generator import MazeGenerator
 from view.terminal_view import TerminalView
 
 
 class MazeController:
-    """Central orchestrator: loads config, generates maze, finds path, 
-    renders view."""
+    """Central orchestrator: loads config, generates maze, finds path, renders view."""
 
     def __init__(self, config_file: str) -> None:
         self._config_file: str = config_file
         self._config: dict[str, Any] = {}
-        self._maze: Maze | None = None
+        self._generator: MazeGenerator | None = None
 
     def _load_config(self) -> None:
-        """Parse and validate the configuration file.
-
-        Raises:
-            FileNotFoundError: If the config file does not exist.
-            ValueError: If a value is invalid or a key is missing.
-            KeyError: If a required key is absent.
-        """
         parser = ConfigParser(self._config_file)
         parser.parse()
         parser._validate_required_keys()
         parser._parse_coordinates()
         self._config = parser._get_config()
 
-    def _build_maze(self) -> None:
-        """Instantiate the Maze with dimensions from the config."""
-        self._maze = Maze(self._config['WIDTH'], self._config['HEIGHT'])
-
     def run(self) -> None:
         """Execute the full maze pipeline."""
         self._load_config()
-        self._build_maze()
-        view = TerminalView(self._maze)
+
+        # 1. Instancier le générateur
+        self._generator = MazeGenerator(
+            width=self._config['WIDTH'],
+            height=self._config['HEIGHT'],
+            seed=self._config.get('SEED'),
+            perfect=self._config.get('PERFECT', True),
+            algorithm=self._config.get('ALGORITHM', 'backtracker')
+        )
+
+        # 2. Générer le labyrinthe + récupérer la trace
+        track = self._generator._generate_backtracker()
+        maze = self._generator.get_maze()
+
+        # 3. Instancier la vue
+        view = TerminalView(maze, track)
+
+        # 4. Jouer l’animation de génération
+        view.play()
+
+        # 5. Afficher le labyrinthe final
         view.print_unicode()
-        print(self._maze.encode_hex())
+
+        # 6. Encoder en hex
+        print(maze.encode_hex())
