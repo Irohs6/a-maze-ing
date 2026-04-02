@@ -204,7 +204,7 @@ class MazeGenerator:
                 tracks = self._generate_kruksal()
         self.maze = potential_maze
         return tracks
-n
+
 
 if __name__ == "__main__":
     generator = MazeGenerator(15, 15, perfect=False)
