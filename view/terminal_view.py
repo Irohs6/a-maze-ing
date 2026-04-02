@@ -3,12 +3,16 @@
 import os
 import time
 from collections import deque
+from model.maze import Maze
 
 
 class TerminalView:
     def __init__(self, maze, track=None):
         self.maze = maze
         self.track = track
+        # Maze vierge dédié à l'animation — les murs sont cassés au fur et
+        # à mesure du track pour que la progression reste 100 % visible.
+        self._anim_maze = Maze(maze.width, maze.height)
 
     # ---------------------------------------------------------
     #  ANIMATION DE LA GÉNÉRATION
@@ -25,6 +29,7 @@ class TerminalView:
         }
 
         pos_stack = [(0, 0)]
+        anim = self._anim_maze
 
         for step in self.track:
             os.system("clear")
@@ -33,14 +38,14 @@ class TerminalView:
                 x, y = pos_stack[-1]
                 dx, dy = directions[step]
                 nx, ny = x + dx, y + dy
-                self.maze.remove_wall(x, y, step)
+                anim.remove_wall(x, y, step)
                 pos_stack.append((nx, ny))
             else:
                 # Empêcher la pile de devenir vide
                 if len(pos_stack) > 1:
                     pos_stack.pop()
 
-            self._print_with_cursor(pos_stack[-1])
+            self._print_with_cursor(pos_stack[-1], anim)
             print(f"\nStep: {step}")
 
             time.sleep(delay)
@@ -48,8 +53,9 @@ class TerminalView:
     # ---------------------------------------------------------
     #  AFFICHAGE AVEC CURSEUR
     # ---------------------------------------------------------
-    def _print_with_cursor(self, cursor_pos):
-        maze = self.maze
+    def _print_with_cursor(self, cursor_pos, maze=None):
+        if maze is None:
+            maze = self.maze
         h = maze.height
         w = maze.width
         grid = maze.grid

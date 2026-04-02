@@ -100,6 +100,10 @@ class Maze:
             hex_string += "\n"
         return hex_string
 
+    def wall_count(self, x: int, y: int) -> int:
+        """Return the number of walls surrounding cell (x, y) (0–4)."""
+        return bin(self.grid[y][x]).count('1')
+
 
 if __name__ == "__main__":
     maze = Maze(5, 5)

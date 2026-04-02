@@ -99,6 +99,33 @@ def test_file_not_found():
     assert "not found" in str(excinfo.value)
 
 
+def test_coordinates_at_exact_boundary(tmp_path):
+    """EXIT=10,0 avec WIDTH=10 doit être rejeté.
+
+    Les index valides pour x sont 0..WIDTH-1 (soit 0..9).
+    Bug actuel : la condition utilise '>' au lieu de '>=' —
+    x=10 passe sans erreur alors qu'il est hors limites.
+    Ce test DOIT ÉCHOUER jusqu'à ce que le bug soit corrigé.
+    """
+    config_content = """\
+WIDTH=10
+HEIGHT=5
+ENTRY=0,0
+EXIT=10,4
+OUTPUT_FILE=maze_output.txt
+PERFECT=True
+"""
+    config_file = tmp_path / "config.txt"
+    config_file.write_text(config_content)
+
+    parser = ConfigParser(str(config_file))
+    parser.parse()
+    parser._validate_required_keys()
+    with pytest.raises(ValueError) as excinfo:
+        parser._parse_coordinates()
+    assert "needs 2 positive integers" in str(excinfo.value)
+
+
 def test_optional_keys_defaults(tmp_path):
     config_content = """\
 WIDTH=10

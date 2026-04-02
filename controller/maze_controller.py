@@ -33,8 +33,9 @@ class MazeController:
         )
 
         # 2. Générer le labyrinthe + récupérer la trace
-        track = self._generator._generate_backtracker()
+        self._generator.generate()
         maze = self._generator.get_maze()
+        track = self._generator.track
 
         # 3. Instancier la vue
         view = TerminalView(maze, track)
@@ -42,8 +43,7 @@ class MazeController:
         # 4. Jouer l’animation de génération
         view.play()
 
-        # 5. Afficher le labyrinthe final
-        view.print_unicode()
+        print(self._generator.seed)
 
         # 6. Encoder en hex
         print(maze.encode_hex())

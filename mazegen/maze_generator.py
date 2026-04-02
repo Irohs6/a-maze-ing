@@ -30,7 +30,7 @@ class MazeGenerator:
         solution_path = generator.get_solution()
     """
 
-    def __init__(self, width: int, height: int, seed: int = None, 
+    def __init__(self, width: int, height: int, seed: int = None,
                  perfect: bool = True, algorithm: str = 'backtracker') -> None:
         """Initialize the maze generator with given parameters."""
         self.width = width
@@ -42,6 +42,7 @@ class MazeGenerator:
         self.algorithm = algorithm
         self.maze = Maze(self.width, self.height)
         self.solution_path = None
+        self.track: list[str] = []
 
     def generate(self) -> None:
         """Generate the maze using the specified algorithm."""
@@ -72,8 +73,9 @@ class MazeGenerator:
 
         self.maze = Maze(self.width, self.height)
         self.solution_path = None
+        self.track = []
 
-    def _generate_backtracker(self) -> None:
+    def _generate_backtracker(self) -> list[str]:
         """Internal method to generate the maze using the recursive backtracker
          algorithm."""
         # Implementation of the backtracker algorithm goes here.
@@ -116,8 +118,10 @@ class MazeGenerator:
                 continue
             else:
                 nx, ny, direction = random.choice(neighbors)
+                self.maze.remove_wall(x, y, direction)
                 visited.add((nx, ny))
                 stack.append((nx, ny))
                 track.append(direction)
 
+        self.track = track
         return track
