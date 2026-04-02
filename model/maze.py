@@ -119,6 +119,17 @@ class Maze:
                 neighbors.append((nx, ny, direction))
         return neighbors
 
+    def _get_maze_boundaries(self):
+        # Check top and bottom rows:
+        boundaries = set()
+        for x in range(self.width):
+            boundaries.add((x, 0))
+            boundaries.add((x, self.height - 1))
+        # Check left and right columns:
+        for y in range(self.height):
+            boundaries.add((0, y))
+            boundaries.add((self.width - 1, y))
+        return boundaries
 
 if __name__ == "__main__":
     maze = Maze(5, 5)

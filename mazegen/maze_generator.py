@@ -133,7 +133,8 @@ class MazeGenerator:
         reached = 1
         x = random.randint(0, self.width - 1)
         y = random.randint(0, self.height - 1)
-        already_visited = []
+        already_visited = set()
+        all_cells = {(x, y) for x in range(self.width) for y in range(self.height)}
         while (reached < total):
             wall_direction = random.choice(['N', 'E', 'S', 'W'])
             try:
@@ -142,35 +143,38 @@ class MazeGenerator:
                 continue
             else:
                 reached += 1
-                already_visited.append((x, y))
+                already_visited.add((x, y))
             if reached == total:
                 break
-            while (x, y) in already_visited:
-                x = random.randint(0, self.width - 1)
-                y = random.randint(0, self.height - 1)
-        potential_maze = copy.deepcopy(self.maze)
+            x, y = random.choice(list(all_cells - already_visited))
 
         def second_loop(maze):
-            while True:
-                x = random.randint(0, self.width - 1)
-                y = random.randint(0, self.height - 1)
+            to_be_destroyed = {(x, y) for x in range(self.width) for y in range(self.height) if maze._cell_wall_count(x, y) > 2}
+            to_be_destroyed -= self.maze._get_maze_boundaries()
+            while to_be_destroyed:
+                x, y = random.choice(list(to_be_destroyed))
                 wall_direction = random.choice(['N', 'E', 'S', 'W'])
-                if maze.has_wall(x, y, wall_direction) and maze._cell_wall_count(x, y) > 2:
+                if maze.has_wall(x, y, wall_direction):
                     try:
                         maze.remove_wall(x, y, wall_direction)
                     except ValueError:
                         continue
-                if sum(1 for x in range(self.width) for y in range(self.height) if maze._cell_wall_count(x, y) > 2) == 0:
-                    break
+                    else:
+                        to_be_destroyed.remove((x, y))
+                elif maze._cell_wall_count(x, y) <= 2:
+                    to_be_destroyed = {(x, y) for x in range(self.width) for y in range(self.height) if maze._cell_wall_count(x, y) > 2}
             return maze
-        while not MazeValidator(potential_maze)._validate_maze_connectivity() or MazeValidator(potential_maze)._has_forbidden_open_areas():
+        potential_maze = copy.deepcopy(self.maze)
+        validator = MazeValidator(potential_maze)
+        while not validator._validate_maze_connectivity() or validator._has_forbidden_open_areas():
             potential_maze = copy.deepcopy(self.maze)
             potential_maze = second_loop(potential_maze)
-        self.maze = copy.deepcopy(potential_maze)
+            validator = MazeValidator(potential_maze)
+        self.maze = potential_maze
 
 
 if __name__ == "__main__":
-    generator = MazeGenerator(40, 40, perfect=False)
+    generator = MazeGenerator(20, 20, perfect=False)
     start = time.time()
     generator._generate_kruksal()
     view = TerminalView(generator.get_maze())
