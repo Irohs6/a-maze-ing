@@ -12,6 +12,7 @@
 
 import time
 import random
+
 from model.maze import Maze
 from model.maze_validator import MazeValidator
 from view.terminal_view import TerminalView
@@ -134,8 +135,7 @@ class MazeGenerator:
         reached = 1
         x = random.randint(0, self.width - 1)
         y = random.randint(0, self.height - 1)
-        already_visited = set()
-        all_cells = {(x, y) for x in range(self.width) for y in range(self.height)}
+        unvisited = [(x, y) for x in range(self.width) for y in range(self.height)]
         while (reached < total):
             wall_direction = random.choice(['N', 'E', 'S', 'W'])
             try:
@@ -144,10 +144,12 @@ class MazeGenerator:
                 continue
             else:
                 reached += 1
-                already_visited.add((x, y))
             if reached == total:
                 break
-            x, y = random.choice(list(all_cells - already_visited))
+            i = random.randint(0, len(unvisited) - 1)
+            x, y = unvisited[i]
+            unvisited[i] = unvisited[-1]
+            unvisited.pop()
 
         def second_loop(maze):
             to_be_destroyed = {(x, y) for x in range(self.width) for y in range(self.height) if maze._cell_wall_count(x, y) > 2}
@@ -165,6 +167,20 @@ class MazeGenerator:
                     else:
                         to_be_destroyed[i] = to_be_destroyed[-1]
                         to_be_destroyed.pop()
+                        # neighbor = None
+                        # for nx, ny, direction in self.maze._get_neighbors_of_cell(x, y):
+                        #     if direction == wall_direction:
+                        #         neighbor = (nx, ny)
+                        #         break
+
+                        # # 🔑 mettre à jour le voisin si besoin
+                        # if neighbor:
+                        #     if maze._cell_wall_count(*neighbor) <= 2:
+                        #         if neighbor in to_be_destroyed:
+                        #             j = to_be_destroyed.index(neighbor)
+                        #             to_be_destroyed[j] = to_be_destroyed[-1]
+                        #             to_be_destroyed.pop()
+
                 elif maze._cell_wall_count(x, y) <= 2:
                     to_be_destroyed = [(x, y) for x in range(self.width) for y in range(self.height) if maze._cell_wall_count(x, y) > 2]
             return maze
@@ -177,7 +193,6 @@ class MazeGenerator:
             validator = MazeValidator(potential_maze)
             counter += 1
             if counter == 33:
-                print('la')
                 self.maze = initial_maze
                 self._generate_kruksal()
         self.maze = potential_maze
