@@ -100,9 +100,24 @@ class Maze:
             hex_string += "\n"
         return hex_string
 
-    def wall_count(self, x: int, y: int) -> int:
+    def _cell_wall_count(self, x: int, y: int) -> int:
         """Return the number of walls surrounding cell (x, y) (0–4)."""
         return bin(self.grid[y][x]).count('1')
+
+    def _get_neighbors_of_cell(self, x: int, y: int) -> list:
+        directions = {
+            'N': (0, -1),
+            'E': (1, 0),
+            'S': (0, 1),
+            'W': (-1, 0),
+        }
+        neighbors = []
+        for direction, (offset_x, offset_y) in directions.items():
+            nx = x + offset_x
+            ny = y + offset_y
+            if 0 <= nx < self.width and 0 <= ny < self.height:
+                neighbors.append((nx, ny, direction))
+        return neighbors
 
 
 if __name__ == "__main__":

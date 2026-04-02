@@ -10,10 +10,12 @@
 # qui garantit les contraintes du sujet (connectivité, largeur max de couloir, motif 42).
 # Contient une documentation complète avec exemples d'utilisation (conforme PEP 257).
 
+import time
 import random
 from model.maze import Maze
 from model.maze_validator import MazeValidator
-
+from view.terminal_view import TerminalView
+import copy
 
 class MazeGenerator:
     """Generates a maze based on specified parameters.
@@ -125,3 +127,52 @@ class MazeGenerator:
 
         self.track = track
         return track
+
+    def _generate_kruksal(self):
+        total = self.height * self.width
+        reached = 1
+        x = random.randint(0, self.width - 1)
+        y = random.randint(0, self.height - 1)
+        already_visited = []
+        while (reached < total):
+            wall_direction = random.choice(['N', 'E', 'S', 'W'])
+            try:
+                self.maze.remove_wall(x, y, wall_direction)
+            except ValueError:
+                continue
+            else:
+                reached += 1
+                already_visited.append((x, y))
+            if reached == total:
+                break
+            while (x, y) in already_visited:
+                x = random.randint(0, self.width - 1)
+                y = random.randint(0, self.height - 1)
+        potential_maze = copy.deepcopy(self.maze)
+
+        def second_loop(maze):
+            while True:
+                x = random.randint(0, self.width - 1)
+                y = random.randint(0, self.height - 1)
+                wall_direction = random.choice(['N', 'E', 'S', 'W'])
+                if maze.has_wall(x, y, wall_direction) and maze._cell_wall_count(x, y) > 2:
+                    try:
+                        maze.remove_wall(x, y, wall_direction)
+                    except ValueError:
+                        continue
+                if sum(1 for x in range(self.width) for y in range(self.height) if maze._cell_wall_count(x, y) > 2) == 0:
+                    break
+            return maze
+        while not MazeValidator(potential_maze)._validate_maze_connectivity() or MazeValidator(potential_maze)._has_forbidden_open_areas():
+            potential_maze = copy.deepcopy(self.maze)
+            potential_maze = second_loop(potential_maze)
+        self.maze = copy.deepcopy(potential_maze)
+
+
+if __name__ == "__main__":
+    generator = MazeGenerator(40, 40, perfect=False)
+    start = time.time()
+    generator._generate_kruksal()
+    view = TerminalView(generator.get_maze())
+    view.print_unicode()
+    print(f"TIME: {round(time.time() - start, 2)} seconds")
