@@ -50,6 +50,19 @@ class TerminalView:
 
             time.sleep(delay)
 
+    def play_kruksal(self, delay=0.03):
+        if not self.track:
+            return
+        anim = self._anim_maze
+
+        for step in self.track:
+            os.system("clear")
+            anim.remove_wall(*step)
+            self._print_with_cursor((step[0], step[1]), anim)
+            print(f"\nStep: {step[2]}")
+
+            time.sleep(delay)
+
     # ---------------------------------------------------------
     #  AFFICHAGE AVEC CURSEUR
     # ---------------------------------------------------------

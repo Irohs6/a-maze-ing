@@ -130,6 +130,7 @@ class MazeGenerator:
         return track
 
     def _generate_kruksal(self):
+        tracks = []
         initial_maze = copy.deepcopy(self.maze)
         total = self.height * self.width
         reached = 1
@@ -144,6 +145,7 @@ class MazeGenerator:
                 continue
             else:
                 reached += 1
+                tracks.append((x, y, wall_direction))
             if reached == total:
                 break
             i = random.randint(0, len(unvisited) - 1)
@@ -152,6 +154,7 @@ class MazeGenerator:
             unvisited.pop()
 
         def second_loop(maze):
+            nonlocal tracks
             to_be_destroyed = {(x, y) for x in range(self.width) for y in range(self.height) if maze._cell_wall_count(x, y) > 2}
             to_be_destroyed -= self.maze._get_maze_boundaries()
             to_be_destroyed = list(to_be_destroyed)
@@ -165,6 +168,7 @@ class MazeGenerator:
                     except ValueError:
                         continue
                     else:
+                        tracks.append((x, y, wall_direction))
                         to_be_destroyed[i] = to_be_destroyed[-1]
                         to_be_destroyed.pop()
                         # neighbor = None
@@ -187,21 +191,26 @@ class MazeGenerator:
         potential_maze = copy.deepcopy(self.maze)
         validator = MazeValidator(potential_maze)
         counter = 0
+        until_now = len(tracks)
         while not validator._validate_maze_connectivity() or validator._has_forbidden_open_areas():
+            tracks = tracks[:until_now]
             potential_maze = copy.deepcopy(self.maze)
             potential_maze = second_loop(potential_maze)
             validator = MazeValidator(potential_maze)
             counter += 1
             if counter == 33:
                 self.maze = initial_maze
-                self._generate_kruksal()
+                tracks = []
+                tracks = self._generate_kruksal()
         self.maze = potential_maze
-
+        return tracks
+n
 
 if __name__ == "__main__":
-    generator = MazeGenerator(60, 60, perfect=False)
+    generator = MazeGenerator(15, 15, perfect=False)
     start = time.time()
-    generator._generate_kruksal()
-    view = TerminalView(generator.get_maze())
+    tracks = generator._generate_kruksal()
+    view = TerminalView(generator.get_maze(), tracks)
+    view.play_kruksal()
     view.print_unicode()
     print(f"TIME: {round(time.time() - start, 2)} seconds")
