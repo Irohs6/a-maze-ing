@@ -129,6 +129,7 @@ class MazeGenerator:
         return track
 
     def _generate_kruksal(self):
+        initial_maze = copy.deepcopy(self.maze)
         total = self.height * self.width
         reached = 1
         x = random.randint(0, self.width - 1)
@@ -151,8 +152,10 @@ class MazeGenerator:
         def second_loop(maze):
             to_be_destroyed = {(x, y) for x in range(self.width) for y in range(self.height) if maze._cell_wall_count(x, y) > 2}
             to_be_destroyed -= self.maze._get_maze_boundaries()
+            to_be_destroyed = list(to_be_destroyed)
             while to_be_destroyed:
-                x, y = random.choice(list(to_be_destroyed))
+                i = random.randint(0, len(to_be_destroyed) - 1)
+                x, y = to_be_destroyed[i]
                 wall_direction = random.choice(['N', 'E', 'S', 'W'])
                 if maze.has_wall(x, y, wall_direction):
                     try:
@@ -160,21 +163,28 @@ class MazeGenerator:
                     except ValueError:
                         continue
                     else:
-                        to_be_destroyed.remove((x, y))
+                        to_be_destroyed[i] = to_be_destroyed[-1]
+                        to_be_destroyed.pop()
                 elif maze._cell_wall_count(x, y) <= 2:
-                    to_be_destroyed = {(x, y) for x in range(self.width) for y in range(self.height) if maze._cell_wall_count(x, y) > 2}
+                    to_be_destroyed = [(x, y) for x in range(self.width) for y in range(self.height) if maze._cell_wall_count(x, y) > 2]
             return maze
         potential_maze = copy.deepcopy(self.maze)
         validator = MazeValidator(potential_maze)
+        counter = 0
         while not validator._validate_maze_connectivity() or validator._has_forbidden_open_areas():
             potential_maze = copy.deepcopy(self.maze)
             potential_maze = second_loop(potential_maze)
             validator = MazeValidator(potential_maze)
+            counter += 1
+            if counter == 33:
+                print('la')
+                self.maze = initial_maze
+                self._generate_kruksal()
         self.maze = potential_maze
 
 
 if __name__ == "__main__":
-    generator = MazeGenerator(20, 20, perfect=False)
+    generator = MazeGenerator(60, 60, perfect=False)
     start = time.time()
     generator._generate_kruksal()
     view = TerminalView(generator.get_maze())
