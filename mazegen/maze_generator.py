@@ -181,17 +181,15 @@ class MazeGenerator:
         pattern_cells = self.place_42_center()
         pattern_neighbors = self._get_42_neighbors()
         initial_maze = copy.deepcopy(self.maze)
-        reached = 1
         unvisited = [
             (x, y)
             for x in range(self.width)
             for y in range(self.height)
             if (x, y) not in pattern_cells
         ]
-        total = len(unvisited)
         i = random.randint(0, len(unvisited) - 1)
         x, y = unvisited[i]
-        while reached < total:
+        while unvisited:
             wall_direction = random.choice(["N", "E", "S", "W"])
             if (x, y) not in pattern_cells and self.maze._get_direction_neighbor(
                 x, y, wall_direction
@@ -201,11 +199,10 @@ class MazeGenerator:
                 except ValueError:
                     continue
                 else:
-                    reached += 1
                     tracks.append((x, y, wall_direction))
                     unvisited[i] = unvisited[-1]
                     unvisited.pop()
-            if reached == total:
+            if not unvisited:
                 break
             i = random.randint(0, len(unvisited) - 1)
             x, y = unvisited[i]
