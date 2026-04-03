@@ -129,6 +129,16 @@ class Maze:
                 neighbors.append((nx, ny, direction))
         return neighbors
 
+    def _get_direction_neighbor(self, x: int, y: int, dir: str):
+        directions = {
+            'N': (0, -1),
+            'E': (1, 0),
+            'S': (0, 1),
+            'W': (-1, 0),
+        }
+        nx, ny = directions[dir]
+        return (x + nx, y + ny)
+
     def _get_maze_boundaries(self):
         # Check top and bottom rows:
         boundaries = set()

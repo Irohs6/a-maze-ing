@@ -27,15 +27,21 @@ class MazeGenerator:
     that generated mazes meet the required constraints.
 
     Example usage:
-        generator = MazeGenerator(width=10, height=10, seed=42, perfect=True, 
+        generator = MazeGenerator(width=10, height=10, seed=42, perfect=True,
         algorithm='backtracker
         generator.generate()
         maze_grid = generator.get_maze()
         solution_path = generator.get_solution()
     """
 
-    def __init__(self, width: int, height: int, seed: int = None,
-                 perfect: bool = True, algorithm: str = 'backtracker') -> None:
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        seed: int = None,
+        perfect: bool = True,
+        algorithm: str = "backtracker",
+    ) -> None:
         """Initialize the maze generator with given parameters."""
         self.width = width
         self.height = height
@@ -47,21 +53,21 @@ class MazeGenerator:
         self.maze = Maze(self.width, self.height)
         self.solution_path = None
         self.track: list[str] = []
-        self.pattern_42_cells = set()
+        self.forty_two_cells = set()
 
     def generate(self) -> None:
         """Generate the maze using the specified algorithm."""
-        if self.algorithm in ('backtracker', 'recursive_backtracker'):
+        if self.algorithm in ("backtracker", "recursive_backtracker"):
             self._generate_backtracker()
-        elif self.algorithm == 'kruskal':
+        elif self.algorithm == "kruskal":
             self._generate_kruksal()
         else:
             raise ValueError(f"Unsupported algorithm: {self.algorithm}")
 
         # Validate only AFTER generation
-        # validator = MazeValidator(self.maze)
-        # if not validator.validate():
-        # raise ValueError("Generated maze is invalid.")
+        validator = MazeValidator(self.maze)
+        if not validator.validate():
+            raise ValueError("Generated maze is invalid.")
 
     def get_maze(self) -> list[list[int]]:
         """Return the generated maze grid as a 2D list of cell values."""
@@ -104,22 +110,33 @@ class MazeGenerator:
                     y = start_y + dy
 
                     maze.grid[y][x] = 15
-                    self.pattern_42_cells.add((x, y))
+                    self.forty_two_cells.add((x, y))
 
-        return self.pattern_42_cells
+        return self.forty_two_cells
+
+    def _get_42_neighbors(self):
+        pattern_neighbors = []
+        for cell in self.forty_two_cells:
+            for neighbor in self.maze._get_neighbors_of_cell(*cell):
+                if (neighbor[0], neighbor[1]) not in self.forty_two_cells and (
+                    neighbor[0],
+                    neighbor[1],
+                ) not in pattern_neighbors:
+                    pattern_neighbors.append((neighbor[0], neighbor[1]))
+        return pattern_neighbors
 
     def _generate_backtracker(self) -> list[str]:
         """Internal method to generate the maze using the recursive backtracker
-         algorithm."""
+        algorithm."""
         # Implementation of the backtracker algorithm goes here.
         # This method should modify self.maze to create the maze and
         # set self.solution_path to the correct path from start to finish.
 
         directions = {
-            'N': (0, -1),
-            'E': (1, 0),
-            'S': (0, 1),
-            'W': (-1, 0),
+            "N": (0, -1),
+            "E": (1, 0),
+            "S": (0, 1),
+            "W": (-1, 0),
         }
 
         start = (0, 0)
@@ -161,38 +178,57 @@ class MazeGenerator:
 
     def _generate_kruksal(self):
         tracks = []
+        pattern_cells = self.place_42_center()
+        pattern_neighbors = self._get_42_neighbors()
         initial_maze = copy.deepcopy(self.maze)
-        total = self.height * self.width
         reached = 1
-        x = random.randint(0, self.width - 1)
-        y = random.randint(0, self.height - 1)
-        unvisited = [(x, y) for x in range(self.width) for y in range(self.height)]
-        while (reached < total):
-            wall_direction = random.choice(['N', 'E', 'S', 'W'])
-            try:
-                self.maze.remove_wall(x, y, wall_direction)
-            except ValueError:
-                continue
-            else:
-                reached += 1
-                tracks.append((x, y, wall_direction))
+        unvisited = [
+            (x, y)
+            for x in range(self.width)
+            for y in range(self.height)
+            if (x, y) not in pattern_cells
+        ]
+        total = len(unvisited)
+        i = random.randint(0, len(unvisited) - 1)
+        x, y = unvisited[i]
+        while reached < total:
+            wall_direction = random.choice(["N", "E", "S", "W"])
+            if (x, y) not in pattern_cells and self.maze._get_direction_neighbor(
+                x, y, wall_direction
+            ) not in pattern_cells:
+                try:
+                    self.maze.remove_wall(x, y, wall_direction)
+                except ValueError:
+                    continue
+                else:
+                    reached += 1
+                    tracks.append((x, y, wall_direction))
+                    unvisited[i] = unvisited[-1]
+                    unvisited.pop()
             if reached == total:
                 break
             i = random.randint(0, len(unvisited) - 1)
             x, y = unvisited[i]
-            unvisited[i] = unvisited[-1]
-            unvisited.pop()
 
         def second_loop(maze):
             nonlocal tracks
-            to_be_destroyed = {(x, y) for x in range(self.width) for y in range(self.height) if maze._cell_wall_count(x, y) > 2}
+            to_be_destroyed = {
+                (x, y)
+                for x in range(self.width)
+                for y in range(self.height)
+                if maze._cell_wall_count(x, y) > 2 and (x, y) not in pattern_cells
+            }
             to_be_destroyed -= self.maze._get_maze_boundaries()
             to_be_destroyed = list(to_be_destroyed)
             while to_be_destroyed:
                 i = random.randint(0, len(to_be_destroyed) - 1)
                 x, y = to_be_destroyed[i]
-                wall_direction = random.choice(['N', 'E', 'S', 'W'])
-                if maze.has_wall(x, y, wall_direction):
+                wall_direction = random.choice(["N", "E", "S", "W"])
+                if (
+                    maze.has_wall(x, y, wall_direction)
+                    and maze._get_direction_neighbor(x, y, wall_direction)
+                    not in pattern_cells
+                ):
                     try:
                         maze.remove_wall(x, y, wall_direction)
                     except ValueError:
@@ -201,28 +237,27 @@ class MazeGenerator:
                         tracks.append((x, y, wall_direction))
                         to_be_destroyed[i] = to_be_destroyed[-1]
                         to_be_destroyed.pop()
-                        # neighbor = None
-                        # for nx, ny, direction in self.maze._get_neighbors_of_cell(x, y):
-                        #     if direction == wall_direction:
-                        #         neighbor = (nx, ny)
-                        #         break
-
-                        # # 🔑 mettre à jour le voisin si besoin
-                        # if neighbor:
-                        #     if maze._cell_wall_count(*neighbor) <= 2:
-                        #         if neighbor in to_be_destroyed:
-                        #             j = to_be_destroyed.index(neighbor)
-                        #             to_be_destroyed[j] = to_be_destroyed[-1]
-                        #             to_be_destroyed.pop()
-
                 elif maze._cell_wall_count(x, y) <= 2:
-                    to_be_destroyed = [(x, y) for x in range(self.width) for y in range(self.height) if maze._cell_wall_count(x, y) > 2]
+                    to_be_destroyed = [
+                        (x, y)
+                        for x in range(self.width)
+                        for y in range(self.height)
+                        if maze._cell_wall_count(x, y) > 2
+                        and (x, y) not in pattern_cells
+                    ]
+                elif (x, y) in pattern_neighbors:
+                    to_be_destroyed[i] = to_be_destroyed[-1]
+                    to_be_destroyed.pop()
             return maze
+
         potential_maze = copy.deepcopy(self.maze)
         validator = MazeValidator(potential_maze)
         counter = 0
         until_now = len(tracks)
-        while not validator._validate_maze_connectivity() or validator._has_forbidden_open_areas():
+        while (
+            not validator._validate_maze_connectivity()
+            or validator._has_forbidden_open_areas()
+        ):
             tracks = tracks[:until_now]
             potential_maze = copy.deepcopy(self.maze)
             potential_maze = second_loop(potential_maze)
@@ -237,7 +272,7 @@ class MazeGenerator:
 
 
 if __name__ == "__main__":
-    generator = MazeGenerator(15, 15, perfect=False)
+    generator = MazeGenerator(30, 30, perfect=False)
     start = time.time()
     tracks = generator._generate_kruksal()
     # Entrée et sortie par défaut (0,0) et (width-1, height-1)
