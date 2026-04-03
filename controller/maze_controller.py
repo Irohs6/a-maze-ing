@@ -63,6 +63,8 @@ class MazeController:
         with open(output_file, 'w') as f:
             f.write(f"# seed={seed_used}\n")
             f.write(hex_grid)
+            f.write(f"{self._config.get('ALGORITHM', 'backtracker')}\n")
+            f.write("activate\n" if self._config.get('PERFECT', True) else "deactivate\n")
 
         print(f"Labyrinthe sauvegardé dans '{output_file}' (seed={seed_used})")
         print(hex_grid)

@@ -26,6 +26,16 @@ class Maze:
         self.width: int = width
         self.height: int = height
 
+        # Pixelated "42" shape — 15 means the cell must be fully isolated (value 15).
+        # Dimensions: 5 rows × 7 cols  ("4" = cols 0-2, gap col 3, "2" = cols 4-6)
+        self.PATTERN_42: list[list[int]] = [
+            [15, 0, 15, 0, 15, 15, 15],
+            [15, 0, 15, 0, 0, 0, 15],
+            [15, 15, 15, 0, 15, 15, 15],
+            [0, 0, 15, 0, 15, 0, 0],
+            [0, 0, 15, 0, 15, 15, 15],
+        ]
+
         FULL_WALL = 1 | 2 | 4 | 8  # = 15
         self.grid = [[FULL_WALL for _ in range(width)] for _ in range(height)]
 
@@ -130,6 +140,7 @@ class Maze:
             boundaries.add((0, y))
             boundaries.add((self.width - 1, y))
         return boundaries
+
 
 if __name__ == "__main__":
     maze = Maze(5, 5)

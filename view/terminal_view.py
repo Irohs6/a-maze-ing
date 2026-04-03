@@ -2,8 +2,11 @@
 
 import os
 import time
+from colorama import init, Fore, Style
 from collections import deque
 from model.maze import Maze
+
+init(autoreset=False)
 
 
 class TerminalView:
@@ -16,9 +19,21 @@ class TerminalView:
         # à mesure du track pour que la progression reste 100 % visible.
         self._anim_maze = Maze(maze.width, maze.height)
 
+    PALETTE_MATRIX = {
+        "wall": Fore.GREEN,
+        "empty": Style.RESET_ALL,
+        "entry": Fore.WHITE,
+        "exit": Fore.RED,
+        "cursor": Fore.GREEN + Style.BRIGHT,
+        "path": Fore.GREEN,
+        "forty_two": Fore.GREEN + Style.BRIGHT,
+        "info": Fore.GREEN,
+    }
+
     # ---------------------------------------------------------
     #  ANIMATION DE LA GÉNÉRATION
     # ---------------------------------------------------------
+
     def play(self, delay=0.03):
         if not self.track:
             return
@@ -95,10 +110,11 @@ class TerminalView:
                 return True
             return False
 
-        GREEN = "\033[32m"
-        RESET = "\033[0m"
-        ENTRY_ICON = " E "  # Largeur fixe
-        EXIT_ICON = " S "   # Largeur fixe
+        P = self.PALETTE_MATRIX
+        WALL = P["wall"]
+        RESET = Style.RESET_ALL
+        ENTRY_ICON = "🚀 "
+        EXIT_ICON = "🏁 "
 
         for iy in range(h + 1):
             top = ""
@@ -107,22 +123,22 @@ class TerminalView:
                 down = iy < h and v_seg(ix, iy)
                 left = ix > 0 and h_seg(ix - 1, iy)
                 right = ix < w and h_seg(ix, iy)
-                top += BOX[int(left) + int(down)*2 + int(right)*4 + int(up)*8]
+                top += WALL + BOX[int(left) + int(down)*2 + int(right)*4 + int(up)*8] + RESET
                 if ix < w:
-                    top += "───" if h_seg(ix, iy) else "   "
+                    top += WALL + "───" + RESET if h_seg(ix, iy) else "   "
             print(top)
 
             if iy < h:
                 mid = ""
                 for ix in range(w + 1):
-                    mid += "│" if v_seg(ix, iy) else " "
+                    mid += WALL + "│" + RESET if v_seg(ix, iy) else " "
                     if ix < w:
                         if (ix, iy) == (cx, cy):
-                            mid += f"{GREEN} ● {RESET}"
+                            mid += P["cursor"] + " ● " + RESET
                         elif (ix, iy) == (ex, ey):
-                            mid += ENTRY_ICON
+                            mid += P["entry"] + ENTRY_ICON + RESET
                         elif (ix, iy) == (sx, sy):
-                            mid += EXIT_ICON
+                            mid += P["exit"] + EXIT_ICON + RESET
                         else:
                             mid += "   "
                 print(mid)
@@ -138,8 +154,11 @@ class TerminalView:
 
         ex, ey = getattr(self, 'entry', (0, 0))
         sx, sy = getattr(self, 'exit_pos', (0, 0))
-        ENTRY_ICON = " E "
-        EXIT_ICON = " S "
+        P = self.PALETTE_MATRIX
+        WALL = P["wall"]
+        RESET = Style.RESET_ALL
+        ENTRY_ICON = "🚀 "
+        EXIT_ICON = "🏁 "
 
         BOX = " ╴╷┐╶─┌┬╵┘│┤└┴├┼"
 
@@ -164,20 +183,20 @@ class TerminalView:
                 down = iy < h and v_seg(ix, iy)
                 left = ix > 0 and h_seg(ix - 1, iy)
                 right = ix < w and h_seg(ix, iy)
-                top += BOX[int(left) + int(down)*2 + int(right)*4 + int(up)*8]
+                top += WALL + BOX[int(left) + int(down)*2 + int(right)*4 + int(up)*8] + RESET
                 if ix < w:
-                    top += "───" if h_seg(ix, iy) else "   "
+                    top += WALL + "───" + RESET if h_seg(ix, iy) else "   "
             print(top)
 
             if iy < h:
                 mid = ""
                 for ix in range(w + 1):
-                    mid += "│" if v_seg(ix, iy) else " "
+                    mid += WALL + "│" + RESET if v_seg(ix, iy) else " "
                     if ix < w:
                         if (ix, iy) == (ex, ey):
-                            mid += ENTRY_ICON
+                            mid += P["entry"] + ENTRY_ICON + RESET
                         elif (ix, iy) == (sx, sy):
-                            mid += EXIT_ICON
+                            mid += P["exit"] + EXIT_ICON + RESET
                         else:
                             mid += "   "
                 print(mid)
