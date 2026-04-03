@@ -2,6 +2,7 @@ from typing import Any
 from model.config_parser import ConfigParser
 from mazegen.maze_generator import MazeGenerator
 from view.terminal_view import TerminalView
+from view.curse_view import CursesView
 
 
 class MazeController:
@@ -38,12 +39,30 @@ class MazeController:
         track = self._generator.track
 
         # 3. Instancier la vue
-        view = TerminalView(maze, track)
+        entry = self._config.get('ENTRY', (0, 0))
+        exit_pos = self._config.get('EXIT', (0, 0))
+        view_mode = self._config.get('VIEW', 'terminal').lower()
+        if view_mode == 'curse':
+            view = CursesView(maze, track, entry=entry, exit=exit_pos)
+            view.start()  # L'animation est gérée dans CursesView si track est fourni
+        else:
+            view = TerminalView(maze, track, entry=entry, exit=exit_pos)
+            if track and isinstance(track[0], tuple):
+                view.play_kruksal()
+            else:
+                view.play()
+            view.print_unicode()
 
-        # 4. Jouer l’animation de génération
-        view.play()
+        # 4. Affichage terminal de la seed
+        seed_used = self._generator.seed
+        print(f"\nSeed utilisée : {seed_used}")
 
-        print(self._generator.seed)
+        # 5. Écriture dans OUTPUT_FILE
+        output_file = self._config.get('OUTPUT_FILE', 'maze.txt')
+        hex_grid = maze.encode_hex()
+        with open(output_file, 'w') as f:
+            f.write(f"# seed={seed_used}\n")
+            f.write(hex_grid)
 
-        # 6. Encoder en hex
-        print(maze.encode_hex())
+        print(f"Labyrinthe sauvegardé dans '{output_file}' (seed={seed_used})")
+        print(hex_grid)

@@ -23,7 +23,7 @@ class ConfigParser:
         'WIDTH', 'HEIGHT', 'ENTRY', 'EXIT', 'OUTPUT_FILE', 'PERFECT'
     ]
     OPTIONAL_KEYS: list[str] = [
-        'SEED', 'ALGORITHM'
+        'SEED', 'ALGORITHM', 'VIEW'
     ]
 
     def __init__(self, config_file: str) -> None:
@@ -46,6 +46,13 @@ class ConfigParser:
                     if line.startswith('#') or not line.strip():
                         continue  # Ignore comments and blank lines
                     self._parse_line(line)
+            # Ajout des valeurs par défaut pour les clés optionnelles manquantes
+            for key in self.OPTIONAL_KEYS:
+                if key not in self.__config:
+                    if key == 'VIEW':
+                        self.__config[key] = 'terminal'
+                    elif key == 'ALGORITHM':
+                        self.__config[key] = 'backtracker'
         except FileNotFoundError:
             raise FileNotFoundError(
                 f"Configuration file '{self.config_file}' not found."
@@ -54,10 +61,10 @@ class ConfigParser:
     def _parse_line(self, line: str) -> None:
         if '=' not in line:
             raise ValueError(
-                    f"Invalid line in config: '{line.strip()}' (missing '=')"
-                )
+                f"Invalid line in config: '{line.strip()}' (missing '=')"
+            )
         key, value = line.split('=', 1)
-        key = key.strip()
+        key = key.strip().upper()
         value = value.strip()
         if not key:
             raise ValueError(f"Empty key in line: '{line.strip()}'")
@@ -65,6 +72,15 @@ class ConfigParser:
             raise ValueError(
                 f"Empty value for key '{key}' in line: '{line.strip()}'"
             )
+        # Normalisation et validation pour VIEW et ALGORITHM
+        if key == 'VIEW':
+            value = value.lower()
+            if value not in ('terminal', 'curse'):
+                raise ValueError(f"VIEW must be 'terminal' or 'curse', got '{value}'")
+        if key == 'ALGORITHM':
+            value = value.lower()
+            if value not in ('backtracker', 'kruskal'):
+                raise ValueError(f"ALGORITHM must be 'backtracker' ou 'kruskal', got '{value}'")
         self.__config[key] = value
 
     def _validate_required_keys(self) -> None:
@@ -84,6 +100,11 @@ class ConfigParser:
                 self.__config[key] = tuple(int(value) for value in
                                            self.__config[key].split(','))
                 self._validate_coordinates(key)
+            self.__config['PERFECT'] = (
+                self.__config['PERFECT'].lower() == 'true'
+            )
+            if 'SEED' in self.__config:
+                self.__config['SEED'] = int(self.__config['SEED'])
         except ValueError as error:
             raise ValueError(error)
 

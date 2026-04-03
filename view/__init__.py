@@ -5,6 +5,7 @@
 # selon la configuration ou les arguments passés au programme.
 
 from .terminal_view import TerminalView
+from .curse_view import CursesView
 # from .mlx_view import MlxView  # Uncomment if MlxView is implemented
 
-__all__ = ['TerminalView']  # Add 'MlxView' if implemented
+__all__ = ['TerminalView', 'CursesView']  # Add 'MlxView' if implemented

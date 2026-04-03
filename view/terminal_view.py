@@ -7,9 +7,11 @@ from model.maze import Maze
 
 
 class TerminalView:
-    def __init__(self, maze, track=None):
+    def __init__(self, maze, track=None, entry=(0, 0), exit=(0, 0)):
         self.maze = maze
         self.track = track
+        self.entry = entry
+        self.exit_pos = exit
         # Maze vierge dédié à l'animation — les murs sont cassés au fur et
         # à mesure du track pour que la progression reste 100 % visible.
         self._anim_maze = Maze(maze.width, maze.height)
@@ -74,6 +76,8 @@ class TerminalView:
         grid = maze.grid
 
         cx, cy = cursor_pos
+        ex, ey = self.entry
+        sx, sy = self.exit_pos
 
         BOX = " ╴╷┐╶─┌┬╵┘│┤└┴├┼"
 
@@ -93,6 +97,8 @@ class TerminalView:
 
         GREEN = "\033[32m"
         RESET = "\033[0m"
+        ENTRY_ICON = " E "  # Largeur fixe
+        EXIT_ICON = " S "   # Largeur fixe
 
         for iy in range(h + 1):
             top = ""
@@ -113,6 +119,10 @@ class TerminalView:
                     if ix < w:
                         if (ix, iy) == (cx, cy):
                             mid += f"{GREEN} ● {RESET}"
+                        elif (ix, iy) == (ex, ey):
+                            mid += ENTRY_ICON
+                        elif (ix, iy) == (sx, sy):
+                            mid += EXIT_ICON
                         else:
                             mid += "   "
                 print(mid)
@@ -125,6 +135,11 @@ class TerminalView:
         h = maze.height
         w = maze.width
         grid = maze.grid
+
+        ex, ey = getattr(self, 'entry', (0, 0))
+        sx, sy = getattr(self, 'exit_pos', (0, 0))
+        ENTRY_ICON = " E "
+        EXIT_ICON = " S "
 
         BOX = " ╴╷┐╶─┌┬╵┘│┤└┴├┼"
 
@@ -159,5 +174,10 @@ class TerminalView:
                 for ix in range(w + 1):
                     mid += "│" if v_seg(ix, iy) else " "
                     if ix < w:
-                        mid += "   "
+                        if (ix, iy) == (ex, ey):
+                            mid += ENTRY_ICON
+                        elif (ix, iy) == (sx, sy):
+                            mid += EXIT_ICON
+                        else:
+                            mid += "   "
                 print(mid)

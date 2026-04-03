@@ -49,8 +49,10 @@ class MazeGenerator:
 
     def generate(self) -> None:
         """Generate the maze using the specified algorithm."""
-        if self.algorithm == 'backtracker':
+        if self.algorithm in ('backtracker', 'recursive_backtracker'):
             self._generate_backtracker()
+        elif self.algorithm == 'kruskal':
+            self._generate_kruksal()
         else:
             raise ValueError(f"Unsupported algorithm: {self.algorithm}")
 
@@ -200,9 +202,9 @@ class MazeGenerator:
             counter += 1
             if counter == 33:
                 self.maze = initial_maze
-                tracks = []
-                tracks = self._generate_kruksal()
+                self.tracks = self._generate_kruksal()
         self.maze = potential_maze
+        self.track = tracks
         return tracks
 
 
@@ -210,7 +212,10 @@ if __name__ == "__main__":
     generator = MazeGenerator(15, 15, perfect=False)
     start = time.time()
     tracks = generator._generate_kruksal()
-    view = TerminalView(generator.get_maze(), tracks)
+    # Entrée et sortie par défaut (0,0) et (width-1, height-1)
+    entry = (0, 0)
+    exit_pos = (generator.width - 1, generator.height - 1)
+    view = TerminalView(generator.get_maze(), tracks, entry=entry, exit=exit_pos)
     view.play_kruksal()
     view.print_unicode()
     print(f"TIME: {round(time.time() - start, 2)} seconds")
