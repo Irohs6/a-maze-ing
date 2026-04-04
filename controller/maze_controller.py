@@ -1,8 +1,8 @@
 from typing import Any
 from model.config_parser import ConfigParser
+from model.path_finder import PathFinder
 from mazegen.maze_generator import MazeGenerator
 from view.terminal_view import TerminalView
-from view.curse_view import CursesView
 
 
 class MazeController:
@@ -39,21 +39,30 @@ class MazeController:
         maze = self._generator.get_maze()
         track = self._generator.track
         forty_two_cells = self._generator.forty_two_cells
-        # 3. Instancier la vue
+        # 3. Calculer le chemin solution
         entry = self._config.get("ENTRY", (0, 0))
         exit_pos = self._config.get("EXIT", (0, 0))
-        view_mode = self._config.get("VIEW", "terminal").lower()
-        if view_mode == "curse":
-            view = CursesView(maze, track, entry=entry, exit=exit_pos)
-            view.start()
+        finder = PathFinder(maze, entry=entry, exit=exit_pos)
+        path_dirs = finder.find_path()
+
+        # Calculer les k plus courts chemins + détecter si parfait
+        is_perfect = finder.has_unique_path()
+        all_paths_dirs = finder.find_k_shortest_paths(k=3)
+
+        # Connexions initiales pour le premier chemin
+        path_connections = TerminalView._dirs_to_connections(
+            path_dirs, entry
+        )
+
+        # 4. Instancier la vue
+        view = TerminalView(maze, track, entry=entry, exit=exit_pos,
+                            forty_two_cells=forty_two_cells,
+                            path_connections=path_connections)
+        if track and isinstance(track[0], tuple):
+            view.play_kruksal()
         else:
-            view = TerminalView(maze, track, entry=entry, exit=exit_pos,
-                                forty_two_cells=forty_two_cells)
-            if track and isinstance(track[0], tuple):
-                view.play_kruksal()
-            else:
-                view.play()
-            view.print_unicode()
+            view.play()
+        view.show_solution(all_paths_dirs, is_perfect)
 
         # 4. Affichage terminal de la seed
         seed_used = self._generator.seed
