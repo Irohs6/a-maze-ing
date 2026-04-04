@@ -9,10 +9,11 @@
 #   - clés optionnelles absentes (vérification des valeurs par défaut)
 
 import pytest
+from pathlib import Path
 from model.config_parser import ConfigParser
 
 
-def test_valid_config(tmp_path):
+def test_valid_config(tmp_path: Path) -> None:
     config_content = """\
 # Sample valid configuration
 WIDTH=10
@@ -37,7 +38,7 @@ PERFECT=True
     assert config['EXIT'] == (9, 4)
 
 
-def test_missing_required_keys(tmp_path):
+def test_missing_required_keys(tmp_path: Path) -> None:
     config_content = """\
 WIDTH=10
 ENTRY=0,0
@@ -52,7 +53,7 @@ ENTRY=0,0
     assert "has not properly been defined" in str(excinfo.value)
 
 
-def test_invalid_value_types(tmp_path):
+def test_invalid_value_types(tmp_path: Path) -> None:
     config_content = """\
 WIDTH=abc
 HEIGHT=5
@@ -72,7 +73,7 @@ PERFECT=True
     assert "invalid literal" in str(excinfo.value)
 
 
-def test_coordinates_out_of_bounds(tmp_path):
+def test_coordinates_out_of_bounds(tmp_path: Path) -> None:
     config_content = """\
 WIDTH=10
 HEIGHT=5
@@ -92,14 +93,14 @@ PERFECT=True
     assert "needs 2 positive integers" in str(excinfo.value)
 
 
-def test_file_not_found():
+def test_file_not_found() -> None:
     parser = ConfigParser("non_existent_config.txt")
     with pytest.raises(FileNotFoundError) as excinfo:
         parser.parse()
     assert "not found" in str(excinfo.value)
 
 
-def test_coordinates_at_exact_boundary(tmp_path):
+def test_coordinates_at_exact_boundary(tmp_path: Path) -> None:
     """EXIT=10,0 avec WIDTH=10 doit être rejeté.
 
     Les index valides pour x sont 0..WIDTH-1 (soit 0..9).
@@ -126,7 +127,7 @@ PERFECT=True
     assert "needs 2 positive integers" in str(excinfo.value)
 
 
-def test_optional_keys_defaults(tmp_path):
+def test_optional_keys_defaults(tmp_path: Path) -> None:
     config_content = """\
 WIDTH=10
 HEIGHT=5
@@ -149,7 +150,7 @@ PERFECT=True
     assert 'ALGORITHM' not in config
 
 
-def test_line_missing_equals(tmp_path):
+def test_line_missing_equals(tmp_path: Path) -> None:
     config_content = """\
 WIDTH=10
 INVALID_LINE
@@ -163,7 +164,7 @@ INVALID_LINE
     assert "missing '='" in str(excinfo.value)
 
 
-def test_empty_key(tmp_path):
+def test_empty_key(tmp_path: Path) -> None:
     config_content = """\
 =some_value
 """
@@ -176,7 +177,7 @@ def test_empty_key(tmp_path):
     assert "Empty key" in str(excinfo.value)
 
 
-def test_empty_value(tmp_path):
+def test_empty_value(tmp_path: Path) -> None:
     config_content = """\
 WIDTH=
 """
@@ -189,7 +190,7 @@ WIDTH=
     assert "Empty value" in str(excinfo.value)
 
 
-def test_width_zero(tmp_path):
+def test_width_zero(tmp_path: Path) -> None:
     config_content = """\
 WIDTH=0
 HEIGHT=5
@@ -209,7 +210,7 @@ PERFECT=True
     assert "value is invalid" in str(excinfo.value)
 
 
-def test_negative_height(tmp_path):
+def test_negative_height(tmp_path: Path) -> None:
     config_content = """\
 WIDTH=10
 HEIGHT=-3
@@ -229,7 +230,7 @@ PERFECT=True
     assert "value is invalid" in str(excinfo.value)
 
 
-def test_entry_negative_coordinates(tmp_path):
+def test_entry_negative_coordinates(tmp_path: Path) -> None:
     config_content = """\
 WIDTH=10
 HEIGHT=5
@@ -249,7 +250,7 @@ PERFECT=True
     assert "needs 2 positive integers" in str(excinfo.value)
 
 
-def test_entry_too_many_values(tmp_path):
+def test_entry_too_many_values(tmp_path: Path) -> None:
     config_content = """\
 WIDTH=10
 HEIGHT=5
@@ -269,7 +270,7 @@ PERFECT=True
     assert "needs 2 positive integers" in str(excinfo.value)
 
 
-def test_blank_lines_and_comments_ignored(tmp_path):
+def test_blank_lines_and_comments_ignored(tmp_path: Path) -> None:
     config_content = """\
 # comment line
 WIDTH=10
@@ -295,7 +296,7 @@ PERFECT=True
     assert config['HEIGHT'] == 5
 
 
-def test_optional_keys_present(tmp_path):
+def test_optional_keys_present(tmp_path: Path) -> None:
     config_content = """\
 WIDTH=10
 HEIGHT=5

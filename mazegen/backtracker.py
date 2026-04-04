@@ -3,7 +3,7 @@ import random
 
 
 class Backtracker(Algorithm):
-    def generate(self) -> list:
+    def generate(self) -> list[str]:
         """Generates the maze using a depth-first search
         (backtracking) algorithm."""
         start = (0, 0)
@@ -20,7 +20,7 @@ class Backtracker(Algorithm):
 
             neighbors = [
                 (nx, ny, direction)
-                for nx, ny, direction in self.maze._get_neighbors_of_cell(x, y)
+                for nx, ny, direction in self._get_neighbors_of_cell(x, y)
                 if (nx, ny) not in visited
             ]
 

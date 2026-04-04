@@ -9,9 +9,9 @@
 WIDTH=15
 HEIGHT=15
 ENTRY=0,0
-EXIT=1,3
+EXIT=14,14
 OUTPUT_FILE=maze.txt
 PERFECT=True
 SEED=56
-ALGORITHM=backtracker
+ALGORITHM=kruksal
 VIEW=terminal

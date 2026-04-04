@@ -1,6 +1,7 @@
 # view/mlx_view.py — Rendu graphique du labyrinthe via MiniLibX (bonus).
 # Contient la classe MlxView qui utilise la bibliothèque MiniLibX (ou une
-# alternative comme pygame) pour afficher le labyrinthe dans une fenêtre graphique.
+# alternative comme pygame) pour afficher le labyrinthe dans une
+# fenêtre graphique.
 # Dessine les murs sous forme de segments ou de rectangles colorés.
 # Gère les événements clavier et souris pour :
 #   - régénérer le labyrinthe (touche R)

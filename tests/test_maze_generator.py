@@ -21,35 +21,35 @@ from mazegen.maze_generator import MazeGenerator
 
 
 @pytest.fixture
-def gen_backtracker():
+def gen_backtracker() -> MazeGenerator:
     return MazeGenerator(width=11, height=11, seed=1, algorithm='backtracker')
 
 
 @pytest.fixture
-def gen_kruskal():
+def gen_kruskal() -> MazeGenerator:
     return MazeGenerator(width=11, height=11, seed=1, algorithm='kruksal')
 
 
 # ── Initialisation ────────────────────────────────────────────────────
 
 
-def test_init_default_algorithm():
+def test_init_default_algorithm() -> None:
     gen = MazeGenerator(width=5, height=5)
     assert gen.algorithm == 'backtracker'
 
 
-def test_init_stores_dimensions():
+def test_init_stores_dimensions() -> None:
     gen = MazeGenerator(width=8, height=6)
     assert gen.width == 8
     assert gen.height == 6
 
 
-def test_init_stores_seed():
+def test_init_stores_seed() -> None:
     gen = MazeGenerator(width=5, height=5, seed=99)
     assert gen.seed == 99
 
 
-def test_init_track_and_cells_empty():
+def test_init_track_and_cells_empty() -> None:
     gen = MazeGenerator(width=5, height=5)
     assert gen.track == []
     assert gen.forty_two_cells == set()
@@ -58,12 +58,14 @@ def test_init_track_and_cells_empty():
 # ── generate() — backtracker ──────────────────────────────────────────
 
 
-def test_generate_backtracker_returns_maze_instance(gen_backtracker):
+def test_generate_backtracker_returns_maze_instance(
+                        gen_backtracker: MazeGenerator) -> None:
     gen_backtracker.generate()
     assert isinstance(gen_backtracker.get_maze(), Maze)
 
 
-def test_generate_backtracker_dimensions(gen_backtracker):
+def test_generate_backtracker_dimensions(
+        gen_backtracker: MazeGenerator) -> None:
     gen_backtracker.generate()
     maze = gen_backtracker.get_maze()
     assert maze.width == 11
@@ -72,18 +74,21 @@ def test_generate_backtracker_dimensions(gen_backtracker):
     assert len(maze.grid[0]) == 11
 
 
-def test_generate_backtracker_track_nonempty(gen_backtracker):
+def test_generate_backtracker_track_nonempty(
+        gen_backtracker: MazeGenerator) -> None:
     gen_backtracker.generate()
     assert len(gen_backtracker.track) > 0
 
 
-def test_generate_backtracker_maze_is_valid(gen_backtracker):
+def test_generate_backtracker_maze_is_valid(
+        gen_backtracker: MazeGenerator) -> None:
     gen_backtracker.generate()
     validator = MazeValidator(gen_backtracker.get_maze())
     assert validator.validate() is True
 
 
-def test_generate_backtracker_forty_two_cells_populated(gen_backtracker):
+def test_generate_backtracker_forty_two_cells_populated(
+        gen_backtracker: MazeGenerator) -> None:
     """Pour un labyrinthe 11x11 (>= min 11x9), le motif doit être placé."""
     gen_backtracker.generate()
     assert len(gen_backtracker.forty_two_cells) > 0
@@ -92,30 +97,32 @@ def test_generate_backtracker_forty_two_cells_populated(gen_backtracker):
 # ── generate() — kruskal ──────────────────────────────────────────────
 
 
-def test_generate_kruskal_returns_maze_instance(gen_kruskal):
+def test_generate_kruskal_returns_maze_instance(
+        gen_kruskal: MazeGenerator) -> None:
     gen_kruskal.generate()
     assert isinstance(gen_kruskal.get_maze(), Maze)
 
 
-def test_generate_kruskal_dimensions(gen_kruskal):
+def test_generate_kruskal_dimensions(gen_kruskal: MazeGenerator) -> None:
     gen_kruskal.generate()
     maze = gen_kruskal.get_maze()
     assert maze.width == 11
     assert maze.height == 11
 
 
-def test_generate_kruskal_track_nonempty(gen_kruskal):
+def test_generate_kruskal_track_nonempty(gen_kruskal: MazeGenerator) -> None:
     gen_kruskal.generate()
     assert len(gen_kruskal.track) > 0
 
 
-def test_generate_kruskal_maze_is_valid(gen_kruskal):
+def test_generate_kruskal_maze_is_valid(gen_kruskal: MazeGenerator) -> None:
     gen_kruskal.generate()
     validator = MazeValidator(gen_kruskal.get_maze())
     assert validator.validate() is True
 
 
-def test_generate_kruskal_forty_two_cells_populated(gen_kruskal):
+def test_generate_kruskal_forty_two_cells_populated(
+        gen_kruskal: MazeGenerator) -> None:
     gen_kruskal.generate()
     assert len(gen_kruskal.forty_two_cells) > 0
 
@@ -123,7 +130,7 @@ def test_generate_kruskal_forty_two_cells_populated(gen_kruskal):
 # ── Déterminisme (seed) ───────────────────────────────────────────────
 
 
-def test_same_seed_same_maze_backtracker():
+def test_same_seed_same_maze_backtracker() -> None:
     """Deux générateurs backtracker avec la même seed produisent
     le même labyrinthe."""
     gen_a = MazeGenerator(
@@ -137,7 +144,7 @@ def test_same_seed_same_maze_backtracker():
     assert gen_a.get_maze().grid == gen_b.get_maze().grid
 
 
-def test_same_seed_same_maze_kruskal():
+def test_same_seed_same_maze_kruskal() -> None:
     gen_a = MazeGenerator(width=11, height=11, seed=7, algorithm='kruksal')
     gen_b = MazeGenerator(width=11, height=11, seed=7, algorithm='kruksal')
     gen_a.generate()
@@ -145,7 +152,7 @@ def test_same_seed_same_maze_kruskal():
     assert gen_a.get_maze().grid == gen_b.get_maze().grid
 
 
-def test_different_seeds_different_mazes_backtracker():
+def test_different_seeds_different_mazes_backtracker() -> None:
     gen_a = MazeGenerator(
         width=11, height=11, seed=1, algorithm='backtracker'
     )
@@ -160,7 +167,7 @@ def test_different_seeds_different_mazes_backtracker():
 # ── Alias d'algorithmes ───────────────────────────────────────────────
 
 
-def test_recursive_backtracker_alias():
+def test_recursive_backtracker_alias() -> None:
     """'recursive_backtracker' doit être accepté comme algorithme valide."""
     gen = MazeGenerator(
         width=11, height=11, seed=1, algorithm='recursive_backtracker'
@@ -169,7 +176,7 @@ def test_recursive_backtracker_alias():
     assert isinstance(gen.get_maze(), Maze)
 
 
-def test_kruskal_alias():
+def test_kruskal_alias() -> None:
     """'kruskal' (orthographe anglaise) ne doit pas être accepté."""
     gen = MazeGenerator(width=11, height=11, seed=1, algorithm='kruskal')
     with pytest.raises(ValueError) as excinfo:
@@ -180,14 +187,14 @@ def test_kruskal_alias():
 # ── Paramètres invalides ──────────────────────────────────────────────
 
 
-def test_unsupported_algorithm_raises():
+def test_unsupported_algorithm_raises() -> None:
     gen = MazeGenerator(width=5, height=5, algorithm='prim')
     with pytest.raises(ValueError) as excinfo:
         gen.generate()
     assert 'Unsupported algorithm' in str(excinfo.value)
 
 
-def test_get_solution_raises_before_generate():
+def test_get_solution_raises_before_generate() -> None:
     gen = MazeGenerator(width=5, height=5)
     with pytest.raises(ValueError) as excinfo:
         gen.get_solution()
@@ -197,7 +204,7 @@ def test_get_solution_raises_before_generate():
 # ── Petits labyrinthes (sans motif 42) ────────────────────────────────
 
 
-def test_small_maze_no_forty_two_cells():
+def test_small_maze_no_forty_two_cells() -> None:
     """Tout labyrinthe < 11 cols ou < 9 lignes ne doit pas contenir le motif."""
     for w, h in [(4, 4), (7, 7), (8, 8), (10, 10), (11, 8)]:
         gen = MazeGenerator(width=w, height=h, seed=1, algorithm='backtracker')
@@ -207,14 +214,14 @@ def test_small_maze_no_forty_two_cells():
         )
 
 
-def test_maze_with_forty_two_cells_at_minimum_size():
+def test_maze_with_forty_two_cells_at_minimum_size() -> None:
     """Un labyrinthe 11x9 (taille minimale) doit contenir le motif."""
     gen = MazeGenerator(width=11, height=9, seed=1, algorithm='backtracker')
     gen.generate()
     assert len(gen.forty_two_cells) > 0
 
 
-def test_small_maze_is_still_valid():
+def test_small_maze_is_still_valid() -> None:
     """Un labyrinthe trop petit pour le motif 42
     reste structurellement valide."""
     gen = MazeGenerator(width=4, height=4, seed=1, algorithm='backtracker')
@@ -226,7 +233,7 @@ def test_small_maze_is_still_valid():
 # ── reset() ───────────────────────────────────────────────────────────
 
 
-def test_reset_clears_track_and_maze():
+def test_reset_clears_track_and_maze() -> None:
     gen = MazeGenerator(width=11, height=11, seed=1, algorithm='backtracker')
     gen.generate()
     assert len(gen.track) > 0
@@ -235,7 +242,7 @@ def test_reset_clears_track_and_maze():
     assert gen.solution_path is None
 
 
-def test_reset_allows_regeneration():
+def test_reset_allows_regeneration() -> None:
     gen = MazeGenerator(width=11, height=11, seed=1, algorithm='backtracker')
     gen.generate()
     first_grid = [row[:] for row in gen.get_maze().grid]
@@ -243,4 +250,3 @@ def test_reset_allows_regeneration():
     gen.generate()
     second_grid = gen.get_maze().grid
     assert first_grid != second_grid
-

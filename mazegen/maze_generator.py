@@ -12,8 +12,11 @@
 # qui héritent toutes deux de Algorithm (classe abstraite).
 
 import random
+from typing import Any
+
 from model.maze import Maze
 from model.maze_validator import MazeValidator
+from .algorithm import Algorithm
 from .backtracker import Backtracker
 from .kruksal import Kruksal
 
@@ -37,7 +40,7 @@ class MazeGenerator:
         self,
         width: int,
         height: int,
-        seed: int = None,
+        seed: int | None = None,
         perfect: bool = True,
         algorithm: str = "backtracker",
     ) -> None:
@@ -50,9 +53,9 @@ class MazeGenerator:
         self.perfect = perfect
         self.algorithm = algorithm
         self.maze = Maze(self.width, self.height)
-        self.solution_path = None
-        self.track = []
-        self.forty_two_cells: set = set()
+        self.solution_path: list[Any] | None = None
+        self.track: list[Any] = []
+        self.forty_two_cells: set[tuple[int, int]] = set()
 
     def generate(self) -> None:
         """Generate the maze using the specified algorithm."""
@@ -67,7 +70,7 @@ class MazeGenerator:
         if not validator.validate():
             raise ValueError("Generated maze is invalid.")
 
-    def _build_algorithm(self):
+    def _build_algorithm(self) -> Algorithm:
         """Instancie la classe d'algorithme selon self.algorithm."""
         if self.algorithm in ("backtracker", "recursive_backtracker"):
             return Backtracker(self.maze)
@@ -80,7 +83,7 @@ class MazeGenerator:
         """Return the generated maze."""
         return self.maze
 
-    def get_solution(self) -> list:
+    def get_solution(self) -> list[Any]:
         """Return the solution path as a list of directions."""
         if self.solution_path is None:
             raise ValueError(
@@ -88,7 +91,7 @@ class MazeGenerator:
             )
         return self.solution_path
 
-    def reset(self, seed: int = None) -> None:
+    def reset(self, seed: int | None = None) -> None:
         if seed is not None:
             self.seed = seed
             random.seed(seed)
