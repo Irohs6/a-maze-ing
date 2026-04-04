@@ -1,0 +1,39 @@
+from .algorithm import Algorithm
+import random
+
+
+class Backtracker(Algorithm):
+    def generate(self) -> list:
+        """Generates the maze using a depth-first search
+        (backtracking) algorithm."""
+        start = (0, 0)
+        visited = set(self.place_42_center())
+        stack = []
+        track = []
+
+        visited.add(start)
+        stack.append(start)
+
+        while stack:
+            current_cell = stack[-1]
+            x, y = current_cell
+
+            neighbors = [
+                (nx, ny, direction)
+                for nx, ny, direction in self.maze._get_neighbors_of_cell(x, y)
+                if (nx, ny) not in visited
+            ]
+
+            if not neighbors:
+                stack.pop()
+                track.append("BACK")
+                continue
+            else:
+                nx, ny, direction = random.choice(neighbors)
+                self.maze.remove_wall(x, y, direction)
+                visited.add((nx, ny))
+                stack.append((nx, ny))
+                track.append(direction)
+
+        self.track = track
+        return track

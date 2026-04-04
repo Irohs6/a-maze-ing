@@ -1,11 +1,13 @@
 # model/config_parser.py — Parseur du fichier de configuration.
-# Contient la classe ConfigParser responsable de lire et valider le fichier config.
+# Contient la classe ConfigParser responsable
+# de lire et valider le fichier config.
 # Elle gère :
 #   - la lecture ligne par ligne en ignorant les commentaires (#)
 #   - l'extraction des paires CLE=VALEUR
 #   - la validation de la présence de toutes les clés obligatoires
 #   - la conversion et la validation des types (entiers, booléen, coordonnées)
-#   - la vérification que les coordonnées d'entrée/sortie sont dans les limites du labyrinthe
+#   - la vérification que les coordonnées d'entrée/sortie
+#  sont dans les limites du labyrinthe
 #   - les clés optionnelles (SEED, ALGORITHM) avec leurs valeurs par défaut
 # Lève des exceptions descriptives pour chaque type d'erreur rencontré.
 from typing import Any
@@ -47,12 +49,6 @@ class ConfigParser:
                         continue  # Ignore comments and blank lines
                     self._parse_line(line)
             # Ajout des valeurs par défaut pour les clés optionnelles manquantes
-            for key in self.OPTIONAL_KEYS:
-                if key not in self.__config:
-                    if key == 'VIEW':
-                        self.__config[key] = 'terminal'
-                    elif key == 'ALGORITHM':
-                        self.__config[key] = 'backtracker'
         except FileNotFoundError:
             raise FileNotFoundError(
                 f"Configuration file '{self.config_file}' not found."
@@ -76,11 +72,16 @@ class ConfigParser:
         if key == 'VIEW':
             value = value.lower()
             if value not in ('terminal', 'curse'):
-                raise ValueError(f"VIEW must be 'terminal' or 'curse', got '{value}'")
+                raise ValueError("VIEW must be 'terminal' or 'curse',"
+                                 f" got '{value}'")
         if key == 'ALGORITHM':
             value = value.lower()
-            if value not in ('backtracker', 'kruskal'):
-                raise ValueError(f"ALGORITHM must be 'backtracker' ou 'kruskal', got '{value}'")
+            if value not in ('backtracker', 'recursive_backtracker',
+                             'kruksal'):
+                raise ValueError(
+                    "ALGORITHM must be 'backtracker' or 'kruksal',"
+                    f" got '{value}'"
+                )
         self.__config[key] = value
 
     def _validate_required_keys(self) -> None:
@@ -100,11 +101,6 @@ class ConfigParser:
                 self.__config[key] = tuple(int(value) for value in
                                            self.__config[key].split(','))
                 self._validate_coordinates(key)
-            self.__config['PERFECT'] = (
-                self.__config['PERFECT'].lower() == 'true'
-            )
-            if 'SEED' in self.__config:
-                self.__config['SEED'] = int(self.__config['SEED'])
         except ValueError as error:
             raise ValueError(error)
 
@@ -115,16 +111,21 @@ class ConfigParser:
                                  f"{self.__config[key]})")
         else:
             if (len(self.__config[key]) != 2 or self.__config[key][0] < 0
-               or self.__config[key][0] > self.__config['WIDTH']
+               or self.__config[key][0] >= self.__config['WIDTH']
                or self.__config[key][1] < 0 or
-               self.__config[key][1] > self.__config['HEIGHT']):
+               self.__config[key][1] >= self.__config['HEIGHT']):
                 raise ValueError(f"'{key}' needs 2 positive integers that "
                                  "fits within 'WIDTH' and 'HEIGTH' and "
                                  "separated by ','")
 
-    # def _parse_optionals(self) -> None:
-    #     for key in self.OPTIONAL_KEYS:
-    #         if not key in self.__config.keys():
+    def _parse_optionals(self) -> None:
+        for key in self.OPTIONAL_KEYS:
+            for key in self.OPTIONAL_KEYS:
+                if key not in self.__config:
+                    if key == 'VIEW':
+                        self.__config[key] = 'terminal'
+                    elif key == 'ALGORITHM':
+                        self.__config[key] = 'backtracker'
 
     def _get_config(self) -> dict[str, Any]:
         return self.__config

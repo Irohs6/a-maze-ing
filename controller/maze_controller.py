@@ -6,7 +6,8 @@ from view.curse_view import CursesView
 
 
 class MazeController:
-    """Central orchestrator: loads config, generates maze, finds path, renders view."""
+    """Central orchestrator: loads config, generates maze, finds path,
+     renders view."""
 
     def __init__(self, config_file: str) -> None:
         self._config_file: str = config_file
@@ -44,9 +45,10 @@ class MazeController:
         view_mode = self._config.get("VIEW", "terminal").lower()
         if view_mode == "curse":
             view = CursesView(maze, track, entry=entry, exit=exit_pos)
-            view.start()  # L'animation est gérée dans CursesView si track est fourni
+            view.start()
         else:
-            view = TerminalView(maze, track, entry=entry, exit=exit_pos, forty_two_cells=forty_two_cells)
+            view = TerminalView(maze, track, entry=entry, exit=exit_pos,
+                                forty_two_cells=forty_two_cells)
             if track and isinstance(track[0], tuple):
                 view.play_kruksal()
             else:
@@ -65,7 +67,8 @@ class MazeController:
             f.write(hex_grid)
             f.write(f"{self._config.get('ALGORITHM', 'backtracker')}\n")
             f.write(
-                "activate\n" if self._config.get("PERFECT", True) else "deactivate\n"
+                "activate\n" if self._config.get("PERFECT", True)
+                else "deactivate\n"
             )
 
         print(f"Labyrinthe sauvegardé dans '{output_file}' (seed={seed_used})")
