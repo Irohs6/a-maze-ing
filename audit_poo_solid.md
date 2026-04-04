@@ -1,7 +1,8 @@
-# Audit POO & SOLID — A-Maze-ing — Mise à jour 04/04/2026
+# Audit POO & SOLID — A-Maze-ing — Mise à jour 04/04/2026 (v2)
 
-> Révision complète intégrant le refactoring de la hiérarchie d'algorithmes
-> et le déplacement de `PATTERN_42` + méthodes utilitaires vers `Algorithm`.
+> Révision complète après implémentation de `PathFinder`, intégration dans
+> le contrôleur, affichage du chemin solution en vue terminal, et suppression
+> de `curse_view.py`.
 > Auteurs : **gacattan**, **cyakisan**
 
 ---
@@ -21,27 +22,32 @@
 | Méthode partagée | `place_42_center()` dans `Algorithm` | Logique commune centralisée dans la classe parent |
 | Constante bien placée | `Algorithm.PATTERN_42` | Constante de classe dans la bonne couche (génération, pas données) |
 | Méthodes utilitaires centralisées | `_get_neighbors_of_cell()`, `_get_direction_neighbor()`, `_get_maze_boundaries()` dans `Algorithm` | `Maze` recentré sur les données pures, logique algo dans la bonne classe |
+| PathFinder implémenté | `PathFinder.find_path()`, `find_k_shortest_paths()`, `has_unique_path()` | BFS correct, API propre avec `entry`/`exit` |
+| Affichage solution | `TerminalView.show_solution()` | Navigation N/P/Q, détection parfait/imparfait, chemin rendu en ligne |
 
 ### ⚠️ À corriger — POO
 
 #### 1. `second_loop()` fonction imbriquée dans `Kruksal.generate()`
 `second_loop` est une closure définie à l'intérieur de `generate()`.  
 C'est une méthode privée déguisée — difficile à tester, à lire, et non réutilisable.  
-**Recommandation** : extraire en `_second_loop(self, maze, pattern_cells, pattern_neighbors)`.
+**Recommandation** : extraire en `_second_loop(self, maze, pattern_cells)`.
 
-#### ~~2. `_MAX_GLOBAL_ATTEMPTS` constante de module au lieu de constante de classe~~ ✅ FAIT
-`_MAX_GLOBAL_ATTEMPTS: int = 10` déplacé en tête du corps de `Kruksal`, avec annotation de type.
-
-#### ~~3. `__init__` vide dans `Kruksal`~~ ✅ FAIT
-`__init__` supprimé. L'import `from model.maze import Maze` déplacé sous `TYPE_CHECKING` (+ `from __future__ import annotations`) pour préserver les annotations de type sans import runtime.
-
-#### 4. Attributs publics de `Maze` (`grid`, `width`, `height`)
+#### 2. Attributs publics de `Maze` (`grid`, `width`, `height`)
 Les vues et les algorithmes accèdent directement aux attributs internes de `Maze`.  
 **Recommandation** : exposer `width` et `height` en propriétés en lecture seule (`@property`), et envisager un protocole `MazeProtocol` pour le long terme.
 
-#### 5. `solution_path` public dans `MazeGenerator`
-`self.solution_path` est public mais jamais alimenté (`get_solution()` lève toujours `ValueError`).  
-**Recommandation** : implémenter `PathFinder` et alimenter `solution_path` dans `generate()`.
+#### 3. `get_solution()` toujours cassée dans `MazeGenerator`
+`self.solution_path` est public mais jamais alimenté — `get_solution()` lève toujours `ValueError`.  
+Le contrôleur contourne via `PathFinder` directement, ce qui double la logique.  
+**Recommandation** : alimenter `solution_path` dans `MazeGenerator.generate()` en instanciant `PathFinder` — ou supprimer `get_solution()` si l'usage revient au contrôleur.
+
+#### 4. Bug dans `ConfigParser._parse_optionals()` — double boucle imbriquée
+```python
+for key in self.OPTIONAL_KEYS:
+    for key in self.OPTIONAL_KEYS:   # ← boucle identique en double
+```
+Les clés optionnelles ne sont jamais appliquées correctement.  
+**Recommandation** : supprimer la boucle interne dupliquée.
 
 ---
 
@@ -51,19 +57,21 @@ Les vues et les algorithmes accèdent directement aux attributs internes de `Maz
 
 | Classe | SRP respecté ? | Note |
 |--------|---------------|------|
-| `Maze` | ✅ | Données pures uniquement — `PATTERN_42` et méthodes algo déplacés dans `Algorithm` |
+| `Maze` | ✅ | Données pures uniquement |
 | `MazeValidator` | ✅ | Responsabilité unique : valider |
-| `ConfigParser` | ✅ | Parsing et validation de config |
+| `ConfigParser` | ⚠️ | Parsing + validation + double boucle bug |
+| `PathFinder` | ✅ | Responsabilité unique : trouver le chemin |
 | `Algorithm` | ✅ | Logique partagée + contrat abstrait + utilitaires algo centralisés |
 | `Backtracker` | ✅ | Un seul algorithme |
 | `Kruksal` | ⚠️ | `second_loop` imbriqué alourdit la classe |
-| `MazeGenerator` | ⚠️ | Trop de responsabilités : factory + seed + validation |
-| `MazeController.run()` | ⚠️ | Méthode monolithique : config + génération + vue + écriture fichier |
+| `MazeGenerator` | ⚠️ | Factory + seed + validation — `get_solution()` cassée |
+| `MazeController.run()` | ⚠️ | Méthode monolithique à 6 responsabilités (config, génération, pathfinding, vue, seed, fichier) |
 | `TerminalView` | ⚠️ | `play()` et `play_kruksal()` dupliquent la logique d'animation |
 
 **Actions restantes :**
 - Extraire `second_loop` en méthode privée de `Kruksal`
-- Décomposer `MazeController.run()` en sous-méthodes (`_generate()`, `_render()`, `_write_output()`)
+- Corriger la double boucle dans `_parse_optionals()`
+- Décomposer `MazeController.run()` en `_generate()`, `_solve()`, `_render()`, `_write_output()`
 
 ---
 
@@ -72,11 +80,11 @@ Les vues et les algorithmes accèdent directement aux attributs internes de `Maz
 | Élément | État | Problème |
 |---------|------|---------|
 | Ajout d'un algorithme | ✅ (quasi) | Créer une sous-classe suffit, mais `_build_algorithm()` doit être édité (if/elif) |
-| Ajout d'une vue | ❌ | `MazeController` connaît les noms `TerminalView`, `CursesView` en dur |
+| Ajout d'une vue | ❌ | `MazeController` instancie `TerminalView` en dur |
 | `_validate_coordinates()` | ⚠️ | Mélange validation de dimensions et de positions via `if key in [...]` |
 
 **Actions :**
-- Remplacer le `if/elif` de `_build_algorithm()` par un registre de classes (`dict`) ou une factory injectable
+- Remplacer le `if/elif` de `_build_algorithm()` par un registre `dict` de classes
 - Créer `AbstractView` et injecter la vue dans le contrôleur
 - Séparer `_validate_coordinates()` en `_validate_dimensions()` + `_validate_position()`
 
@@ -94,17 +102,16 @@ track = ['N', 'E', 'BACK', 'S', ...]
 track = [(0, 0, 'E'), (1, 0, 'S'), ...]
 ```
 
-`MazeController` compense par un `isinstance(track[0], tuple)` — c'est précisément ce que LSP interdit.  
-On ne devrait pas avoir à savoir quelle sous-classe on utilise pour consommer le résultat.
+`MazeController` compense par un `isinstance(track[0], tuple)` — c'est précisément ce que LSP interdit.
 
-**Recommandation** : normaliser le format de retour de `generate()` — soit toujours `list[str]`, soit toujours `list[tuple]`, soit utiliser un `TypedDict` ou un dataclass `Step`.
+**Recommandation** : normaliser le format de retour de `generate()` via un `TypedDict` ou un dataclass `Step`.
 
 ---
 
 ### I — Interface Segregation ⚠️
 
-Pas d'interface/protocole commun entre `TerminalView` et `CursesView`.  
-`MazeController` sélectionne la vue par un `if view_mode == "curse"`.
+`curse_view.py` supprimé — la question d'une interface commune est moins urgente mais reste valable pour `MlxView` (bonus).  
+`MazeController` instancie `TerminalView` en dur.
 
 **Recommandation** :
 ```python
@@ -114,11 +121,9 @@ from abc import ABC, abstractmethod
 class AbstractView(ABC):
     @abstractmethod
     def play(self) -> None: ...
-
     @abstractmethod
-    def print_result(self) -> None: ...
+    def show_solution(self, paths: list[list[str]], is_perfect: bool) -> None: ...
 ```
-Les deux vues implémentent `AbstractView`, le contrôleur ne connaît que l'interface.
 
 ---
 
@@ -127,12 +132,12 @@ Les deux vues implémentent `AbstractView`, le contrôleur ne connaît que l'int
 | Dépendance | Direction | Problème |
 |-----------|-----------|---------|
 | `TerminalView` → `Maze.grid` | Concrète | Accès direct aux attributs internes |
-| `MazeController` → `TerminalView`, `CursesView` | Concrète | Module de haut niveau dépend de détails |
-| `Algorithm` → `Maze` | Concrète | Acceptable pour l'instant, `MazeProtocol` serait l'idéal |
+| `MazeController` → `TerminalView` | Concrète | Module de haut niveau dépend d'un détail |
+| `Algorithm` → `Maze` | Concrète | Acceptable pour l'instant |
 | `Kruksal` → `MazeValidator` | Concrète | Acceptable (même couche) |
-| `MazeValidator` → `Algorithm` | Concrète | Nécessaire pour accéder à `Algorithm.PATTERN_42` — acceptable |
+| `MazeValidator` → `Algorithm.PATTERN_42` | Concrète | Acceptable — même package |
 
-**Recommandation principale** : créer un `Protocol` ou `AbstractView` et injecter la dépendance dans `MazeController`.
+**Recommandation principale** : créer `AbstractView` et l'injecter dans `MazeController`.
 
 ---
 
@@ -140,14 +145,21 @@ Les deux vues implémentent `AbstractView`, le contrôleur ne connaît que l'int
 
 | Module | Note /5 | Résumé |
 |--------|---------|--------|
-| `model/maze.py` | **5/5** | Données pures — `PATTERN_42` et méthodes algo sortis, clase minimaliste et correcte |
-| `model/maze_validator.py` | **4.5/5** | Excellent SRP, BFS correct, bien documenté — importe `Algorithm.PATTERN_42` correctement |
-| `model/config_parser.py` | **3.5/5** | Fonctionnel, bug off-by-one persistant, alias `recursive_backtracker` résiduel |
-| `model/path_finder.py` | **0/5** | Stub total — 🔴 CRITIQUE |
-| `mazegen/algorithm.py` | **4.5/5** | `PATTERN_42` constante de classe, méthodes utilitaires centralisées — référence de la couche algo |
-| `mazegen/backtracker.py` | **4.5/5** | Propre, utilise les méthodes du maze, lisible |
-| `mazegen/kruksal.py` | **3/5** | Logique complexe pertinente — second_loop à refactoriser, LSP violation |
-| `mazegen/maze_generator.py` | **3.5/5** | API propre — get_solution() cassée, alias résiduel |
+| `model/maze.py` | **5/5** | Données pures — classe minimaliste et correcte |
+| `model/maze_validator.py` | **4.5/5** | Excellent SRP, BFS correct, bien documenté |
+| `model/config_parser.py` | **3/5** | Fonctionnel, bug double boucle `_parse_optionals`, alias `recursive_backtracker` résiduel |
+| `model/path_finder.py` | **4.5/5** | ✅ BFS implémenté, `find_k_shortest_paths`, `has_unique_path` — API propre |
+| `mazegen/algorithm.py` | **4.5/5** | `PATTERN_42` constante de classe, utilitaires centralisés |
+| `mazegen/backtracker.py` | **4.5/5** | Propre, lisible |
+| `mazegen/kruksal.py` | **3/5** | Logique pertinente — `second_loop` à extraire, LSP violation |
+| `mazegen/maze_generator.py` | **3/5** | Factory correcte — `get_solution()` cassée, double alias |
+| `controller/maze_controller.py` | **3.5/5** | PathFinder intégré, détection parfait/imparfait ✅ — `run()` monolithique, format fichier incomplet |
+| `view/terminal_view.py` | **4/5** | Chemin affiché en ligne ✅, `show_solution` ✅ — duplication `play`/`play_kruksal` persistante |
+| `view/mlx_view.py` | **0/5** | Stub total (bonus) |
+| `tests/test_maze.py` | **3/5** | Implémenté — coverage partielle |
+| `tests/test_maze_generator.py` | **3/5** | Implémenté — coverage partielle |
+| `tests/test_path_finder.py` | **0/5** | Stub total — tests à écrire |
+| `Makefile` | **0/5** | Stub total — 🔴 OBLIGATOIRE |
 | `controller/maze_controller.py` | **3/5** | Fonctionne — format fichier erroné, méthode run() trop longue |
 | `view/terminal_view.py` | **3.5/5** | Fonctionnelle — duplication play/play_kruksal, pas d'AbstractView |
 | `view/curse_view.py` | **3.5/5** | Propre — pas d'AbstractView |
@@ -164,11 +176,11 @@ Les deux vues implémentent `AbstractView`, le contrôleur ne connaît que l'int
 | Catégorie | Note |
 |-----------|------|
 | Architecture générale / MVC | 15/20 |
-| Respect POO (encapsulation, héritage, polymorphisme) | 15/20 |
-| Respect SOLID | 12/20 |
-| Complétude fonctionnelle (sujet) | 11/20 |
+| Respect POO (encapsulation, héritage, polymorphisme) | 16/20 |
+| Respect SOLID | 13/20 |
+| Complétude fonctionnelle (sujet) | 14/20 |
 | Qualité des tests | 10/20 |
-| **Note globale estimée** | **12.5/20** |
+| **Note globale estimée** | **13.5/20** |
 
 ---
 
@@ -176,15 +188,18 @@ Les deux vues implémentent `AbstractView`, le contrôleur ne connaît que l'int
 
 | Priorité | Action | Fichier(s) |
 |----------|--------|-----------|
-| ✅ FAIT | Déplacer `PATTERN_42` hors de `Maze` → constante de classe dans `Algorithm` | `model/maze.py`, `mazegen/algorithm.py` |
-| ✅ FAIT | Déplacer méthodes utilitaires algo hors de `Maze` (`_get_neighbors_of_cell`, etc.) | `model/maze.py`, `mazegen/algorithm.py` |
-| 🔴 CRITIQUE | Implémenter `PathFinder` (BFS) | `model/path_finder.py` |
-| 🔴 CRITIQUE | Corriger le format du fichier de sortie (entrée, sortie, chemin) | `controller/maze_controller.py` |
+| ✅ FAIT | Implémenter `PathFinder` (BFS + k chemins + unicité) | `model/path_finder.py` |
+| ✅ FAIT | Intégrer `PathFinder` dans le contrôleur | `controller/maze_controller.py` |
+| ✅ FAIT | Afficher le chemin solution en vue terminal (ligne) | `view/terminal_view.py` |
+| ✅ FAIT | Détecter labyrinthe parfait/imparfait + navigation N/P/Q | `view/terminal_view.py`, `controller/` |
+| ✅ FAIT | Déplacer `PATTERN_42` et méthodes utilitaires dans `Algorithm` | `model/maze.py`, `mazegen/algorithm.py` |
 | 🔴 CRITIQUE | Créer le `Makefile` (install, run, debug, clean, lint, test) | `Makefile` |
+| 🔴 CRITIQUE | Compléter le format du fichier de sortie (ligne vide + entry + exit + chemin) | `controller/maze_controller.py` |
 | 🟠 IMPORTANT | Corriger la violation LSP : normaliser le retour de `generate()` | `mazegen/algorithm.py`, `backtracker.py`, `kruksal.py` |
+| 🟠 IMPORTANT | Corriger le bug double boucle dans `_parse_optionals()` | `model/config_parser.py` |
 | 🟠 IMPORTANT | Créer `AbstractView` et l'injecter dans le contrôleur | `view/`, `controller/` |
 | 🟡 À refactoriser | Extraire `second_loop` en méthode privée de `Kruksal` | `mazegen/kruksal.py` |
-| 🟡 À refactoriser | Corriger off-by-one dans `_validate_coordinates()` | `model/config_parser.py` |
-| 🟡 À refactoriser | Supprimer l'alias `recursive_backtracker` ou le documenter | `model/config_parser.py`, `mazegen/maze_generator.py` |
+| 🟡 À refactoriser | Décomposer `MazeController.run()` en sous-méthodes | `controller/maze_controller.py` |
+| 🟡 À refactoriser | Corriger/supprimer `get_solution()` dans `MazeGenerator` | `mazegen/maze_generator.py` |
 | 🟡 À refactoriser | Implémenter `tests/test_path_finder.py` | `tests/test_path_finder.py` |
-| 🟡 Amélioration | Décomposer `MazeController.run()` en sous-méthodes | `controller/maze_controller.py` |
+| 🟡 Amélioration | Supprimer l'alias `recursive_backtracker` ou le documenter | `model/config_parser.py`, `mazegen/maze_generator.py` |

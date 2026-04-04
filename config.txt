@@ -12,6 +12,6 @@ ENTRY=0,0
 EXIT=14,14
 OUTPUT_FILE=maze.txt
 PERFECT=True
-SEED=56
+# SEED=56
 ALGORITHM=kruksal
 VIEW=terminal
