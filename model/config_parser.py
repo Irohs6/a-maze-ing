@@ -11,7 +11,6 @@
 #   - les clés optionnelles (SEED, ALGORITHM) avec leurs valeurs par défaut
 # Lève des exceptions descriptives pour chaque type d'erreur rencontré.
 from typing import Any
-# import random
 
 
 class ConfigParser:
@@ -19,6 +18,9 @@ class ConfigParser:
 
     Reads KEY=VALUE pairs, ignores comments (#) and blank lines,
     validates all mandatory keys and converts values to proper types.
+
+    Example usage:
+        config = ConfigParser('config.txt').parse()
     """
 
     REQUIRED_KEYS: list[str] = [
@@ -27,28 +29,44 @@ class ConfigParser:
     OPTIONAL_KEYS: list[str] = [
         'SEED', 'ALGORITHM', 'VIEW'
     ]
+    OPTIONAL_DEFAULTS: dict[str, Any] = {
+        'VIEW': 'terminal',
+        'ALGORITHM': 'backtracker',
+    }
 
     def __init__(self, config_file: str) -> None:
         self.config_file: str = config_file
         self.__config: dict[str, Any] = {}
 
-    def parse(self) -> None:
-        """Read and validate the configuration file.
+    def parse(self) -> dict[str, Any]:
+        """Parse and validate the configuration file.
 
-        Returns:
-            A dict with all parsed and validated config values.
+        Reads the file, validates required keys, converts types, and
+        applies defaults for optional keys. Returns the final config dict.
 
         Raises:
             FileNotFoundError: If the config file does not exist.
+            KeyError: If a required key is missing.
             ValueError: If the file contains invalid syntax or values.
         """
+        self._read_file()
+        self._validate_required_keys()
+        self._parse_types()
+        self._parse_optionals()
+        return self.__config
+
+    # ------------------------------------------------------------------
+    # Private steps
+    # ------------------------------------------------------------------
+
+    def _read_file(self) -> None:
+        """Read KEY=VALUE pairs from the config file into __config."""
         try:
             with open(self.config_file, 'r') as file:
                 for line in file:
                     if line.startswith('#') or not line.strip():
-                        continue  # Ignore comments and blank lines
+                        continue
                     self._parse_line(line)
-            # Ajout des valeurs par défaut pour les clés optionnelles manquantes
         except FileNotFoundError:
             raise FileNotFoundError(
                 f"Configuration file '{self.config_file}' not found."
@@ -68,7 +86,6 @@ class ConfigParser:
             raise ValueError(
                 f"Empty value for key '{key}' in line: '{line.strip()}'"
             )
-        # Normalisation et validation pour VIEW et ALGORITHM
         if key == 'VIEW':
             value = value.lower()
             if value not in ('terminal', 'curse'):
@@ -86,46 +103,50 @@ class ConfigParser:
 
     def _validate_required_keys(self) -> None:
         for key in self.REQUIRED_KEYS:
-            if key in self.__config.keys():
-                continue
-            else:
+            if key not in self.__config:
                 raise KeyError(f"'{key}' has not properly been defined in "
                                "the config.txt file")
 
-    def _parse_coordinates(self) -> None:
+    def _parse_types(self) -> None:
+        """Convert string values to their proper Python types."""
         try:
             for key in ['WIDTH', 'HEIGHT']:
                 self.__config[key] = int(self.__config[key])
-                self._validate_coordinates(key)
+                self._validate_dimensions(key)
             for key in ['ENTRY', 'EXIT']:
-                self.__config[key] = tuple(int(value) for value in
-                                           self.__config[key].split(','))
-                self._validate_coordinates(key)
+                self.__config[key] = tuple(
+                    int(v) for v in self.__config[key].split(',')
+                )
+                self._validate_position(key)
+            self.__config['PERFECT'] = (
+                self.__config['PERFECT'].strip().lower() == 'true'
+            )
+            if 'SEED' in self.__config:
+                self.__config['SEED'] = int(self.__config['SEED'])
         except ValueError as error:
             raise ValueError(error)
 
-    def _validate_coordinates(self, key: str) -> None:
-        if key in ['WIDTH', 'HEIGHT']:
-            if self.__config[key] <= 0:
-                raise ValueError(f"{key} value is invalid ("
-                                 f"{self.__config[key]})")
-        else:
-            if (len(self.__config[key]) != 2 or self.__config[key][0] < 0
-               or self.__config[key][0] >= self.__config['WIDTH']
-               or self.__config[key][1] < 0 or
-               self.__config[key][1] >= self.__config['HEIGHT']):
-                raise ValueError(f"'{key}' needs 2 positive integers that "
-                                 "fits within 'WIDTH' and 'HEIGTH' and "
-                                 "separated by ','")
+    def _validate_dimensions(self, key: str) -> None:
+        if self.__config[key] <= 0:
+            raise ValueError(
+                f"{key} value is invalid ({self.__config[key]})"
+            )
+
+    def _validate_position(self, key: str) -> None:
+        coords = self.__config[key]
+        if (
+            len(coords) != 2
+            or coords[0] < 0
+            or coords[0] >= self.__config['WIDTH']
+            or coords[1] < 0
+            or coords[1] >= self.__config['HEIGHT']
+        ):
+            raise ValueError(
+                f"'{key}' needs 2 positive integers that "
+                "fit within 'WIDTH' and 'HEIGHT', separated by ','"
+            )
 
     def _parse_optionals(self) -> None:
         for key in self.OPTIONAL_KEYS:
-            for key in self.OPTIONAL_KEYS:
-                if key not in self.__config:
-                    if key == 'VIEW':
-                        self.__config[key] = 'terminal'
-                    elif key == 'ALGORITHM':
-                        self.__config[key] = 'backtracker'
-
-    def _get_config(self) -> dict[str, Any]:
-        return self.__config
+            if key not in self.__config and key in self.OPTIONAL_DEFAULTS:
+                self.__config[key] = self.OPTIONAL_DEFAULTS[key]

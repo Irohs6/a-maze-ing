@@ -15,11 +15,7 @@ class MazeController:
         self._generator: MazeGenerator | None = None
 
     def _load_config(self) -> None:
-        parser = ConfigParser(self._config_file)
-        parser.parse()
-        parser._validate_required_keys()
-        parser._parse_coordinates()
-        self._config = parser._get_config()
+        self._config = ConfigParser(self._config_file).parse()
 
     def run(self) -> None:
         """Execute the full maze pipeline."""
