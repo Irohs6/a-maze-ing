@@ -1,8 +1,8 @@
-# Audit POO & SOLID — A-Maze-ing — Mise à jour 04/04/2026 (v2)
+# Audit POO & SOLID — A-Maze-ing — Mise à jour 05/04/2026 (v3)
 
-> Révision complète après implémentation de `PathFinder`, intégration dans
-> le contrôleur, affichage du chemin solution en vue terminal, et suppression
-> de `curse_view.py`.
+> Révision intégrant la correction LSP, l'unification de `play()` et `_render()`,
+> la solution cachée/toggle, le toggle couleur 42, et la suppression des méthodes
+> redondantes de `PathFinder`.
 > Auteurs : **gacattan**, **cyakisan**
 
 ---
@@ -22,8 +22,11 @@
 | Méthode partagée | `place_42_center()` dans `Algorithm` | Logique commune centralisée dans la classe parent |
 | Constante bien placée | `Algorithm.PATTERN_42` | Constante de classe dans la bonne couche (génération, pas données) |
 | Méthodes utilitaires centralisées | `_get_neighbors_of_cell()`, `_get_direction_neighbor()`, `_get_maze_boundaries()` dans `Algorithm` | `Maze` recentré sur les données pures, logique algo dans la bonne classe |
-| PathFinder implémenté | `PathFinder.find_path()`, `find_k_shortest_paths()`, `has_unique_path()` | BFS correct, API propre avec `entry`/`exit` |
-| Affichage solution | `TerminalView.show_solution()` | Navigation N/P/Q, détection parfait/imparfait, chemin rendu en ligne |
+| PathFinder simplifié | `PathFinder.find_k_shortest_paths()` | Retourne `list[dict]` directement — `find_path()` et `has_unique_path()` supprimés (redondants) |
+| Affichage solution | `TerminalView.show_solution()` | Solution cachée par défaut, toggle `[S]`, navigation N/P/Q, toggle couleur 42 `[C]` |
+| **LSP corrigé** | `Backtracker.generate()` | Retourne `list[tuple[int,int,str]]` identique à Kruskal — `isinstance` supprimé |
+| Rendu unifié | `TerminalView._render()` | `_print_with_cursor` + `print_unicode` fusionnés — plus de duplication |
+| Animation unifiée | `TerminalView.play()` | `play()` + `play_kruksal()` fusionnés — format commun entre les deux algos |
 
 ### ⚠️ À corriger — POO
 
@@ -66,7 +69,7 @@ Les clés optionnelles ne sont jamais appliquées correctement.
 | `Kruksal` | ⚠️ | `second_loop` imbriqué alourdit la classe |
 | `MazeGenerator` | ⚠️ | Factory + seed + validation — `get_solution()` cassée |
 | `MazeController.run()` | ⚠️ | Méthode monolithique à 6 responsabilités (config, génération, pathfinding, vue, seed, fichier) |
-| `TerminalView` | ⚠️ | `play()` et `play_kruksal()` dupliquent la logique d'animation |
+| `TerminalView` | ✅ | `play()` unifié, `_render()` unique — duplication supprimée |
 
 **Actions restantes :**
 - Extraire `second_loop` en méthode privée de `Kruksal`
@@ -90,21 +93,21 @@ Les clés optionnelles ne sont jamais appliquées correctement.
 
 ---
 
-### L — Liskov Substitution ❌
+### L — Liskov Substitution ✅ CORRIGÉ
 
-**Violation active** : `Backtracker.generate()` et `Kruksal.generate()` retournent des types incompatibles.
+~~Violation active~~ **Corrigée le 05/04/2026** : `Backtracker.generate()` retourne désormais `list[tuple[int, int, str]]`, même format que `Kruksal.generate()`.
 
 ```python
-# Backtracker → list[str]
-track = ['N', 'E', 'BACK', 'S', ...]
+# Avant — Backtracker (violait LSP)
+track = ['N', 'E', 'BACK', 'S', ...]       # list[str]
 
-# Kruksal → list[tuple[int, int, str]]
-track = [(0, 0, 'E'), (1, 0, 'S'), ...]
+# Après — Backtracker et Kruskal (identiques)
+track = [(0, 0, 'E'), (1, 0, 'S'), ...]    # list[tuple[int, int, str]]
 ```
 
-`MazeController` compense par un `isinstance(track[0], tuple)` — c'est précisément ce que LSP interdit.
-
-**Recommandation** : normaliser le format de retour de `generate()` via un `TypedDict` ou un dataclass `Step`.
+`MazeController` n'a plus `isinstance(track[0], tuple)`.  
+`TerminalView.play()` traite les deux algorithmes avec la même boucle de 5 lignes.  
+Les étapes de backtrack sont absorbées dans l'algorithme — seules les ouvertures de murs apparaissent dans le track.
 
 ---
 
@@ -148,25 +151,18 @@ class AbstractView(ABC):
 | `model/maze.py` | **5/5** | Données pures — classe minimaliste et correcte |
 | `model/maze_validator.py` | **4.5/5** | Excellent SRP, BFS correct, bien documenté |
 | `model/config_parser.py` | **3/5** | Fonctionnel, bug double boucle `_parse_optionals`, alias `recursive_backtracker` résiduel |
-| `model/path_finder.py` | **4.5/5** | ✅ BFS implémenté, `find_k_shortest_paths`, `has_unique_path` — API propre |
+| `model/path_finder.py` | **4.5/5** | BFS opérationnel, `find_k_shortest_paths()` retourne `list[dict]` — méthodes redondantes supprimées |
 | `mazegen/algorithm.py` | **4.5/5** | `PATTERN_42` constante de classe, utilitaires centralisés |
-| `mazegen/backtracker.py` | **4.5/5** | Propre, lisible |
-| `mazegen/kruksal.py` | **3/5** | Logique pertinente — `second_loop` à extraire, LSP violation |
+| `mazegen/backtracker.py` | **5/5** | LSP corrigé — retourne `list[tuple[int,int,str]]`, format identique à Kruskal |
+| `mazegen/kruksal.py` | **3/5** | Logique pertinente — `second_loop` à extraire |
 | `mazegen/maze_generator.py` | **3/5** | Factory correcte — `get_solution()` cassée, double alias |
-| `controller/maze_controller.py` | **3.5/5** | PathFinder intégré, détection parfait/imparfait ✅ — `run()` monolithique, format fichier incomplet |
-| `view/terminal_view.py` | **4/5** | Chemin affiché en ligne ✅, `show_solution` ✅ — duplication `play`/`play_kruksal` persistante |
+| `controller/maze_controller.py` | **3.5/5** | `isinstance` supprimé ✅ — `run()` encore monolithique, format fichier incomplet |
+| `view/terminal_view.py` | **4.5/5** | `_render()` unique, `play()` unifié, toggle `[S]`/`[C]` — pas d'`AbstractView` |
+| `view/menu.py` | **4/5** | Nouveau fichier — Enter en mode raw corrigé (`\r`) |
 | `view/mlx_view.py` | **0/5** | Stub total (bonus) |
 | `tests/test_maze.py` | **3/5** | Implémenté — coverage partielle |
 | `tests/test_maze_generator.py` | **3/5** | Implémenté — coverage partielle |
 | `tests/test_path_finder.py` | **0/5** | Stub total — tests à écrire |
-| `Makefile` | **0/5** | Stub total — 🔴 OBLIGATOIRE |
-| `controller/maze_controller.py` | **3/5** | Fonctionne — format fichier erroné, méthode run() trop longue |
-| `view/terminal_view.py` | **3.5/5** | Fonctionnelle — duplication play/play_kruksal, pas d'AbstractView |
-| `view/curse_view.py` | **3.5/5** | Propre — pas d'AbstractView |
-| `view/mlx_view.py` | **0/5** | Stub total (bonus) |
-| `tests/test_maze.py` | **3/5** | Implémenté — coverage partielle |
-| `tests/test_maze_generator.py` | **3/5** | Implémenté — coverage partielle |
-| `tests/test_path_finder.py` | **0/5** | Stub total |
 | `Makefile` | **0/5** | Stub total — 🔴 OBLIGATOIRE |
 
 ---
@@ -176,11 +172,11 @@ class AbstractView(ABC):
 | Catégorie | Note |
 |-----------|------|
 | Architecture générale / MVC | 15/20 |
-| Respect POO (encapsulation, héritage, polymorphisme) | 16/20 |
-| Respect SOLID | 13/20 |
-| Complétude fonctionnelle (sujet) | 14/20 |
+| Respect POO (encapsulation, héritage, polymorphisme) | 17/20 |
+| Respect SOLID | 15/20 |
+| Complétude fonctionnelle (sujet) | 15/20 |
 | Qualité des tests | 10/20 |
-| **Note globale estimée** | **13.5/20** |
+| **Note globale estimée** | **14.5/20** |
 
 ---
 
@@ -193,9 +189,15 @@ class AbstractView(ABC):
 | ✅ FAIT | Afficher le chemin solution en vue terminal (ligne) | `view/terminal_view.py` |
 | ✅ FAIT | Détecter labyrinthe parfait/imparfait + navigation N/P/Q | `view/terminal_view.py`, `controller/` |
 | ✅ FAIT | Déplacer `PATTERN_42` et méthodes utilitaires dans `Algorithm` | `model/maze.py`, `mazegen/algorithm.py` |
+| ✅ FAIT | Corriger la violation LSP — `Backtracker` retourne `list[tuple[int,int,str]]` | `mazegen/backtracker.py` |
+| ✅ FAIT | Fusionner `_print_with_cursor` + `print_unicode` → `_render()` unique | `view/terminal_view.py` |
+| ✅ FAIT | Fusionner `play()` + `play_kruksal()` → `play()` unique | `view/terminal_view.py` |
+| ✅ FAIT | Solution cachée par défaut, toggle `[S]` affiche/cache | `view/terminal_view.py` |
+| ✅ FAIT | Toggle `[C]` 18 couleurs colorama pour le logo 42 | `view/terminal_view.py` |
+| ✅ FAIT | Supprimer `find_path()`, `has_unique_path()`, `_dirs_to_connections()` | `model/path_finder.py`, `view/terminal_view.py` |
+| ✅ FAIT | Corriger la touche Entrée en mode raw (`\r`) dans le menu | `view/menu.py` |
 | 🔴 CRITIQUE | Créer le `Makefile` (install, run, debug, clean, lint, test) | `Makefile` |
 | 🔴 CRITIQUE | Compléter le format du fichier de sortie (ligne vide + entry + exit + chemin) | `controller/maze_controller.py` |
-| 🟠 IMPORTANT | Corriger la violation LSP : normaliser le retour de `generate()` | `mazegen/algorithm.py`, `backtracker.py`, `kruksal.py` |
 | 🟠 IMPORTANT | Corriger le bug double boucle dans `_parse_optionals()` | `model/config_parser.py` |
 | 🟠 IMPORTANT | Créer `AbstractView` et l'injecter dans le contrôleur | `view/`, `controller/` |
 | 🟡 À refactoriser | Extraire `second_loop` en méthode privée de `Kruksal` | `mazegen/kruksal.py` |
