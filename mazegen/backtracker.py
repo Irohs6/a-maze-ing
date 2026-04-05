@@ -26,14 +26,13 @@ class Backtracker(Algorithm):
 
             if not neighbors:
                 stack.pop()
-                track.append("BACK")
                 continue
             else:
                 nx, ny, direction = random.choice(neighbors)
                 self.maze.remove_wall(x, y, direction)
                 visited.add((nx, ny))
                 stack.append((nx, ny))
-                track.append(direction)
+                track.append((x, y, direction))
 
         self.track = track
         return track

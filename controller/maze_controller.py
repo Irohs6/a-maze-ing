@@ -39,25 +39,18 @@ class MazeController:
         entry = self._config.get("ENTRY", (0, 0))
         exit_pos = self._config.get("EXIT", (0, 0))
         finder = PathFinder(maze, entry=entry, exit=exit_pos)
-        path_dirs = finder.find_path()
 
-        # Calculer les k plus courts chemins + détecter si parfait
-        is_perfect = finder.has_unique_path()
+        # Un seul appel suffit : si len == 1 → parfait (chemin unique)
         all_paths_dirs = finder.find_k_shortest_paths(k=3)
+        is_perfect = len(all_paths_dirs) == 1
 
-        # Connexions initiales pour le premier chemin
-        path_connections = TerminalView._dirs_to_connections(
-            path_dirs, entry
-        )
+        # Le premier chemin est déjà au bon format (dict de connexions)
+        path_connections = all_paths_dirs[0] if all_paths_dirs else {}
 
         # 4. Instancier la vue
         view = TerminalView(maze, track, entry=entry, exit=exit_pos,
-                            forty_two_cells=forty_two_cells,
-                            path_connections=path_connections)
-        if track and isinstance(track[0], tuple):
-            view.play_kruksal()
-        else:
-            view.play()
+                            forty_two_cells=forty_two_cells)
+        view.play()
         view.show_solution(all_paths_dirs, is_perfect)
 
         # 4. Affichage terminal de la seed

@@ -1,4 +1,5 @@
 # view/terminal_view.py
+# Affichage terminal du labyrinthe : animation de la génération + solution.
 
 import os
 import sys
@@ -10,10 +11,61 @@ from typing import Any
 from colorama import init, Fore, Style
 from model.maze import Maze
 
+# colorama : on gère les resets manuellement pour contrôler les couleurs.
 init(autoreset=False)
+
+# Bitmask des murs encodés dans grid[row][col].
+# Chaque cellule stocke ses murs présents dans un entier 4 bits.
+WALL_N = 1  # mur au nord  (haut)
+WALL_E = 2  # mur à l'est  (droite)
+WALL_S = 4  # mur au sud   (bas)
+WALL_W = 8  # mur à l'ouest (gauche)
+
+# Caractères de jonction pour les coins/intersections.
+# L'index est un bitmask : gauche=1, bas=2, droite=4, haut=8
+# Exemples : index 6 (droite+bas) = coin haut-gauche = ╔
+#            index 15 (tout)       = croix centrale  = ╬
+BOX_WALL = " ═║╗══╔╦║╝║╣╚╩╠╬"  # double trait (murs du labyrinthe)
+BOX_PATH = " ╴╷┐╶─┌┬╵┘│┤└┴├┼"  # simple trait (chemin solution)
+
+# Toutes les couleurs disponibles pour le motif 42 (cycle avec [C]).
+COLORS_42 = [
+    ("blanc",         Fore.WHITE),
+    ("rouge",         Fore.RED),
+    ("vert",          Fore.GREEN),
+    ("jaune",         Fore.YELLOW),
+    ("bleu",          Fore.BLUE),
+    ("magenta",       Fore.MAGENTA),
+    ("cyan",          Fore.CYAN),
+    ("blanc vif",     Fore.LIGHTWHITE_EX),
+    ("rouge vif",     Fore.LIGHTRED_EX),
+    ("vert vif",      Fore.LIGHTGREEN_EX),
+    ("jaune vif",     Fore.LIGHTYELLOW_EX),
+    ("bleu vif",      Fore.LIGHTBLUE_EX),
+    ("magenta vif",   Fore.LIGHTMAGENTA_EX),
+    ("cyan vif",      Fore.LIGHTCYAN_EX),
+    ("bleu vif+gras", Fore.LIGHTBLUE_EX + Style.BRIGHT),
+    ("vert vif+gras", Fore.LIGHTGREEN_EX + Style.BRIGHT),
+    ("rouge vif+gras",Fore.LIGHTRED_EX + Style.BRIGHT),
+    ("cyan vif+gras", Fore.LIGHTCYAN_EX + Style.BRIGHT),
+]
 
 
 class TerminalView:
+
+    # Couleurs pour chaque type d'élément affiché.
+    # COLOR["42"] est remplacé dynamiquement via [C] dans show_solution.
+    COLOR = {
+        "wall":   Fore.WHITE,
+        "42":     Fore.LIGHTBLUE_EX + Style.BRIGHT,
+        "path":   Fore.GREEN,
+        "cursor": Fore.GREEN + Style.BRIGHT,
+        "entry":  Fore.WHITE,
+        "exit":   Fore.RED,
+        "info":   Fore.GREEN,
+    }
+    RESET = Style.RESET_ALL
+
     def __init__(
         self,
         maze: Maze,
@@ -27,406 +79,237 @@ class TerminalView:
         self.track = track
         self.entry = entry
         self.exit_pos = exit
-        # Coordinates (x, y) of the cells belonging to the 42 pattern.
-        # Stored as a set for fast membership checks.
-        self.forty_two_cells: set[tuple[int, int]] = set(forty_two_cells or [])
-        # Per-cell path directions: maps (x, y) to the set of directions
-        # the solution path connects through that cell.
+        # Cellules appartenant au motif "42" (murs colorés en bleu).
+        self.forty_two: set[tuple[int, int]] = set(forty_two_cells or [])
+        # Chemin solution : cellule → directions de connexion (entrée + sortie).
+        # Ex : {(2,3): {'N','S'}} = le chemin entre par le nord, repart au sud.
         self.path_connections: dict[tuple[int, int], set[str]] = (
             path_connections or {}
         )
-        # Maze vierge dédié à l'animation — les murs sont cassés au fur et
-        # à mesure du track pour que la progression reste 100 % visible.
+        # Labyrinthe vierge pour l'animation : murs cassés au fil du track.
         self._anim_maze = Maze(maze.width, maze.height)
 
-    # ---------------------------------------------------------
-    #  HELPERS STATIQUES
-    # ---------------------------------------------------------
+    # ------------------------------------------------------------------
+    #  LECTURE CLAVIER
+    # ------------------------------------------------------------------
 
     @staticmethod
-    def _getch() -> str:
-        """Read a single keypress without requiring Enter."""
+    def _read_key() -> str:
+        """Lit une touche sans attendre Entrée (mode raw)."""
         fd = sys.stdin.fileno()
-        old = termios.tcgetattr(fd)
+        saved = termios.tcgetattr(fd)
         try:
             tty.setraw(fd)
             return sys.stdin.read(1)
         finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old)
+            termios.tcsetattr(fd, termios.TCSADRAIN, saved)
 
-    @staticmethod
-    def _dirs_to_connections(
-        path_dirs: list[str], start: tuple[int, int]
-    ) -> dict[tuple[int, int], set[str]]:
-        """Convert a list of directions to per-cell connection sets."""
-        OFFSETS = {'N': (0, -1), 'E': (1, 0), 'S': (0, 1), 'W': (-1, 0)}
-        REVERSE = {'N': 'S', 'S': 'N', 'E': 'W', 'W': 'E'}
-        connections: dict[tuple[int, int], set[str]] = {}
-        x, y = start
-        connections[(x, y)] = set()
-        for d in path_dirs:
-            connections[(x, y)].add(d)
-            dx, dy = OFFSETS[d]
-            x, y = x + dx, y + dy
-            if (x, y) not in connections:
-                connections[(x, y)] = set()
-            connections[(x, y)].add(REVERSE[d])
-        return connections
-
-    PALETTE_MATRIX: dict[str, str] = {
-        "wall": Fore.WHITE,
-        "empty": Style.RESET_ALL,
-        "entry": Fore.WHITE,
-        "exit": Fore.RED,
-        "cursor": Fore.GREEN + Style.BRIGHT,
-        "path": Fore.GREEN,
-        "forty_two": Fore.RED + Style.BRIGHT,
-        "info": Fore.GREEN,
-    }
-
-    # ---------------------------------------------------------
-    #  ANIMATION DE LA GÉNÉRATION
-    # ---------------------------------------------------------
+    # ------------------------------------------------------------------
+    #  ANIMATIONS DE LA GÉNÉRATION
+    # ------------------------------------------------------------------
 
     def play(self, delay: float = 0.03) -> None:
-        if not self.track:
-            return
+        """Anime la génération pas à pas.
 
-        directions = {
-            'N': (0, -1),
-            'E': (1, 0),
-            'S': (0, 1),
-            'W': (-1, 0),
-        }
-
-        pos_stack = [(0, 0)]
-        anim = self._anim_maze
-
-        for step in self.track:
-            os.system("clear")
-
-            if step != "BACK":
-                x, y = pos_stack[-1]
-                dx, dy = directions[step]
-                nx, ny = x + dx, y + dy
-                anim.remove_wall(x, y, step)
-                pos_stack.append((nx, ny))
-            else:
-                # Empêcher la pile de devenir vide
-                if len(pos_stack) > 1:
-                    pos_stack.pop()
-
-            self._print_with_cursor(pos_stack[-1], anim)
-            print(f"\nStep: {step}")
-
-            time.sleep(delay)
-
-    def play_kruksal(self, delay: float = 0.03) -> None:
+        Chaque step du track est un tuple (x, y, direction),
+        identique pour le backtracker et Kruskal.
+        """
         if not self.track:
             return
         anim = self._anim_maze
-
-        for step in self.track:
+        for x, y, direction in self.track:
             os.system("clear")
-            anim.remove_wall(*step)
-            self._print_with_cursor((step[0], step[1]), anim)
-            print(f"\nStep: {step[2]}")
-
+            anim.remove_wall(x, y, direction)
+            self._render(anim, cursor=(x, y))
             time.sleep(delay)
 
-    # ---------------------------------------------------------
-    #  AFFICHAGE AVEC CURSEUR
-    # ---------------------------------------------------------
-    def _print_with_cursor(
-        self, cursor_pos: tuple[int, int], maze: Maze | None = None
-    ) -> None:
-        if maze is None:
-            maze = self.maze
-        h = maze.height
-        w = maze.width
-        grid = maze.grid
-
-        cx, cy = cursor_pos
-        ex, ey = self.entry
-        sx, sy = self.exit_pos
-
-        BOX = " ╴╷┐╶─┌┬╵┘│┤└┴├┼"
-
-        def h_seg(x: int, iy: int) -> bool:
-            if iy < h and grid[iy][x] & 1:
-                return True
-            if iy > 0 and grid[iy - 1][x] & 4:
-                return True
-            return False
-
-        def v_seg(ix: int, y: int) -> bool:
-            if ix < w and grid[y][ix] & 8:
-                return True
-            if ix > 0 and grid[y][ix - 1] & 2:
-                return True
-            return False
-
-        P = self.PALETTE_MATRIX
-        WALL = P["wall"]
-        RESET = Style.RESET_ALL
-        FORTY_TWO_WALL = P["forty_two"]
-        ENTRY_ICON = "🚀 "
-        EXIT_ICON = "🏁 "
-
-        forty_two = self.forty_two_cells
-
-        def is_42_cell(x: int, y: int) -> bool:
-            return (x, y) in forty_two
-
-        def h_wall_color(x: int, iy: int) -> str:
-            """Color for the horizontal wall at (x, iy) if it exists."""
-            blue = False
-            if iy < h and (grid[iy][x] & 1) and is_42_cell(x, iy):
-                blue = True
-            if iy > 0 and (grid[iy - 1][x] & 4) and is_42_cell(x, iy - 1):
-                blue = True
-            return FORTY_TWO_WALL if blue else WALL
-
-        def v_wall_color(ix: int, y: int) -> str:
-            """Color for the vertical wall at (ix, y) if it exists."""
-            blue = False
-            if ix < w and (grid[y][ix] & 8) and is_42_cell(ix, y):
-                blue = True
-            if ix > 0 and (grid[y][ix - 1] & 2) and is_42_cell(ix - 1, y):
-                blue = True
-            return FORTY_TWO_WALL if blue else WALL
-
-        def junction_color(ix: int, iy: int, up: bool,
-                           down: bool, left: bool, right: bool) -> str:
-            """Color for the junction char at grid intersection (ix, iy)."""
-            blue = False
-            if left and ix > 0 and iy <= h:
-                blue = blue or (h_wall_color(ix - 1, iy) == FORTY_TWO_WALL)
-            if right and ix < w and iy <= h:
-                blue = blue or (h_wall_color(ix, iy) == FORTY_TWO_WALL)
-            if up and iy > 0 and ix <= w:
-                # up segment is v_seg(ix, iy-1)
-                if (iy - 1) < h:
-                    blue = blue or (v_wall_color(ix, iy - 1) == FORTY_TWO_WALL)
-            if down and iy < h and ix <= w:
-                blue = blue or (v_wall_color(ix, iy) == FORTY_TWO_WALL)
-            return FORTY_TWO_WALL if blue else WALL
-
-        for iy in range(h + 1):
-            top = ""
-            for ix in range(w + 1):
-                up = iy > 0 and v_seg(ix, iy - 1)
-                down = iy < h and v_seg(ix, iy)
-                left = ix > 0 and h_seg(ix - 1, iy)
-                right = ix < w and h_seg(ix, iy)
-                box_idx = (
-                    int(left)
-                    + int(down) * 2
-                    + int(right) * 4
-                    + int(up) * 8
-                )
-                top += (
-                    junction_color(ix, iy, up, down, left, right)
-                    + BOX[box_idx]
-                    + RESET
-                )
-                if ix < w:
-                    top += (
-                        (h_wall_color(ix, iy) + "───" + RESET)
-                        if h_seg(ix, iy)
-                        else "   "
-                    )
-            print(top)
-
-            if iy < h:
-                mid = ""
-                for ix in range(w + 1):
-                    mid += (
-                        (v_wall_color(ix, iy) + "│" + RESET)
-                        if v_seg(ix, iy)
-                        else " "
-                    )
-                    if ix < w:
-                        if (ix, iy) == (cx, cy):
-                            mid += P["cursor"] + " ● " + RESET
-                        elif (ix, iy) == (ex, ey):
-                            mid += P["entry"] + ENTRY_ICON + RESET
-                        elif (ix, iy) == (sx, sy):
-                            mid += P["exit"] + EXIT_ICON + RESET
-                        else:
-                            mid += "   "
-                print(mid)
-
-    # ---------------------------------------------------------
+    # ------------------------------------------------------------------
     #  AFFICHAGE INTERACTIF DE LA SOLUTION
-    # ---------------------------------------------------------
+    # ------------------------------------------------------------------
 
     def show_solution(
-        self, all_paths: list[list[str]], is_perfect: bool
+        self,
+        all_paths: list[dict[tuple[int, int], set[str]]],
+        is_perfect: bool,
     ) -> None:
-        """Display the maze with solution path and allow switching if imperfect.
+        """Affiche le labyrinthe avec le chemin solution, navigation N/P/Q.
 
-        Keys: [N] next path, [P] previous path (imperfect only), [Q] quit.
+        all_paths  : liste de chemins, chacun = dict cellule → directions.
+        is_perfect : True si un seul chemin existe (labyrinthe parfait).
+        Touches    : [N] chemin suivant, [P] précédent, [Q] quitter.
         """
-        P = self.PALETTE_MATRIX
-        RESET = Style.RESET_ALL
         current = 0
         total = len(all_paths)
+        revealed = False
+        color_idx = next(
+            i for i, (_, c) in enumerate(COLORS_42)
+            if c == self.COLOR["42"]
+        ) if self.COLOR["42"] in [c for _, c in COLORS_42] else 0
 
         while True:
-            self.path_connections = self._dirs_to_connections(
-                all_paths[current], self.entry
-            )
+            self.path_connections = all_paths[current] if revealed else {}
             os.system("clear")
-            self.print_unicode()
+            self._render(self.maze)
 
-            if is_perfect:
+            color_name = COLORS_42[color_idx][0]
+            if not revealed:
+                print(f"\n  [S] afficher la solution  [C] couleur 42 ({color_name})  [Q] quitter")
+            elif is_perfect:
                 print(
-                    f"\n{P['info']}✓ Labyrinthe parfait généré"
-                    f" (chemin unique){RESET}"
+                    f"\n{self.COLOR['info']}✓ Labyrinthe parfait (chemin unique){self.RESET}"
                 )
-                print("  [Q] quitter")
+                print(f"  [S] cacher  [C] couleur 42 ({color_name})  [Q] quitter")
             else:
                 print(
-                    f"\n{Fore.YELLOW}⚠ Labyrinthe imparfait généré"
-                    f" — chemin {current + 1}/{total}{RESET}"
+                    f"\n{Fore.YELLOW}⚠ Labyrinthe imparfait"
+                    f" — chemin {current + 1}/{total}{self.RESET}"
                 )
-                print(
-                    "  [N] prochain chemin  "
-                    "[P] chemin précédent  [Q] quitter"
-                )
+                print(f"  [S] cacher  [C] couleur 42 ({color_name})  [N] suivant  [P] précédent  [Q] quitter")
 
-            key = self._getch().lower()
+            key = self._read_key().lower()
             if key == 'q':
                 break
-            if not is_perfect:
+            elif key == 's':
+                revealed = not revealed
+            elif key == 'c':
+                color_idx = (color_idx + 1) % len(COLORS_42)
+                self.COLOR = {**self.COLOR, "42": COLORS_42[color_idx][1]}
+            elif revealed and not is_perfect:
                 if key == 'n':
                     current = (current + 1) % total
                 elif key == 'p':
                     current = (current - 1) % total
 
-    # ---------------------------------------------------------
-    #  AFFICHAGE FINAL
-    # ---------------------------------------------------------
-    def print_unicode(self) -> None:
-        maze = self.maze
-        h = maze.height
-        w = maze.width
+    # ------------------------------------------------------------------
+    #  MOTEUR DE RENDU UNIQUE
+    #  Utilisé à la fois pendant l'animation et pour l'affichage final.
+    # ------------------------------------------------------------------
+
+    def _render(
+        self,
+        maze: Maze,
+        cursor: tuple[int, int] | None = None,
+    ) -> None:
+        """Dessine le labyrinthe dans le terminal.
+
+        maze   : labyrinthe à dessiner (animation en cours ou final).
+        cursor : si fourni, affiche un ● à cette position (animation).
+
+        Chaque rangée produit deux lignes :
+          TOP : ╔═══╦═══╗   coins + murs horizontaux
+          MID : ║   ║ ● ║   murs verticaux + contenu des cellules
+        """
         grid = maze.grid
+        width = maze.width
+        height = maze.height
+        C = self.COLOR
+        R = self.RESET
 
-        ex, ey = getattr(self, 'entry', (0, 0))
-        sx, sy = getattr(self, 'exit_pos', (0, 0))
-        P = self.PALETTE_MATRIX
-        WALL = P["wall"]
-        RESET = Style.RESET_ALL
-        FORTY_TWO_WALL = P["forty_two"]
-        ENTRY_ICON = "🚀 "
-        EXIT_ICON = "🏁 "
+        # ── Présence des murs ────────────────────────────────────────────
 
-        forty_two = self.forty_two_cells
+        def wall_above(col: int, row: int) -> bool:
+            """Vrai s'il y a un mur horizontal entre les rangées row-1 et row.
 
-        def is_42_cell(x: int, y: int) -> bool:
-            return (x, y) in forty_two
+            Ce mur est encodé soit comme WALL_N de (col, row),
+            soit comme WALL_S de (col, row-1) — les deux sont équivalents.
+            """
+            return (
+                (row < height and bool(grid[row][col] & WALL_N))
+                or (row > 0 and bool(grid[row - 1][col] & WALL_S))
+            )
 
-        BOX = " ╴╷┐╶─┌┬╵┘│┤└┴├┼"
+        def wall_left(col: int, row: int) -> bool:
+            """Vrai s'il y a un mur vertical entre les colonnes col-1 et col.
 
-        def h_seg(x: int, iy: int) -> bool:
-            if iy < h and grid[iy][x] & 1:
-                return True
-            if iy > 0 and grid[iy - 1][x] & 4:
-                return True
-            return False
+            Encodé soit comme WALL_W de (col, row),
+            soit comme WALL_E de (col-1, row).
+            """
+            return (
+                (col < width and bool(grid[row][col] & WALL_W))
+                or (col > 0 and bool(grid[row][col - 1] & WALL_E))
+            )
 
-        def v_seg(ix: int, y: int) -> bool:
-            if ix < w and grid[y][ix] & 8:
-                return True
-            if ix > 0 and grid[y][ix - 1] & 2:
-                return True
-            return False
+        # ── Couleurs des murs (blanc ou bleu si motif 42) ────────────────
 
-        def h_wall_color(x: int, iy: int) -> str:
-            blue = False
-            if iy < h and (grid[iy][x] & 1) and is_42_cell(x, iy):
-                blue = True
-            if iy > 0 and (grid[iy - 1][x] & 4) and is_42_cell(x, iy - 1):
-                blue = True
-            return FORTY_TWO_WALL if blue else WALL
+        def color_h_wall(col: int, row: int) -> str:
+            return C["wall"]
 
-        def v_wall_color(ix: int, y: int) -> str:
-            blue = False
-            if ix < w and (grid[y][ix] & 8) and is_42_cell(ix, y):
-                blue = True
-            if ix > 0 and (grid[y][ix - 1] & 2) and is_42_cell(ix - 1, y):
-                blue = True
-            return FORTY_TWO_WALL if blue else WALL
+        def color_v_wall(col: int, row: int) -> str:
+            return C["wall"]
 
-        def junction_color(ix: int, iy: int, up: bool,
-                           down: bool, left: bool, right: bool) -> str:
-            blue = False
-            if left and ix > 0 and iy <= h:
-                blue = blue or (h_wall_color(ix - 1, iy) == FORTY_TWO_WALL)
-            if right and ix < w and iy <= h:
-                blue = blue or (h_wall_color(ix, iy) == FORTY_TWO_WALL)
-            if up and iy > 0 and ix <= w:
-                if (iy - 1) < h:
-                    blue = blue or (v_wall_color(ix, iy - 1) == FORTY_TWO_WALL)
-            if down and iy < h and ix <= w:
-                blue = blue or (v_wall_color(ix, iy) == FORTY_TWO_WALL)
-            return FORTY_TWO_WALL if blue else WALL
+        def color_corner(
+            col: int, row: int, up: bool, down: bool,
+            left: bool, right: bool
+        ) -> str:
+            return C["wall"]
 
-        for iy in range(h + 1):
-            top = ""
-            for ix in range(w + 1):
-                up = iy > 0 and v_seg(ix, iy - 1)
-                down = iy < h and v_seg(ix, iy)
-                left = ix > 0 and h_seg(ix - 1, iy)
-                right = ix < w and h_seg(ix, iy)
-                box_idx = (
+        # ── Contenu d'une cellule (3 caractères) ─────────────────────────
+
+        def cell_content(col: int, row: int) -> str:
+            if cursor and (col, row) == cursor:
+                return C["cursor"] + " ● " + R
+            if (col, row) == self.entry:
+                return C["entry"] + "🚀 " + R
+            if (col, row) == self.exit_pos:
+                return C["exit"] + "🏁 " + R
+            if (col, row) in self.forty_two:
+                return C["42"] + "███" + R
+            if (col, row) in self.path_connections:
+                dirs = self.path_connections[(col, row)]
+                # Index dans BOX_PATH : W=1, S=2, E=4, N=8
+                idx = (
+                    (1 if 'W' in dirs else 0)
+                    + (2 if 'S' in dirs else 0)
+                    + (4 if 'E' in dirs else 0)
+                    + (8 if 'N' in dirs else 0)
+                )
+                seg_left = "─" if 'W' in dirs else " "
+                seg_right = "─" if 'E' in dirs else " "
+                return C["path"] + seg_left + BOX_PATH[idx] + seg_right + R
+            return "   "
+
+        # ── Rendu ligne par ligne ─────────────────────────────────────────
+
+        for row in range(height + 1):
+
+            # Ligne TOP : coins + segments horizontaux
+            top_line = ""
+            for col in range(width + 1):
+                up    = row > 0      and wall_left(col, row - 1)
+                down  = row < height and wall_left(col, row)
+                left  = col > 0      and wall_above(col - 1, row)
+                right = col < width  and wall_above(col, row)
+
+                # Index du coin : gauche=1, bas=2, droite=4, haut=8
+                corner_idx = (
                     int(left)
                     + int(down) * 2
                     + int(right) * 4
                     + int(up) * 8
                 )
-                top += (
-                    junction_color(ix, iy, up, down, left, right)
-                    + BOX[box_idx]
-                    + RESET
+                top_line += (
+                    color_corner(col, row, up, down, left, right)
+                    + BOX_WALL[corner_idx]
+                    + R
                 )
-                if ix < w:
-                    top += (
-                        (h_wall_color(ix, iy) + "───" + RESET)
-                        if h_seg(ix, iy)
+                if col < width:
+                    top_line += (
+                        color_h_wall(col, row) + "═══" + R
+                        if wall_above(col, row)
                         else "   "
                     )
-            print(top)
+            print(top_line)
 
-            if iy < h:
-                mid = ""
-                for ix in range(w + 1):
-                    mid += (
-                        (v_wall_color(ix, iy) + "│" + RESET)
-                        if v_seg(ix, iy)
+            # Ligne MID : murs verticaux + contenu des cellules
+            if row < height:
+                mid_line = ""
+                for col in range(width + 1):
+                    mid_line += (
+                        color_v_wall(col, row) + "║" + R
+                        if wall_left(col, row)
                         else " "
                     )
-                    if ix < w:
-                        if (ix, iy) == (ex, ey):
-                            mid += P["entry"] + ENTRY_ICON + RESET
-                        elif (ix, iy) == (sx, sy):
-                            mid += P["exit"] + EXIT_ICON + RESET
-                        elif (ix, iy) in self.path_connections:
-                            dirs = self.path_connections[(ix, iy)]
-                            # Reuse the BOX table: W=1, S=2, E=4, N=8
-                            idx = (
-                                (1 if 'W' in dirs else 0)
-                                + (2 if 'S' in dirs else 0)
-                                + (4 if 'E' in dirs else 0)
-                                + (8 if 'N' in dirs else 0)
-                            )
-                            BOX_PATH = " ╴╷┐╶─┌┬╵┘│┤└┴├┼"
-                            ch = BOX_PATH[idx]
-                            left = "─" if 'W' in dirs else " "
-                            right = "─" if 'E' in dirs else " "
-                            mid += P["path"] + left + ch + right + RESET
-                        else:
-                            mid += "   "
-                print(mid)
+                    if col < width:
+                        mid_line += cell_content(col, row)
+                print(mid_line)
+

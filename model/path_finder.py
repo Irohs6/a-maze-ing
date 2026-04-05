@@ -50,34 +50,32 @@ class PathFinder:
         self.entry = entry
         self.exit = exit
 
-    def find_path(self) -> list[str]:
-        """Return the shortest path from entry to exit as direction labels.
+    def find_k_shortest_paths(
+        self, k: int = 3
+    ) -> list[dict[tuple[int, int], set[str]]]:
+        """Retourne les k plus courts chemins sous forme de connexions par cellule.
 
-        Returns:
-            A list of directions (N, E, S, W) representing the path.
-            Returns an empty list if no path exists.
-        """
-        paths = self.find_k_shortest_paths(k=1)
-        return paths[0] if paths else []
+        Chaque chemin est un dict : cellule → ensemble des directions par
+        lesquelles le chemin entre/sort de cette cellule.
+        Exemple : {(0,0): {'E'}, (1,0): {'W','S'}, (1,1): {'N'}}
 
-    def find_k_shortest_paths(self, k: int = 3) -> list[list[str]]:
-        """Return the k shortest simple paths from entry to exit.
-
-        Uses BFS with per-path visited tracking to enumerate simple paths
-        in ascending order of length. Returns fewer than k paths if fewer exist.
+        Ce format est directement utilisable par la vue sans conversion.
+        Si la liste retournée contient exactement 1 élément, le labyrinthe
+        est parfait (chemin unique).
 
         Args:
-            k: Maximum number of paths to return.
-
-        Returns:
-            List of up to k paths, each a list of directions (N, E, S, W).
+            k: Nombre maximum de chemins à retourner.
         """
+        # Direction opposée : quand on arrive dans une cellule depuis une
+        # direction, la cellule d'arrivée enregistre la direction inverse.
+        REVERSE = {'N': 'S', 'S': 'N', 'E': 'W', 'W': 'E'}
+
         maze = self.maze
         start = self.entry
         goal = self.exit
 
-        results: list[list[str]] = []
-        # Each entry: (x, y, path_so_far, visited_cells)
+        results: list[dict[tuple[int, int], set[str]]] = []
+        # Chaque entrée de la file : (x, y, chemin_parcouru, cellules_visitées)
         queue: deque[
             tuple[int, int, list[str], frozenset[tuple[int, int]]]
         ] = deque()
@@ -87,7 +85,19 @@ class PathFinder:
             x, y, path, visited = queue.popleft()
 
             if (x, y) == goal:
-                results.append(path)
+                # Chemin trouvé : on construit le dict de connexions par cellule
+                connections: dict[tuple[int, int], set[str]] = {}
+                cx, cy = start
+                connections[(cx, cy)] = set()
+                for d in path:
+                    connections[(cx, cy)].add(d)
+                    dx, dy = self.DIRECTIONS[d]
+                    cx, cy = cx + dx, cy + dy
+                    if (cx, cy) not in connections:
+                        connections[(cx, cy)] = set()
+                    # La cellule d'arrivée enregistre la direction d'où on vient
+                    connections[(cx, cy)].add(REVERSE[d])
+                results.append(connections)
                 continue
 
             for direction, (dx, dy) in self.DIRECTIONS.items():
@@ -104,34 +114,3 @@ class PathFinder:
                         ))
 
         return results
-
-    def has_unique_path(self) -> bool:
-        """Return True if exactly one path exists from entry to exit.
-
-        Detects cycles reachable from entry using BFS parent tracking.
-        A cycle means multiple paths exist between some pair of cells,
-        so this is only meaningful when PERFECT=True.
-        """
-        maze = self.maze
-        start = self.entry
-        goal = self.exit
-
-        parent: dict[tuple[int, int], tuple[int, int] | None] = {start: None}
-        queue: deque[tuple[int, int]] = deque([start])
-
-        while queue:
-            x, y = queue.popleft()
-            for direction, (dx, dy) in self.DIRECTIONS.items():
-                if maze.has_wall(x, y, direction):
-                    continue
-                nx, ny = x + dx, y + dy
-                if 0 <= nx < maze.width and 0 <= ny < maze.height:
-                    neighbor = (nx, ny)
-                    if neighbor not in parent:
-                        parent[neighbor] = (x, y)
-                        queue.append(neighbor)
-                    elif parent[(x, y)] != neighbor:
-                        # Cross-edge found → cycle → multiple paths
-                        return False
-
-        return goal in parent
