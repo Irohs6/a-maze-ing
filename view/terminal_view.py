@@ -46,7 +46,7 @@ COLORS_42 = [
     ("cyan vif",      Fore.LIGHTCYAN_EX),
     ("bleu vif+gras", Fore.LIGHTBLUE_EX + Style.BRIGHT),
     ("vert vif+gras", Fore.LIGHTGREEN_EX + Style.BRIGHT),
-    ("rouge vif+gras",Fore.LIGHTRED_EX + Style.BRIGHT),
+    ("rouge vif+gras", Fore.LIGHTRED_EX + Style.BRIGHT),
     ("cyan vif+gras", Fore.LIGHTCYAN_EX + Style.BRIGHT),
 ]
 

@@ -11,6 +11,7 @@
 #   - les clés optionnelles (SEED, ALGORITHM) avec leurs valeurs par défaut
 # Lève des exceptions descriptives pour chaque type d'erreur rencontré.
 from typing import Any
+import time
 
 
 class ConfigParser:
@@ -27,12 +28,8 @@ class ConfigParser:
         'WIDTH', 'HEIGHT', 'ENTRY', 'EXIT', 'OUTPUT_FILE', 'PERFECT'
     ]
     OPTIONAL_KEYS: list[str] = [
-        'SEED', 'ALGORITHM', 'VIEW'
+        'SEED', 'PLAYABLE'
     ]
-    OPTIONAL_DEFAULTS: dict[str, Any] = {
-        'VIEW': 'terminal',
-        'ALGORITHM': 'backtracker',
-    }
 
     def __init__(self, config_file: str) -> None:
         self.config_file: str = config_file
@@ -121,8 +118,6 @@ class ConfigParser:
             self.__config['PERFECT'] = (
                 self.__config['PERFECT'].strip().lower() == 'true'
             )
-            if 'SEED' in self.__config:
-                self.__config['SEED'] = int(self.__config['SEED'])
         except ValueError as error:
             raise ValueError(error)
 
@@ -147,6 +142,20 @@ class ConfigParser:
             )
 
     def _parse_optionals(self) -> None:
-        for key in self.OPTIONAL_KEYS:
-            if key not in self.__config and key in self.OPTIONAL_DEFAULTS:
-                self.__config[key] = self.OPTIONAL_DEFAULTS[key]
+        try:
+            for key in self.OPTIONAL_KEYS:
+                if key == 'SEED':
+                    if key in self.__config:
+                        self.__config[key] = int(self.__config[key])
+                    else:
+                        seed = time.time_ns()
+                        self.__config[key] = seed
+                else:
+                    if key not in self.__config:
+                        self.__config[key] = False
+                    else:
+                        self.__config[key] = (
+                            self.__config[key].strip().lower() == 'true'
+                        )
+        except ValueError as error:
+            raise ValueError(error)

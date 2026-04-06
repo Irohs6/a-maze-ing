@@ -44,9 +44,6 @@ class MazeController:
         all_paths_dirs = finder.find_k_shortest_paths(k=3)
         is_perfect = len(all_paths_dirs) == 1
 
-        # Le premier chemin est déjà au bon format (dict de connexions)
-        path_connections = all_paths_dirs[0] if all_paths_dirs else {}
-
         # 4. Instancier la vue
         view = TerminalView(maze, track, entry=entry, exit=exit_pos,
                             forty_two_cells=forty_two_cells)
@@ -55,7 +52,7 @@ class MazeController:
 
         # 4. Affichage terminal de la seed
         seed_used = self._generator.seed
-        print(f"\nSeed utilisée : {seed_used}")
+        print(f"\nSeed utilisée : {self._config.get('SEED', None)}")
 
         # 5. Écriture dans OUTPUT_FILE
         output_file = self._config.get("OUTPUT_FILE", "maze.txt")

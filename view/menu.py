@@ -1,5 +1,6 @@
 import os
 import sys
+from controller.maze_controller import MazeController
 from colorama import init, Fore, Style
 
 # Initialise Colorama
@@ -109,6 +110,17 @@ class Menu:
             return True
         return False
 
+    def another(self):
+        print("Generate Again ? (y/n)")
+        while True:
+            key = getkey()
+            if key:
+                break
+        if key in (b"y", b"Y", "y", "Y"):
+            self.run()
+        else:
+            sys.exit(0)
+            
     # --------------------------------------------------------
     # Boucle principale
     # --------------------------------------------------------
@@ -118,14 +130,23 @@ class Menu:
             key = getkey()
 
             if key in (b"q", b"Q", "q", "Q"):
+                print("\033c")
                 return None
 
             if isinstance(key, bytes):
                 if self._handle_key_windows(key):
-                    return self._execute_action()
+                    returned = self._execute_action()
+                    if returned is not None:
+                        self.another()
+                    else:
+                        break
             else:
                 if self._handle_key_unix(key):
-                    return self._execute_action()
+                    returned = self._execute_action()
+                    if returned is not None:
+                        self.another()
+                    else:
+                        break
 
     # --------------------------------------------------------
     # Exécute l'action associée à l'option
@@ -134,6 +155,7 @@ class Menu:
         action = self.actions[self.index]
 
         if self.options[self.index].lower() == "quitter":
+            print("\033c")
             return None
 
         if action:
@@ -146,21 +168,9 @@ class Menu:
 #  EXEMPLE D'UTILISATION AVEC NOUVEL ÉCRAN
 # ============================================================
 
-def visualiser_labyrinthe():
-    os.system("clear")
-    print("=== LABYRINTHE GÉNÉRÉ ===\n")
-    print("██████████████████████")
-    print("█        █           █")
-    print("█  ██ ████ ███ ████  █")
-    print("█  █       █       █ █")
-    print("██████████████████████")
-    print("\nAppuie sur Entrée pour revenir au menu...")
-    input()
-
-
 if __name__ == "__main__":
-    options = ["Générer un labyrinthe", "Quitter"]
-    actions = [visualiser_labyrinthe, None]
+    options = ["Generate Maze", "Options", "Exit"]
+    actions = [MazeController('config.txt').run, None]
 
     menu = Menu(options, title="A-Maze-Ing", actions=actions)
     menu.run()
