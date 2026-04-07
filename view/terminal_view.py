@@ -312,4 +312,3 @@ class TerminalView:
                     if col < width:
                         mid_line += cell_content(col, row)
                 print(mid_line)
-

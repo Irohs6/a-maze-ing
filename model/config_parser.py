@@ -11,6 +11,7 @@
 #   - les clés optionnelles (SEED, ALGORITHM) avec leurs valeurs par défaut
 # Lève des exceptions descriptives pour chaque type d'erreur rencontré.
 from typing import Any
+from model.config_file import ConfigFile
 import time
 
 
@@ -25,21 +26,25 @@ class ConfigParser:
     """
 
     REQUIRED_KEYS: list[str] = [
-        'WIDTH', 'HEIGHT', 'ENTRY', 'EXIT', 'OUTPUT_FILE', 'PERFECT'
+        "WIDTH",
+        "HEIGHT",
+        "ENTRY",
+        "EXIT",
+        "OUTPUT_FILE",
+        "PERFECT",
     ]
-    OPTIONAL_KEYS: list[str] = [
-        'SEED', 'PLAYABLE'
-    ]
+    OPTIONAL_KEYS: list[str] = ["SEED", "PLAYABLE"]
 
     def __init__(self, config_file: str) -> None:
         self.config_file: str = config_file
+        self.config_file_model: ConfigFile | None = None
         self.__config: dict[str, Any] = {}
 
-    def parse(self) -> dict[str, Any]:
+    def parse(self) -> ConfigFile:
         """Parse and validate the configuration file.
 
         Reads the file, validates required keys, converts types, and
-        applies defaults for optional keys. Returns the final config dict.
+        applies defaults for optional keys. Returns a ConfigFile instance.
 
         Raises:
             FileNotFoundError: If the config file does not exist.
@@ -50,7 +55,8 @@ class ConfigParser:
         self._validate_required_keys()
         self._parse_types()
         self._parse_optionals()
-        return self.__config
+        self.config_file_model = ConfigFile(**self.__config)
+        return self.config_file_model
 
     # ------------------------------------------------------------------
     # Private steps
@@ -59,9 +65,9 @@ class ConfigParser:
     def _read_file(self) -> None:
         """Read KEY=VALUE pairs from the config file into __config."""
         try:
-            with open(self.config_file, 'r') as file:
+            with open(self.config_file, "r") as file:
                 for line in file:
-                    if line.startswith('#') or not line.strip():
+                    if line.startswith("#") or not line.strip():
                         continue
                     self._parse_line(line)
         except FileNotFoundError:
@@ -70,11 +76,11 @@ class ConfigParser:
             )
 
     def _parse_line(self, line: str) -> None:
-        if '=' not in line:
+        if "=" not in line:
             raise ValueError(
                 f"Invalid line in config: '{line.strip()}' (missing '=')"
             )
-        key, value = line.split('=', 1)
+        key, value = line.split("=", 1)
         key = key.strip().upper()
         value = value.strip()
         if not key:
@@ -83,15 +89,19 @@ class ConfigParser:
             raise ValueError(
                 f"Empty value for key '{key}' in line: '{line.strip()}'"
             )
-        if key == 'VIEW':
+        if key == "VIEW":
             value = value.lower()
-            if value not in ('terminal', 'curse'):
-                raise ValueError("VIEW must be 'terminal' or 'curse',"
-                                 f" got '{value}'")
-        if key == 'ALGORITHM':
+            if value not in ("terminal", "curse"):
+                raise ValueError(
+                    "VIEW must be 'terminal' or 'curse'," f" got '{value}'"
+                )
+        if key == "ALGORITHM":
             value = value.lower()
-            if value not in ('backtracker', 'recursive_backtracker',
-                             'kruksal'):
+            if value not in (
+                "backtracker",
+                "recursive_backtracker",
+                "kruksal",
+            ):
                 raise ValueError(
                     "ALGORITHM must be 'backtracker' or 'kruksal',"
                     f" got '{value}'"
@@ -101,40 +111,40 @@ class ConfigParser:
     def _validate_required_keys(self) -> None:
         for key in self.REQUIRED_KEYS:
             if key not in self.__config:
-                raise KeyError(f"'{key}' has not properly been defined in "
-                               "the config.txt file")
+                raise KeyError(
+                    f"'{key}' has not properly been defined in "
+                    "the config.txt file"
+                )
 
     def _parse_types(self) -> None:
         """Convert string values to their proper Python types."""
         try:
-            for key in ['WIDTH', 'HEIGHT']:
+            for key in ["WIDTH", "HEIGHT"]:
                 self.__config[key] = int(self.__config[key])
                 self._validate_dimensions(key)
-            for key in ['ENTRY', 'EXIT']:
+            for key in ["ENTRY", "EXIT"]:
                 self.__config[key] = tuple(
-                    int(v) for v in self.__config[key].split(',')
+                    int(v) for v in self.__config[key].split(",")
                 )
                 self._validate_position(key)
-            self.__config['PERFECT'] = (
-                self.__config['PERFECT'].strip().lower() == 'true'
+            self.__config["PERFECT"] = (
+                self.__config["PERFECT"].strip().lower() == "true"
             )
         except ValueError as error:
             raise ValueError(error)
 
     def _validate_dimensions(self, key: str) -> None:
         if self.__config[key] <= 0:
-            raise ValueError(
-                f"{key} value is invalid ({self.__config[key]})"
-            )
+            raise ValueError(f"{key} value is invalid ({self.__config[key]})")
 
     def _validate_position(self, key: str) -> None:
         coords = self.__config[key]
         if (
             len(coords) != 2
             or coords[0] < 0
-            or coords[0] >= self.__config['WIDTH']
+            or coords[0] >= self.__config["WIDTH"]
             or coords[1] < 0
-            or coords[1] >= self.__config['HEIGHT']
+            or coords[1] >= self.__config["HEIGHT"]
         ):
             raise ValueError(
                 f"'{key}' needs 2 positive integers that "
@@ -144,7 +154,7 @@ class ConfigParser:
     def _parse_optionals(self) -> None:
         try:
             for key in self.OPTIONAL_KEYS:
-                if key == 'SEED':
+                if key == "SEED":
                     if key in self.__config:
                         self.__config[key] = int(self.__config[key])
                     else:
@@ -155,7 +165,7 @@ class ConfigParser:
                         self.__config[key] = False
                     else:
                         self.__config[key] = (
-                            self.__config[key].strip().lower() == 'true'
+                            self.__config[key].strip().lower() == "true"
                         )
         except ValueError as error:
             raise ValueError(error)
