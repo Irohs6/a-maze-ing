@@ -47,7 +47,7 @@ class MazeController:
         view = TerminalView(maze, track, entry=entry, exit=exit_pos,
                             forty_two_cells=forty_two_cells)
         # view.play()
-        view.show_solution(all_paths_dirs, is_perfect)
+        view.show_solution(all_paths_dirs, is_perfect, track)
 
         # 4. Affichage terminal de la seed
         seed_used = self._generator.seed
@@ -63,7 +63,5 @@ class MazeController:
                 "activate\n" if self._config.PERFECT
                 else "deactivate\n"
             )
-        self._config.WIDTH = 20
-        print(self._config.WIDTH)
         print(f"Labyrinthe sauvegardé dans '{output_file}' (seed={seed_used})")
         print(hex_grid)

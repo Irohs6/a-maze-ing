@@ -108,16 +108,14 @@ class TerminalView:
     #  ANIMATIONS DE LA GÉNÉRATION
     # ------------------------------------------------------------------
 
-    def play(self, delay: float = 0.03) -> None:
+    def play(self, tracks: list[tuple], delay: float = 0.03) -> None:
         """Anime la génération pas à pas.
 
         Chaque step du track est un tuple (x, y, direction),
         identique pour le backtracker et Kruskal.
         """
-        if not self.track:
-            return
         anim = self._anim_maze
-        for x, y, direction in self.track:
+        for x, y, direction in tracks:
             os.system("clear")
             anim.remove_wall(x, y, direction)
             self._render(anim, cursor=(x, y))
@@ -131,6 +129,7 @@ class TerminalView:
         self,
         all_paths: list[dict[tuple[int, int], set[str]]],
         is_perfect: bool,
+        tracks: list[tuple]
     ) -> None:
         """Affiche le labyrinthe avec le chemin solution, navigation N/P/Q.
 
@@ -145,12 +144,11 @@ class TerminalView:
             i for i, (_, c) in enumerate(COLORS_42)
             if c == self.COLOR["42"]
         ) if self.COLOR["42"] in [c for _, c in COLORS_42] else 0
-
+        self.play(tracks=tracks)
         while True:
             self.path_connections = all_paths[current] if revealed else {}
             os.system("clear")
-            self._render(self.maze)
-
+            self._render(self._anim_maze)
             color_name = COLORS_42[color_idx][0]
             if not revealed:
                 print(f"\n  [S] afficher la solution  [C] couleur 42 ({color_name})  [Q] quitter")

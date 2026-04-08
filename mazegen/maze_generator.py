@@ -13,7 +13,6 @@
 
 import random
 from typing import Any
-
 from model.maze import Maze
 from model.maze_validator import MazeValidator
 from .algorithm import Algorithm
@@ -42,16 +41,15 @@ class MazeGenerator:
         height: int,
         seed: int | None = None,
         perfect: bool = True,
-        algorithm: str = "backtracker",
     ) -> None:
         """Initialize the maze generator with given parameters."""
+        self.algorithms = [Backtracker, Kruksal]
         self.width = width
         self.height = height
         self.seed = seed
         if seed is not None:
             random.seed(seed)
         self.perfect = perfect
-        self.algorithm = algorithm
         self.maze = Maze(self.width, self.height)
         self.solution_path: list[Any] | None = None
         self.track: list[Any] = []
@@ -72,10 +70,9 @@ class MazeGenerator:
 
     def _build_algorithm(self) -> Algorithm:
         """Instancie la classe d'algorithme selon self.algorithm."""
-        if self.algorithm in ("backtracker", "recursive_backtracker"):
-            return Backtracker(self.maze)
-        elif self.algorithm == "kruksal":
-            return Kruksal(self.maze)
+        for algorithm in self.algorithms:
+            if self.perfect == algorithm.perfect:
+                return algorithm(self.maze)
         else:
             raise ValueError(f"Unsupported algorithm: {self.algorithm}")
 
