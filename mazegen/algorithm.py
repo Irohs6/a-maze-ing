@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, ClassVar
 
 from model.maze import Maze
 
 
 class Algorithm(ABC):
+
+    perfect: ClassVar[bool]  # True = perfect maze, False = imperfect
 
     # Pixelated "42" shape — 15 means the cell must be
     # fully isolated (value 15), 0 means it can be carved through.

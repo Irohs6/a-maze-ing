@@ -1,8 +1,8 @@
-# Audit POO & SOLID — A-Maze-ing — Mise à jour 05/04/2026 (v3)
+# Audit POO & SOLID — A-Maze-ing — Mise à jour 08/04/2026 (v4)
 
 > Révision intégrant la correction LSP, l'unification de `play()` et `_render()`,
-> la solution cachée/toggle, le toggle couleur 42, et la suppression des méthodes
-> redondantes de `PathFinder`.
+> la solution cachée/toggle, le toggle couleur 42, la suppression des méthodes
+> redondantes de `PathFinder`, et l'ajout de l'attribut `perfect` sur les algos.
 > Auteurs : **gacattan**, **cyakisan**
 
 ---
@@ -27,6 +27,7 @@
 | **LSP corrigé** | `Backtracker.generate()` | Retourne `list[tuple[int,int,str]]` identique à Kruskal — `isinstance` supprimé |
 | Rendu unifié | `TerminalView._render()` | `_print_with_cursor` + `print_unicode` fusionnés — plus de duplication |
 | Animation unifiée | `TerminalView.play()` | `play()` + `play_kruksal()` fusionnés — format commun entre les deux algos |
+| Attribut `perfect` | `Backtracker.perfect = True`, `Kruksal.perfect = False` | Chaque algo porte son propre flag — `MazeGenerator` n'a plus besoin d'un paramètre `algorithm` string |
 
 ### ⚠️ À corriger — POO
 
@@ -82,12 +83,12 @@ Les clés optionnelles ne sont jamais appliquées correctement.
 
 | Élément | État | Problème |
 |---------|------|---------|
-| Ajout d'un algorithme | ✅ (quasi) | Créer une sous-classe suffit, mais `_build_algorithm()` doit être édité (if/elif) |
+| Ajout d'un algorithme | ✅ (quasi) | Créer une sous-classe suffit + déclarer `perfect`, mais `_build_algorithm()` utilise encore `if/elif` — à remplacer par un registre auto |
 | Ajout d'une vue | ❌ | `MazeController` instancie `TerminalView` en dur |
 | `_validate_coordinates()` | ⚠️ | Mélange validation de dimensions et de positions via `if key in [...]` |
 
 **Actions :**
-- Remplacer le `if/elif` de `_build_algorithm()` par un registre `dict` de classes
+- Supprimer le `if/elif` de `_build_algorithm()` : utiliser l'attribut `perfect` des sous-classes pour choisir automatiquement (registre ou `__subclasses__()`)
 - Créer `AbstractView` et injecter la vue dans le contrôleur
 - Séparer `_validate_coordinates()` en `_validate_dimensions()` + `_validate_position()`
 
@@ -153,9 +154,9 @@ class AbstractView(ABC):
 | `model/config_parser.py` | **3/5** | Fonctionnel, bug double boucle `_parse_optionals`, alias `recursive_backtracker` résiduel |
 | `model/path_finder.py` | **4.5/5** | BFS opérationnel, `find_k_shortest_paths()` retourne `list[dict]` — méthodes redondantes supprimées |
 | `mazegen/algorithm.py` | **4.5/5** | `PATTERN_42` constante de classe, utilitaires centralisés |
-| `mazegen/backtracker.py` | **5/5** | LSP corrigé — retourne `list[tuple[int,int,str]]`, format identique à Kruskal |
-| `mazegen/kruksal.py` | **3/5** | Logique pertinente — `second_loop` à extraire |
-| `mazegen/maze_generator.py` | **3/5** | Factory correcte — `get_solution()` cassée, double alias |
+| `mazegen/backtracker.py` | **5/5** | LSP corrigé — retourne `list[tuple[int,int,str]]`, format identique à Kruskal — `perfect = True` |
+| `mazegen/kruksal.py` | **3/5** | Logique pertinente — `second_loop` à extraire — `perfect = False` |
+| `mazegen/maze_generator.py` | **3/5** | Factory correcte — `get_solution()` cassée — param `algorithm` string obsolète |
 | `controller/maze_controller.py` | **3.5/5** | `isinstance` supprimé ✅ — `run()` encore monolithique, format fichier incomplet |
 | `view/terminal_view.py` | **4.5/5** | `_render()` unique, `play()` unifié, toggle `[S]`/`[C]` — pas d'`AbstractView` |
 | `view/menu.py` | **4/5** | Nouveau fichier — Enter en mode raw corrigé (`\r`) |
@@ -205,3 +206,5 @@ class AbstractView(ABC):
 | 🟡 À refactoriser | Corriger/supprimer `get_solution()` dans `MazeGenerator` | `mazegen/maze_generator.py` |
 | 🟡 À refactoriser | Implémenter `tests/test_path_finder.py` | `tests/test_path_finder.py` |
 | 🟡 Amélioration | Supprimer l'alias `recursive_backtracker` ou le documenter | `model/config_parser.py`, `mazegen/maze_generator.py` |
+| 🟠 IMPORTANT | Supprimer la clé `ALGORITHM` du config et le param `algorithm` de `MazeGenerator` — choisir l'algo automatiquement via l'attribut `perfect` des sous-classes d'`Algorithm` | `mazegen/maze_generator.py`, `model/config_parser.py`, `config.txt` |
+| 🟠 IMPORTANT | Fusionner `ConfigParser` dans `ConfigFile` : déplacer les méthodes de parsing en `@staticmethod`, instancier via `@classmethod from_file(path)` | `model/config_file.py`, `model/config_parser.py` |

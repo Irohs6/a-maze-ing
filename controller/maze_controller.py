@@ -1,5 +1,4 @@
 
-from model.config_parser import ConfigParser
 from model.path_finder import PathFinder
 from mazegen.maze_generator import MazeGenerator
 from view.terminal_view import TerminalView
@@ -16,7 +15,7 @@ class MazeController:
         self._generator: MazeGenerator | None = None
 
     def _load_config(self) -> None:
-        self._config = ConfigParser(self._config_file).parse()
+        self._config = ConfigFile.parse(self._config_file)
 
     def run(self) -> None:
         """Execute the full maze pipeline."""
@@ -64,7 +63,7 @@ class MazeController:
                 "activate\n" if self._config.PERFECT
                 else "deactivate\n"
             )
-        self._config.OUTPUT_FILE = "output.txt"
-        print(self._config.OUTPUT_FILE)
+        self._config.WIDTH = 20
+        print(self._config.WIDTH)
         print(f"Labyrinthe sauvegardé dans '{output_file}' (seed={seed_used})")
         print(hex_grid)

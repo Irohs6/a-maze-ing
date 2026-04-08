@@ -7,6 +7,8 @@ from model.maze_validator import MazeValidator
 
 
 class Kruksal(Algorithm):
+    perfect: bool = False
+
     # Nombre maximal de tentatives globales avant d'abandonner
     _MAX_GLOBAL_ATTEMPTS: int = 10
 

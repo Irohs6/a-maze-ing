@@ -3,6 +3,8 @@ import random
 
 
 class Backtracker(Algorithm):
+    perfect: bool = True
+
     def generate(self) -> list[str]:
         """Generates the maze using a depth-first search
         (backtracking) algorithm."""
