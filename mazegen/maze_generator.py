@@ -61,8 +61,8 @@ class MazeGenerator:
             random.seed(self.seed)
         algo = self._build_algorithm()
         self.track = algo.generate()
-        self.maze = algo.maze
         self.forty_two_cells = algo.forty_two_cells
+        self.maze = algo.maze
 
         validator = MazeValidator(self.maze)
         if not validator.validate():
@@ -93,6 +93,8 @@ class MazeGenerator:
             self.seed = seed
             random.seed(seed)
 
-        self.maze = Maze(self.width, self.height)
+        for i in range(len(self.maze.grid)):
+            for j in range(len(self.maze.grid[i])):
+                self.maze.grid[i][j] = 15
         self.solution_path = None
         self.track = []

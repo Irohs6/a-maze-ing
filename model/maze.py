@@ -20,6 +20,13 @@ class Maze:
     Provides methods to access and modify cell walls and encode the
     maze for output. Validation is handled by MazeValidator.
     """
+    PATTERN_42: list[list[int]] = [
+        [15, 0, 15, 0, 15, 15, 15],
+        [15, 0, 15, 0, 0, 0, 15],
+        [15, 15, 15, 0, 15, 15, 15],
+        [0, 0, 15, 0, 15, 0, 0],
+        [0, 0, 15, 0, 15, 15, 15],
+        ]
 
     def __init__(self, width: int, height: int) -> None:
         """Initialize an empty maze with given dimensions."""
@@ -28,6 +35,8 @@ class Maze:
 
         FULL_WALL = 1 | 2 | 4 | 8  # = 15
         self.grid = [[FULL_WALL for _ in range(width)] for _ in range(height)]
+        self.forty_two_cells = set()
+        self.forty_two_cells = self.place_42_center()
 
     def set_wall(self, x: int, y: int, direction: str) -> None:
         """Set a wall in the specified direction for the cell at (x, y)."""
@@ -139,6 +148,38 @@ class Maze:
             boundaries.add((0, y))
             boundaries.add((self.width - 1, y))
         return boundaries
+
+    def place_42_center(self) -> set[tuple[int, int]]:
+        """Place le motif '42' au centre du labyrinthe.
+
+        Retourne le set des cellules occupées par le motif.
+        Retourne un set vide si la taille du labyrinthe est insuffisante
+        (le motif requiert au minimum pw+4 colonnes et ph+4 lignes pour
+        laisser une marge de 2 cellules de chaque côté).
+        """
+        ph = len(self.PATTERN_42)
+        pw = len(self.PATTERN_42[0])
+
+        # Marge minimale de 2 cellules de chaque côté
+        if self.width < pw + 4 or self.height < ph + 4:
+            print(
+                f"[INFO] Labyrinthe trop petit ({self.width}x{self.height}) "
+                f"pour le motif '42' (min {pw + 4}x{ph + 4}) — motif omis."
+            )
+            return set()
+
+        start_x = (self.width - pw) // 2
+        start_y = (self.height - ph) // 2
+
+        for dy in range(ph):
+            for dx in range(pw):
+                if self.PATTERN_42[dy][dx] == 15:
+                    x = start_x + dx
+                    y = start_y + dy
+                    self.grid[y][x] = 15
+                    self.forty_two_cells.add((x, y))
+
+        return self.forty_two_cells
 
 
 if __name__ == "__main__":

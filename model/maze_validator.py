@@ -189,11 +189,10 @@ class MazeValidator:
         Each cell marked 1 in PATTERN_42 must be a fully-isolated cell
         (grid value == 15).
         """
-        from mazegen.algorithm import Algorithm
-        # lazy — évite l'import circulaire
+
         maze = self._maze
-        pattern_height = len(Algorithm.PATTERN_42)
-        pattern_width = len(Algorithm.PATTERN_42[0])
+        pattern_height = len(maze.PATTERN_42)
+        pattern_width = len(maze.PATTERN_42[0])
         if maze.height < pattern_height or maze.width < pattern_width:
             # Pattern is intentionally omitted for small mazes.
             return True
@@ -240,10 +239,9 @@ class MazeValidator:
     def _matches_42(self, start_x: int, start_y: int) -> bool:
         """Return True if PATTERN_42 matches exactly at top-left
         offset (start_x, start_y)."""
-        from mazegen.algorithm import Algorithm
-        # lazy — évite l'import circulaire
+
         maze = self._maze
-        for pattern_row_idx, pattern_row in enumerate(Algorithm.PATTERN_42):
+        for pattern_row_idx, pattern_row in enumerate(maze.PATTERN_42):
             for pattern_col_idx, is_isolated in enumerate(pattern_row):
                 ry = start_y + pattern_row_idx
                 cx = start_x + pattern_col_idx

@@ -6,7 +6,7 @@ import sys
 import termios
 import time
 import tty
-from typing import Any
+import copy
 
 from colorama import init, Fore, Style
 from model.maze import Maze
@@ -69,18 +69,16 @@ class TerminalView:
     def __init__(
         self,
         maze: Maze,
-        track: list[Any] | None = None,
         entry: tuple[int, int] = (0, 0),
         exit: tuple[int, int] = (0, 0),
         forty_two_cells: set[tuple[int, int]] | None = None,
         path_connections: dict[tuple[int, int], set[str]] | None = None,
     ) -> None:
         self.maze = maze
-        self.track = track
         self.entry = entry
         self.exit_pos = exit
         # Cellules appartenant au motif "42" (murs colorés en bleu).
-        self.forty_two: set[tuple[int, int]] = set(forty_two_cells or [])
+        self.forty_two: set[tuple[int, int]] = self.maze.forty_two_cells
         # Chemin solution : cellule → directions de connexion (entrée + sortie).
         # Ex : {(2,3): {'N','S'}} = le chemin entre par le nord, repart au sud.
         self.path_connections: dict[tuple[int, int], set[str]] = (
@@ -88,6 +86,7 @@ class TerminalView:
         )
         # Labyrinthe vierge pour l'animation : murs cassés au fil du track.
         self._anim_maze = Maze(maze.width, maze.height)
+        self._full_maze = copy.deepcopy(self._anim_maze)
 
     # ------------------------------------------------------------------
     #  LECTURE CLAVIER
@@ -114,13 +113,11 @@ class TerminalView:
         Chaque step du track est un tuple (x, y, direction),
         identique pour le backtracker et Kruskal.
         """
-        anim = self._anim_maze
         for x, y, direction in tracks:
             os.system("clear")
-            anim.remove_wall(x, y, direction)
-            self._render(anim, cursor=(x, y))
+            self._anim_maze.remove_wall(x, y, direction)
+            self._render(self._anim_maze, cursor=(x, y))
             time.sleep(delay)
-
     # ------------------------------------------------------------------
     #  AFFICHAGE INTERACTIF DE LA SOLUTION
     # ------------------------------------------------------------------
@@ -147,7 +144,7 @@ class TerminalView:
         self.play(tracks=tracks)
         while True:
             self.path_connections = all_paths[current] if revealed else {}
-            os.system("clear")
+            print("\033c")
             self._render(self._anim_maze)
             color_name = COLORS_42[color_idx][0]
             if not revealed:
@@ -177,7 +174,7 @@ class TerminalView:
                     current = (current + 1) % total
                 elif key == 'p':
                     current = (current - 1) % total
-
+        self._anim_maze = copy.deepcopy(self._full_maze)
     # ------------------------------------------------------------------
     #  MOTEUR DE RENDU UNIQUE
     #  Utilisé à la fois pendant l'animation et pour l'affichage final.

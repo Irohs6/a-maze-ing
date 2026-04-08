@@ -25,7 +25,7 @@ class Kruksal(Algorithm):
             self.track = []
 
             tracks = []
-            pattern_cells = self.place_42_center()
+            pattern_cells = self.maze.forty_two_cells
             pattern_neighbors = self._get_42_neighbors()
 
             unvisited = [

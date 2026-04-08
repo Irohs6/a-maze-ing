@@ -1,176 +1,114 @@
-import os
+from __future__ import annotations
+from copy import deepcopy
+from typing import TYPE_CHECKING
+import tty
+import termios
 import sys
-from controller.maze_controller import MazeController
-from colorama import init, Fore, Style
+from colorama import Back, init, Style
+import click
+from model.config_file import ConfigFile
+if TYPE_CHECKING:
+    from controller.maze_controller import MazeController
 
-# Initialise Colorama
-init()
+init(autoreset=False)
 
-
-# ============================================================
-#  GESTION MULTIPLATEFORME DES TOUCHES CLAVIER
-# ============================================================
-
-if sys.platform.startswith("win"):
-    import msvcrt
-
-    def getkey():
-        c = msvcrt.getch()
-        if c in (b'\x00', b'\xe0'):
-            return c + msvcrt.getch()
-        return c
-
-else:
-    import tty
-    import termios
-
-    def getkey():
-        fd = sys.stdin.fileno()
-        old = termios.tcgetattr(fd)
-        try:
-            tty.setraw(fd)
-            c = sys.stdin.read(1)
-            if c == "\x1b":
-                c += sys.stdin.read(2)
-            return c
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old)
-
-
-# ============================================================
-#  CLASSE MENU AVEC CHANGEMENT D'ÉCRAN
-# ============================================================
 
 class Menu:
-    """
-    Menu interactif avec navigation clavier et cadre ASCII.
-    Peut ouvrir un nouvel écran dans le même terminal.
-    """
-
-    def __init__(self, options, title="Menu", actions=None):
-        """
-        options : liste des options du menu
-        title   : titre affiché
-        actions : liste de fonctions à appeler pour chaque option
-        """
-        self.options = options
-        self.title = title
+    def __init__(self, controller: MazeController):
+        self._controller = controller
+        self._copy_config = deepcopy(self._controller._config)
+        self.fd = sys.stdin.fileno()
+        self.old = termios.tcgetattr(self.fd)
+        self.input = None
         self.index = 0
-        self.actions = actions or [None] * len(options)
 
-    def clear(self):
-        os.system("cls" if os.name == "nt" else "clear")
+    def _update_objects(self):
+        self._controller._create_objects()
 
-    # --------------------------------------------------------
-    # Affichage du menu
-    # --------------------------------------------------------
+    def _get_key(self):
+        try:
+            tty.setraw(self.fd)
+            self.input = sys.stdin.read(1)
+            if self.input.startswith("\x1b"):
+                self.input += sys.stdin.read(2)
+        finally:
+            termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old)
+
+    def _move(self):
+        if self.input == "\x1b[A":
+            self.index = (self.index - 1) % 3
+        elif self.input == "\x1b[B":
+            self.index = (self.index + 1) % 3
+
     def _print_menu(self):
-        self.clear()
-
-        max_len = max(len(opt) for opt in self.options)
-        frame_width = max(max_len, len(self.title)) + 6
-
-        print("╔" + "═" * frame_width + "╗")
-
-        title_padding = (frame_width - len(self.title)) // 2
-        print("║" + " " * title_padding + Fore.CYAN + self.title + Style.RESET_ALL +
-              " " * (frame_width - len(self.title) - title_padding) + "║")
-
-        print("╠" + "═" * frame_width + "╣")
-
-        for i, opt in enumerate(self.options):
-            padding = frame_width - len(opt)
+        print("╭" + "─" * 30 + "╮")
+        print("│" + "A-Maze-Ing".center(30) + "│")
+        print("├" + "─" * 30 + "┤")
+        for i, option in enumerate([' Generate  Maze ', ' Settings ', ' Exit ']):
+            center = 30
+            print("│", end="")
             if i == self.index:
-                line = "\033[7m" + Fore.YELLOW + opt + Style.RESET_ALL
-            else:
-                line = Fore.WHITE + opt + Style.RESET_ALL
+                option = Back.RED + option + Style.RESET_ALL
+                center = 39
+            print(option.center(center), end="")
+            print("│")
+        print("╰" + "─" * 30 + "╯")
 
-            print("║ " + line + " " * (padding - 1) + "║")
+    def _ask_for_value(self, value: str):
+        print("╭" + "─" * 30 + "╮")
+        print("│" + value.center(30) + "│")
+        print("╰" + "─" * 30 + "╯", end="")
 
-        print("╚" + "═" * frame_width + "╝")
+    def _settings(self):
+        config = {}
+        self._ask_for_value("Enter Width")
+        config['WIDTH'] = click.prompt("\x1b[A" + " ", click.IntRange(4, 100))
+        print("\033c")
+        self._ask_for_value("Enter Height")
+        config['HEIGHT'] = click.prompt("\x1b[A" + " ", click.IntRange(4, 100))
+        print("\033c")
+        self._ask_for_value("Enter Entry width")
+        config['ENTRY'] = [click.prompt("\x1b[A" + " ", click.IntRange(0, config['WIDTH']))]
+        print("\033c")
+        self._ask_for_value("Enter Entry height")
+        config['ENTRY'].append(click.prompt("\x1b[A" + " ", click.IntRange(0, config['HEIGHT'])))
+        config['ENTRY'] = tuple(config['ENTRY'])
+        print("\033c")
+        self._ask_for_value("Enter Exit width")
+        config['EXIT'] = [click.prompt("\x1b[A" + " ", click.IntRange(0, config['WIDTH']))]
+        print("\033c")
+        self._ask_for_value("Enter Exit height")
+        config['EXIT'].append(click.prompt("\x1b[A" + " ", click.IntRange(0, config['HEIGHT'])))
+        config['EXIT'] = tuple(config['EXIT'])
+        print("\033c")
+        self._ask_for_value("Enter Output file")
+        config['OUTPUT_FILE'] = click.prompt("\x1b[A" + " ", type=str)
+        print("\033c")
+        self._ask_for_value("Perfect ?")
+        config['PERFECT'] = click.confirm("\x1b[A" + " ")
+        self._controller._config = ConfigFile(**config)
+        self._update_objects()
 
-    # --------------------------------------------------------
-    # Gestion des touches
-    # --------------------------------------------------------
-    def _handle_key_windows(self, key):
-        if key == b'\xe0H':
-            self.index = (self.index - 1) % len(self.options)
-        elif key == b'\xe0P':
-            self.index = (self.index + 1) % len(self.options)
-        elif key == b'\r':
-            return True
-        return False
+    def _execute(self):
+        if self.index == 0:
+            self._controller._generator.generate()
+            tracks = self._controller._generator.track
+            paths = self._controller._finder.find_k_shortest_paths()
+            self._controller._view.show_solution(is_perfect=self._controller._generator.perfect, all_paths=paths, tracks=tracks)
+            self._controller._generator.reset()
+        elif self.index == 1:
+            self._settings()
+        print("\033c")
 
-    def _handle_key_unix(self, key):
-        if key == "\x1b[A":
-            self.index = (self.index - 1) % len(self.options)
-        elif key == "\x1b[B":
-            self.index = (self.index + 1) % len(self.options)
-        elif key in ("\n", "\r"):
-            return True
-        return False
-
-    def another(self):
-        print("Generate Again ? (y/n)")
+    def _run(self):
         while True:
-            key = getkey()
-            if key:
-                break
-        if key in (b"y", b"Y", "y", "Y"):
-            self.run()
-        else:
-            sys.exit(0)
-            
-    # --------------------------------------------------------
-    # Boucle principale
-    # --------------------------------------------------------
-    def run(self):
-        while True:
-            self._print_menu()
-            key = getkey()
-
-            if key in (b"q", b"Q", "q", "Q"):
-                print("\033c")
-                return None
-
-            if isinstance(key, bytes):
-                if self._handle_key_windows(key):
-                    returned = self._execute_action()
-                    if returned is not None:
-                        self.another()
-                    else:
-                        break
-            else:
-                if self._handle_key_unix(key):
-                    returned = self._execute_action()
-                    if returned is not None:
-                        self.another()
-                    else:
-                        break
-
-    # --------------------------------------------------------
-    # Exécute l'action associée à l'option
-    # --------------------------------------------------------
-    def _execute_action(self):
-        action = self.actions[self.index]
-
-        if self.options[self.index].lower() == "quitter":
             print("\033c")
-            return None
-
-        if action:
-            action()  # Ouvre un nouvel écran dans le même terminal
-
-        return self.index
-
-
-# ============================================================
-#  EXEMPLE D'UTILISATION AVEC NOUVEL ÉCRAN
-# ============================================================
-
-if __name__ == "__main__":
-    options = ["Generate Maze", "Options", "Exit"]
-    actions = [MazeController('config.txt').run, None]
-
-    menu = Menu(options, title="A-Maze-Ing", actions=actions)
-    menu.run()
+            self._print_menu()
+            self._get_key()
+            if self.input.startswith("\x1b"):
+                self._move()
+            elif self.input == '\r':
+                print("\033c")
+                if self.index == 2:
+                    break
+                self._execute()
