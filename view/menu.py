@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import tty
 import termios
 import sys
-from colorama import Back, init, Style
+from colorama import Back, init, Style, Fore
 import click
 from pydantic import ValidationError
 from model.config_file import ConfigFile
@@ -97,7 +97,9 @@ class Menu:
                 try:
                     self._controller._config = ConfigFile(**config)
                 except ValidationError:
-                    continue
+                    print(Fore.RED + "Error while creating the object, please try again." + Style.RESET_ALL)
+                    time.sleep(3)
+                    print("\033c")
                 else:
                     self._update_objects()
                     break
