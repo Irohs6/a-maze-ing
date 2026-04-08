@@ -96,9 +96,15 @@ class Menu:
                 print("\033c")
                 try:
                     self._controller._config = ConfigFile(**config)
-                except ValidationError:
-                    print(Fore.RED + "Error while creating the object, please try again." + Style.RESET_ALL)
-                    time.sleep(3)
+                except ValidationError as errors:
+                    print(Fore.RED + "Error while creating the object, please try again" + Style.RESET_ALL)
+                    for i, error in enumerate(errors.errors()):
+                        print(Fore.RED + f"{i + 1}. " + error['msg'] + Style.RESET_ALL)
+                    print("Press Enter to retry...")
+                    while True:
+                        self._get_key()
+                        if self.input == '\r':
+                            break
                     print("\033c")
                 else:
                     self._update_objects()
