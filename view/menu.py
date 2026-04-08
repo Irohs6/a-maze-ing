@@ -109,8 +109,8 @@ class Menu:
                 else:
                     self._update_objects()
                     break
-        except click.exceptions.Abort as error:
-            print(error)
+        except click.exceptions.Abort:
+            pass
 
     def _execute(self):
         if self.index == 0:
