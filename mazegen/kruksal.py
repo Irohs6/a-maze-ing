@@ -10,33 +10,31 @@ class Kruksal(Algorithm):
     perfect: bool = False
 
     # Nombre maximal de tentatives globales avant d'abandonner
-    _MAX_GLOBAL_ATTEMPTS: int = 10
+    _MAX_GLOBAL_ATTEMPTS: int = 30
 
     def generate(self) -> list[tuple[int, int, str]]:
         """Generates the maze using a randomized version
         of Kruskal's algorithm."""
         # Save the initial maze to be able to start over
-        initial_maze = copy.deepcopy(self.maze)
 
         for _attempt in range(self._MAX_GLOBAL_ATTEMPTS):
             # Reset the maze and related attributes for a fresh attempt
-            self.maze = copy.deepcopy(initial_maze)
+            maze_attempt = copy.deepcopy(self.maze)
             self.forty_two_cells = set()
             self.track = []
 
             tracks = []
-            pattern_cells = self.maze.forty_two_cells
+            pattern_cells = maze_attempt.forty_two_cells
             pattern_neighbors = self._get_42_neighbors()
 
-            unvisited = [
+            unvisited = {
                 (x, y)
                 for x in range(self.width)
                 for y in range(self.height)
                 if (x, y) not in pattern_cells
-            ]
+            }
             if not unvisited:
                 continue
-            random.shuffle(unvisited)
             for x, y in unvisited:
                 wall_direction = random.choice(["N", "E", "S", "W"])
                 neighbor = self._get_direction_neighbor(
@@ -47,7 +45,7 @@ class Kruksal(Algorithm):
                     and neighbor not in pattern_cells
                 ):
                     try:
-                        self.maze.remove_wall(x, y, wall_direction)
+                        maze_attempt.remove_wall(x, y, wall_direction)
                     except ValueError:
                         continue
                     else:
@@ -93,7 +91,7 @@ class Kruksal(Algorithm):
                         to_be_destroyed.pop()
                 return maze
 
-            potential_maze = copy.deepcopy(self.maze)
+            potential_maze = copy.deepcopy(maze_attempt)
             validator = MazeValidator(potential_maze)
             counter = 0
             until_now = len(tracks)
@@ -102,7 +100,7 @@ class Kruksal(Algorithm):
                 or validator._has_forbidden_open_areas()
             ):
                 tracks = tracks[:until_now]
-                potential_maze = copy.deepcopy(self.maze)
+                potential_maze = copy.deepcopy(maze_attempt)
                 potential_maze = second_loop(potential_maze)
                 validator = MazeValidator(potential_maze)
                 counter += 1
@@ -111,7 +109,9 @@ class Kruksal(Algorithm):
                     break
             else:
                 # Le while s'est terminé sans break → maze valide trouvé
-                self.maze = potential_maze
+                for i in range(len(self.maze.grid)):
+                    for j in range(len(self.maze.grid[i])):
+                        self.maze.grid[i][j] = potential_maze.grid[i][j]
                 self.track = tracks
                 return tracks
 
