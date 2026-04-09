@@ -6,7 +6,11 @@ import sys
 import termios
 import time
 import tty
+from pathlib import Path
 from typing import Any
+
+if __package__ in {None, ""}:
+    sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from colorama import init, Fore, Style
 from model.maze import Maze
@@ -30,20 +34,20 @@ BOX_PATH = " ╴╷┐╶─┌┬╵┘│┤└┴├┼"  # simple trait (che
 
 # Toutes les couleurs disponibles pour le motif 42 (cycle avec [C]).
 COLORS_42 = [
-    ("blanc",         Fore.WHITE),
-    ("rouge",         Fore.RED),
-    ("vert",          Fore.GREEN),
-    ("jaune",         Fore.YELLOW),
-    ("bleu",          Fore.BLUE),
-    ("magenta",       Fore.MAGENTA),
-    ("cyan",          Fore.CYAN),
-    ("blanc vif",     Fore.LIGHTWHITE_EX),
-    ("rouge vif",     Fore.LIGHTRED_EX),
-    ("vert vif",      Fore.LIGHTGREEN_EX),
-    ("jaune vif",     Fore.LIGHTYELLOW_EX),
-    ("bleu vif",      Fore.LIGHTBLUE_EX),
-    ("magenta vif",   Fore.LIGHTMAGENTA_EX),
-    ("cyan vif",      Fore.LIGHTCYAN_EX),
+    ("blanc", Fore.WHITE),
+    ("rouge", Fore.RED),
+    ("vert", Fore.GREEN),
+    ("jaune", Fore.YELLOW),
+    ("bleu", Fore.BLUE),
+    ("magenta", Fore.MAGENTA),
+    ("cyan", Fore.CYAN),
+    ("blanc vif", Fore.LIGHTWHITE_EX),
+    ("rouge vif", Fore.LIGHTRED_EX),
+    ("vert vif", Fore.LIGHTGREEN_EX),
+    ("jaune vif", Fore.LIGHTYELLOW_EX),
+    ("bleu vif", Fore.LIGHTBLUE_EX),
+    ("magenta vif", Fore.LIGHTMAGENTA_EX),
+    ("cyan vif", Fore.LIGHTCYAN_EX),
     ("bleu vif+gras", Fore.LIGHTBLUE_EX + Style.BRIGHT),
     ("vert vif+gras", Fore.LIGHTGREEN_EX + Style.BRIGHT),
     ("rouge vif+gras", Fore.LIGHTRED_EX + Style.BRIGHT),
@@ -56,13 +60,13 @@ class TerminalView:
     # Couleurs pour chaque type d'élément affiché.
     # COLOR["42"] est remplacé dynamiquement via [C] dans show_solution.
     COLOR = {
-        "wall":   Fore.WHITE,
-        "42":     Fore.LIGHTBLUE_EX + Style.BRIGHT,
-        "path":   Fore.GREEN,
+        "wall": Fore.WHITE,
+        "42": Fore.LIGHTBLUE_EX + Style.BRIGHT,
+        "path": Fore.GREEN,
         "cursor": Fore.GREEN + Style.BRIGHT,
-        "entry":  Fore.WHITE,
-        "exit":   Fore.RED,
-        "info":   Fore.GREEN,
+        "entry": Fore.WHITE,
+        "exit": Fore.RED,
+        "info": Fore.GREEN,
     }
     RESET = Style.RESET_ALL
 
@@ -104,284 +108,294 @@ class TerminalView:
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, saved)
 
+    @staticmethod
+    def _write_at(screen_row: int, screen_col: int, text: str) -> None:
+        """Écrit `text` à une position précise dans le terminal."""
+        sys.stdout.write(f"\033[{screen_row};{screen_col}H{text}")
+
+    def _cell_content(
+        self,
+        col: int,
+        row: int,
+        cursor: tuple[int, int] | None = None,
+    ) -> str:
+        """Construit le contenu visuel d'une cellule sur 3 caractères."""
+        C = self.COLOR
+        R = self.RESET
+
+        if cursor and (col, row) == cursor:
+            return C["cursor"] + " ● " + R
+        if (col, row) == self.entry:
+            return C["entry"] + " S " + R
+        if (col, row) == self.exit_pos:
+            return C["exit"] + " E " + R
+        if (col, row) in self.forty_two:
+            return C["42"] + "███" + R
+        if (col, row) in self.path_connections:
+            dirs = self.path_connections[(col, row)]
+            idx = (
+                (1 if "W" in dirs else 0)
+                + (2 if "S" in dirs else 0)
+                + (4 if "E" in dirs else 0)
+                + (8 if "N" in dirs else 0)
+            )
+            seg_left = "─" if "W" in dirs else " "
+            seg_right = "─" if "E" in dirs else " "
+            return C["path"] + seg_left + BOX_PATH[idx] + seg_right + R
+        return "   "
+
+    def _draw_cell(
+        self,
+        x: int,
+        y: int,
+        cursor: tuple[int, int] | None = None,
+    ) -> None:
+        """Redessine une seule cellule à sa position écran."""
+        screen_row = 2 + y * 2
+        screen_col = 2 + x * 4
+        self._write_at(screen_row, screen_col, self._cell_content(x, y, cursor))
+
+    def _erase_wall_segment(self, x: int, y: int, direction: str) -> None:
+        """Efface visuellement le segment de mur supprimé."""
+        screen_row = 2 + y * 2
+        screen_col = 2 + x * 4
+
+        if direction == "N":
+            self._write_at(screen_row - 1, screen_col, "   ")
+        elif direction == "S":
+            self._write_at(screen_row + 1, screen_col, "   ")
+        elif direction == "E":
+            self._write_at(screen_row, screen_col + 3, " ")
+        elif direction == "W":
+            self._write_at(screen_row, screen_col - 1, " ")
+
     # ------------------------------------------------------------------
     #  ANIMATIONS DE LA GÉNÉRATION
     # ------------------------------------------------------------------
 
-    # def play(self, tracks: list[tuple], delay: float = 0.03) -> None:
-    #     """Anime la génération pas à pas.
+    def play(
+        self,
+        tracks: list[tuple[int, int, str]] | None = None,
+        delay: float = 0.03,
+    ) -> None:
+        """Anime la génération sans réimprimer tout le labyrinthe.
 
-    #     Chaque step du track est un tuple (x, y, direction),
-    #     identique pour le backtracker et Kruskal.
-    #     """
-    #     anim = self._anim_maze
-    #     for x, y, direction in tracks:
-    #         os.system("clear")
-    #         anim.remove_wall(x, y, direction)
-    #         self._render(anim, cursor=(x, y))
-    #         time.sleep(delay)
+        Le labyrinthe initial est dessiné une seule fois, puis seules les
+        cellules et segments de mur modifiés sont mis à jour par ANSI.
+        """
+        steps = tracks if tracks is not None else (self.track or [])
+        self._anim_maze = Maze(self.maze.width, self.maze.height)
+        previous_cell: tuple[int, int] | None = None
+        previous_cursor: tuple[int, int] | None = None
 
-    # # ------------------------------------------------------------------
-    # #  AFFICHAGE INTERACTIF DE LA SOLUTION
-    # # ------------------------------------------------------------------
+        os.system("clear")
+        self._render(self._anim_maze)
+        sys.stdout.write("\033[?25l")
+        sys.stdout.flush()
 
-    # def show_solution(
-    #     self,
-    #     all_paths: list[dict[tuple[int, int], set[str]]],
-    #     is_perfect: bool,
-    #     tracks: list[tuple]
-    # ) -> None:
-    #     """Affiche le labyrinthe avec le chemin solution, navigation N/P/Q.
+        try:
+            for x, y, direction in steps:
+                self._anim_maze.remove_wall(x, y, direction)
+                self._erase_wall_segment(x, y, direction)
 
-    #     all_paths  : liste de chemins, chacun = dict cellule → directions.
-    #     is_perfect : True si un seul chemin existe (labyrinthe parfait).
-    #     Touches    : [N] chemin suivant, [P] précédent, [Q] quitter.
-    #     """
-    #     current = 0
-    #     total = len(all_paths)
-    #     revealed = False
-    #     color_idx = next(
-    #         i for i, (_, c) in enumerate(COLORS_42)
-    #         if c == self.COLOR["42"]
-    #     ) if self.COLOR["42"] in [c for _, c in COLORS_42] else 0
-    #     self.play(tracks=tracks)
-    #     while True:
-    #         self.path_connections = all_paths[current] if revealed else {}
-    #         os.system("clear")
-    #         self._render(self._anim_maze)
-    #         color_name = COLORS_42[color_idx][0]
-    #         if not revealed:
-    #             print(f"\n  [S] afficher la solution  [C] couleur 42 ({color_name})  [Q] quitter")
-    #         elif is_perfect:
-    #             print(
-    #                 f"\n{self.COLOR['info']}✓ Labyrinthe parfait (chemin unique){self.RESET}"
-    #             )
-    #             print(f"  [S] cacher  [C] couleur 42 ({color_name})  [Q] quitter")
-    #         else:
-    #             print(
-    #                 f"\n{Fore.YELLOW}⚠ Labyrinthe imparfait"
-    #                 f" — chemin {current + 1}/{total}{self.RESET}"
-    #             )
-    #             print(f"  [S] cacher  [C] couleur 42 ({color_name})  [N] suivant  [P] précédent  [Q] quitter")
+                if previous_cursor is not None:
+                    self._draw_cell(*previous_cursor)
+                    previous_cursor = None
 
-    #         key = self._read_key().lower()
-    #         if key == 'q':
-    #             break
-    #         elif key == 's':
-    #             revealed = not revealed
-    #         elif key == 'c':
-    #             color_idx = (color_idx + 1) % len(COLORS_42)
-    #             self.COLOR = {**self.COLOR, "42": COLORS_42[color_idx][1]}
-    #         elif revealed and not is_perfect:
-    #             if key == 'n':
-    #                 current = (current + 1) % total
-    #             elif key == 'p':
-    #                 current = (current - 1) % total
+                if previous_cell is None:
+                    self._draw_cell(x, y, cursor=(x, y))
+                    previous_cursor = (x, y)
+                else:
+                    px, py = previous_cell
+                    if abs(px - x) + abs(py - y) <= 1:
+                        self._draw_cell(x, y, cursor=(x, y))
+                        previous_cursor = (x, y)
 
-    # # ------------------------------------------------------------------
-    # #  MOTEUR DE RENDU UNIQUE
-    # #  Utilisé à la fois pendant l'animation et pour l'affichage final.
-    # # ------------------------------------------------------------------
+                previous_cell = (x, y)
+                sys.stdout.flush()
+                time.sleep(delay)
 
-    # def _render(
-    #     self,
-    #     maze: Maze,
-    #     cursor: tuple[int, int] | None = None,
-    # ) -> None:
-    #     """Dessine le labyrinthe dans le terminal.
+            if previous_cursor is not None:
+                self._draw_cell(*previous_cursor)
+            self._write_at(2 * self.maze.height + 3, 1, "")
+            sys.stdout.flush()
+        finally:
+            sys.stdout.write("\033[?25h")
+            sys.stdout.flush()
 
-    #     maze   : labyrinthe à dessiner (animation en cours ou final).
-    #     cursor : si fourni, affiche un ● à cette position (animation).
+    def show_solution(
+        self,
+        all_paths: list[dict[tuple[int, int], set[str]]],
+        is_perfect: bool,
+        tracks: list[tuple[int, int, str]] | None = None,
+    ) -> None:
+        """Affiche le labyrinthe avec le chemin solution.
 
-    #     Chaque rangée produit deux lignes :
-    #       TOP : ╔═══╦═══╗   coins + murs horizontaux
-    #       MID : ║   ║ ● ║   murs verticaux + contenu des cellules
-    #     """
-    #     grid = maze.grid
-    #     width = maze.width
-    #     height = maze.height
-    #     C = self.COLOR
-    #     R = self.RESET
+        Touches : [S] montrer/cacher, [C] couleur 42,
+        [N]/[P] navigation, [Q] quitter.
+        """
+        current = 0
+        total = len(all_paths)
+        revealed = False
+        available_colors = [c for _, c in COLORS_42]
+        color_idx = (
+            available_colors.index(self.COLOR["42"])
+            if self.COLOR["42"] in available_colors
+            else 0
+        )
 
-    #     # ── Présence des murs ────────────────────────────────────────────
+        self.play(tracks=tracks, delay=0.02)
 
-    #     def wall_above(col: int, row: int) -> bool:
-    #         """Vrai s'il y a un mur horizontal entre les rangées row-1 et row.
+        while True:
+            self.path_connections = (
+                all_paths[current] if revealed and total > 0 else {}
+            )
+            os.system("clear")
+            self._render(self._anim_maze)
 
-    #         Ce mur est encodé soit comme WALL_N de (col, row),
-    #         soit comme WALL_S de (col, row-1) — les deux sont équivalents.
-    #         """
-    #         return (
-    #             (row < height and bool(grid[row][col] & WALL_N))
-    #             or (row > 0 and bool(grid[row - 1][col] & WALL_S))
-    #         )
+            color_name = COLORS_42[color_idx][0]
+            if total == 0:
+                print(
+                    f"\n{Fore.RED}✗ Aucun chemin trouvé "
+                    f"entre l'entrée et la sortie.{self.RESET}"
+                )
+                print(
+                    f"  [C] couleur 42 ({color_name})  "
+                    f"[Q] quitter"
+                )
+            elif not revealed:
+                print(
+                    f"\n  [S] afficher la solution  "
+                    f"[C] couleur 42 ({color_name})  [Q] quitter"
+                )
+            elif is_perfect:
+                print(
+                    f"\n{self.COLOR['info']}✓ Labyrinthe parfait "
+                    f"(chemin unique){self.RESET}"
+                )
+                print(
+                    f"  [S] cacher  [C] couleur 42 "
+                    f"({color_name})  [Q] quitter"
+                )
+            else:
+                print(
+                    f"\n{Fore.YELLOW}⚠ Labyrinthe imparfait — "
+                    f"chemin {current + 1}/{total}{self.RESET}"
+                )
+                print(
+                    f"  [S] cacher  [C] couleur 42 ({color_name})  "
+                    f"[N] suivant  [P] précédent  [Q] quitter"
+                )
 
-    #     def wall_left(col: int, row: int) -> bool:
-    #         """Vrai s'il y a un mur vertical entre les colonnes col-1 et col.
+            key = self._read_key().lower()
+            if key == "q":
+                break
+            if key == "c":
+                color_idx = (color_idx + 1) % len(COLORS_42)
+                self.COLOR = {**self.COLOR, "42": COLORS_42[color_idx][1]}
+            elif key == "s" and total > 0:
+                revealed = not revealed
+            elif revealed and not is_perfect and total > 0:
+                if key == "n":
+                    current = (current + 1) % total
+                elif key == "p":
+                    current = (current - 1) % total
 
-    #         Encodé soit comme WALL_W de (col, row),
-    #         soit comme WALL_E de (col-1, row).
-    #         """
-    #         return (
-    #             (col < width and bool(grid[row][col] & WALL_W))
-    #             or (col > 0 and bool(grid[row][col - 1] & WALL_E))
-    #         )
+    def _render(
+        self,
+        maze: Maze,
+        cursor: tuple[int, int] | None = None,
+    ) -> None:
+        """Dessine le labyrinthe dans le terminal."""
+        grid = maze.grid
+        width = maze.width
+        height = maze.height
+        C = self.COLOR
+        R = self.RESET
 
-    #     # ── Couleurs des murs (blanc ou bleu si motif 42) ────────────────
+        def wall_above(col: int, row: int) -> bool:
+            return (row < height and bool(grid[row][col] & WALL_N)) or (
+                row > 0 and bool(grid[row - 1][col] & WALL_S)
+            )
 
-    #     def color_h_wall(col: int, row: int) -> str:
-    #         return C["wall"]
+        def wall_left(col: int, row: int) -> bool:
+            return (col < width and bool(grid[row][col] & WALL_W)) or (
+                col > 0 and bool(grid[row][col - 1] & WALL_E)
+            )
 
-    #     def color_v_wall(col: int, row: int) -> str:
-    #         return C["wall"]
+        def cell_content(col: int, row: int) -> str:
+            if cursor and (col, row) == cursor:
+                return C["cursor"] + " ● " + R
+            if (col, row) == self.entry:
+                return C["entry"] + " S " + R
+            if (col, row) == self.exit_pos:
+                return C["exit"] + " E " + R
+            if (col, row) in self.forty_two:
+                return C["42"] + "███" + R
+            if (col, row) in self.path_connections:
+                dirs = self.path_connections[(col, row)]
+                idx = (
+                    (1 if "W" in dirs else 0)
+                    + (2 if "S" in dirs else 0)
+                    + (4 if "E" in dirs else 0)
+                    + (8 if "N" in dirs else 0)
+                )
+                seg_left = "─" if "W" in dirs else " "
+                seg_right = "─" if "E" in dirs else " "
+                return C["path"] + seg_left + BOX_PATH[idx] + seg_right + R
+            return "   "
 
-    #     def color_corner(
-    #         col: int, row: int, up: bool, down: bool,
-    #         left: bool, right: bool
-    #     ) -> str:
-    #         return C["wall"]
+        for row in range(height + 1):
+            top_line = ""
+            for col in range(width + 1):
+                up = row > 0 and wall_left(col, row - 1)
+                down = row < height and wall_left(col, row)
+                left = col > 0 and wall_above(col - 1, row)
+                right = col < width and wall_above(col, row)
 
-    #     # ── Contenu d'une cellule (3 caractères) ─────────────────────────
+                corner_idx = (
+                    int(left) + int(down) * 2 + int(right) * 4 + int(up) * 8
+                )
+                top_line += C["wall"] + BOX_WALL[corner_idx] + R
+                if col < width:
+                    top_line += (
+                        C["wall"] + "═══" + R
+                        if wall_above(col, row)
+                        else "   "
+                    )
+            print(top_line)
 
-    #     def cell_content(col: int, row: int) -> str:
-    #         if cursor and (col, row) == cursor:
-    #             return C["cursor"] + " ● " + R
-    #         if (col, row) == self.entry:
-    #             return C["entry"] + "🚀 " + R
-    #         if (col, row) == self.exit_pos:
-    #             return C["exit"] + "🏁 " + R
-    #         if (col, row) in self.forty_two:
-    #             return C["42"] + "███" + R
-    #         if (col, row) in self.path_connections:
-    #             dirs = self.path_connections[(col, row)]
-    #             # Index dans BOX_PATH : W=1, S=2, E=4, N=8
-    #             idx = (
-    #                 (1 if 'W' in dirs else 0)
-    #                 + (2 if 'S' in dirs else 0)
-    #                 + (4 if 'E' in dirs else 0)
-    #                 + (8 if 'N' in dirs else 0)
-    #             )
-    #             seg_left = "─" if 'W' in dirs else " "
-    #             seg_right = "─" if 'E' in dirs else " "
-    #             return C["path"] + seg_left + BOX_PATH[idx] + seg_right + R
-    #         return "   "
-
-    #     # ── Rendu ligne par ligne ─────────────────────────────────────────
-
-    #     for row in range(height + 1):
-
-    #         # Ligne TOP : coins + segments horizontaux
-    #         top_line = ""
-    #         for col in range(width + 1):
-    #             up    = row > 0      and wall_left(col, row - 1)
-    #             down  = row < height and wall_left(col, row)
-    #             left  = col > 0      and wall_above(col - 1, row)
-    #             right = col < width  and wall_above(col, row)
-
-    #             # Index du coin : gauche=1, bas=2, droite=4, haut=8
-    #             corner_idx = (
-    #                 int(left)
-    #                 + int(down) * 2
-    #                 + int(right) * 4
-    #                 + int(up) * 8
-    #             )
-    #             top_line += (
-    #                 color_corner(col, row, up, down, left, right)
-    #                 + BOX_WALL[corner_idx]
-    #                 + R
-    #             )
-    #             if col < width:
-    #                 top_line += (
-    #                     color_h_wall(col, row) + "═══" + R
-    #                     if wall_above(col, row)
-    #                     else "   "
-    #                 )
-    #         print(top_line)
-
-    #         # Ligne MID : murs verticaux + contenu des cellules
-    #         if row < height:
-    #             mid_line = ""
-    #             for col in range(width + 1):
-    #                 mid_line += (
-    #                     color_v_wall(col, row) + "║" + R
-    #                     if wall_left(col, row)
-    #                     else " "
-    #                 )
-    #                 if col < width:
-    #                     mid_line += cell_content(col, row)
-    #             print(mid_line)
+            if row < height:
+                mid_line = ""
+                for col in range(width + 1):
+                    mid_line += (
+                        C["wall"] + "║" + R if wall_left(col, row) else " "
+                    )
+                    if col < width:
+                        mid_line += cell_content(col, row)
+                print(mid_line)
 
 
 if __name__ == "__main__":
-    # Test rapide : afficher un labyrinthe de 10x5 avec le motif 42.
     from mazegen.maze_generator import MazeGenerator
-    maze = Maze(20, 20)
-    generator = MazeGenerator(maze.width, maze.height, seed=42)
+
+    width, height = 100, 60
+
+    # `perfect=True`  -> Backtracker
+    # `perfect=False` -> Kruksal
+    generator = MazeGenerator(width, height, perfect=False)
     generator.generate()
-    track = generator.track
-    forty_two_cells = generator.forty_two_cells
-    view = TerminalView(maze, track, entry=(0, 0), exit=(9, 4),
-                        forty_two_cells=forty_two_cells)
-    maze_grid = maze.grid
-    BOX_PATH = " ╴╷┐╶─┌┬╵┘│┤└┴├┼"  # simple trait (chemin solution)
-    BOX_WALL = " ═║╗══╔╦║╝║╣╚╩╠╬"  # double trait (murs du labyrinthe)
-    x, y = 0, 0
-    width = generator.width
-    height = generator.height
 
-    for i in range(3):  # 3 lignes par rangée de cellules
-        for x in range(width):
-            cell = maze_grid[y][x]
-            if i == 0 and x == 0:
-                print('╔══╦', end="")
-            elif i == 0 and x != width - 1:
-                print('══╦', end="")
-            elif i == 0 and x == width - 1:
-                print('══╗', end="")
-            elif i == 1:
-                print("║  ", end="")
-                if x == width - 1:
-                    print("║", end="")
-            elif i == 1 and x == 0:
-                print("║", end="")
-            elif i == 2 and x == 0:
-                print('╠══╬', end="")
-            elif i == 2 and x != width - 1:
-                print('══╬', end="")
-            elif i == 2 and x == width - 1:
-                print('══╣', end="")                     
+    view = TerminalView(
+        maze=generator.get_maze(),
+        track=generator.track,
+        entry=(0, 0),
+        exit=(width - 1, height - 1),
+        forty_two_cells=generator.forty_two_cells,
+    )
 
-            if x == width - 1:
-                print()
-        else:
-            print("", end="")
-
-    for y in range(1, height):
-        for i in range(2):  # 3 lignes par rangée de cellules
-            for x in range(width):
-                cell = maze_grid[y][x]
-                if i == 0 and y != height - 1:
-                    print("║  ", end="")
-                    if x == width - 1:
-                        print("║", end="")
-                elif i == 1 and y != height - 1 and x == 0:
-                    print('╠══╬', end="")
-                elif i == 1 and x != width - 1 and y != height - 1:
-                    print('══╬', end="")
-                elif i == 1 and x == width - 1 and y != height - 1:
-                    print('══╣', end="")
-                elif i == 1 and y == height - 1 and x == 0:
-                    print('╚══╩', end="")
-                elif i == 1 and y == height - 1 and x != 0:
-                    if i == 1 and y == height - 1 and x == width - 1:
-                        print('══╝', end="")
-                    else:
-                        print('══╩', end="")
-                elif i == 0 and y == height - 1:
-                    print("║  ", end="")
-                    if x == width - 1:
-                        print("║", end="")
-                if x == width - 1:
-                    print()
-            else:
-                print("", end="")
+    view.play(generator.track, delay=0.001)
+    os.system("clear")
+    view._render(view._anim_maze)
+    print("\nAnimation terminée. Appuie sur Entrée pour quitter.")
+    input()
