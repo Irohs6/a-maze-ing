@@ -36,9 +36,8 @@ class Kruksal(Algorithm):
             ]
             if not unvisited:
                 continue
-            i = random.randint(0, len(unvisited) - 1)
-            x, y = unvisited[i]
-            while unvisited:
+            random.shuffle(unvisited)
+            for x, y in unvisited:
                 wall_direction = random.choice(["N", "E", "S", "W"])
                 neighbor = self._get_direction_neighbor(
                     x, y, wall_direction
@@ -53,12 +52,6 @@ class Kruksal(Algorithm):
                         continue
                     else:
                         tracks.append((x, y, wall_direction))
-                        unvisited[i] = unvisited[-1]
-                        unvisited.pop()
-                if not unvisited:
-                    break
-                i = random.randint(0, len(unvisited) - 1)
-                x, y = unvisited[i]
 
             def second_loop(maze: Maze) -> Maze:
                 _to_destroy: set[tuple[int, int]] = {

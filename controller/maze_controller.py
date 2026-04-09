@@ -18,7 +18,7 @@ class MazeController:
     def _load_config(self) -> None:
         self._config = ConfigFile.parse(self._config_file)
 
-    def _create_objects(self):
+    def _create_gen(self):
         self._generator = MazeGenerator(
             width=self._config.WIDTH,
             height=self._config.HEIGHT,
@@ -26,18 +26,22 @@ class MazeController:
             perfect=self._config.PERFECT
         )
 
+    def _create_pathfinder(self):
         maze = self._generator.get_maze()
-        forty_two_cells = self._generator.forty_two_cells
+        entry = self._config.ENTRY
+        exit_pos = self._config.EXIT  
+        self._finder = PathFinder(maze, entry=entry, exit=exit_pos)
+
+    def _create_view(self):
+
+        maze = self._generator.get_maze()
         entry = self._config.ENTRY
         exit_pos = self._config.EXIT
 
-        self._finder = PathFinder(maze, entry=entry, exit=exit_pos)
-        self._view = TerminalView(maze, entry=entry, exit=exit_pos,
-                                  forty_two_cells=forty_two_cells)
+        self._view = TerminalView(maze, entry=entry, exit=exit_pos)
 
     def run(self) -> None:
         """Execute the full maze pipeline."""
         self._load_config()
-        self._create_objects()
         self.menu = Menu(self)
         self.menu._run()

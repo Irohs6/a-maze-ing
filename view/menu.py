@@ -9,6 +9,7 @@ from colorama import Back, init, Style, Fore
 import click
 from pydantic import ValidationError
 from model.config_file import ConfigFile
+
 if TYPE_CHECKING:
     from controller.maze_controller import MazeController
 
@@ -25,7 +26,9 @@ class Menu:
         self.index = 0
 
     def _update_objects(self):
-        self._controller._create_objects()
+        self._controller._create_gen()
+        self._controller._create_pathfinder()
+        self._controller._create_view()
 
     def _get_key(self):
         try:
@@ -44,9 +47,11 @@ class Menu:
 
     def _print_menu(self):
         print("╭" + "─" * 30 + "╮")
-        print("│" + "A-Maze-Ing".center(30) + "│")
+        print("│" + f"{Fore.YELLOW}A-Maze-Ing{Style.RESET_ALL}".center(39) + "│")
         print("├" + "─" * 30 + "┤")
-        for i, option in enumerate([' Generate  Maze ', ' Settings ', ' Exit ']):
+        for i, option in enumerate(
+            [" Generate  Maze ", " Settings ", " Exit "]
+        ):
             center = 30
             print("│", end="")
             if i == self.index:
@@ -66,72 +71,123 @@ class Menu:
         try:
             while True:
                 self._ask_for_value("Enter Width")
-                config['WIDTH'] = click.prompt(" ", prompt_suffix="", type=click.IntRange(min=4, max=100))
-                print("\033c")
+                config["WIDTH"] = click.prompt(
+                    " ", prompt_suffix="", type=click.IntRange(min=4, max=100)
+                )
+                print("\033c", end="")
                 self._ask_for_value("Enter Height")
-                config['HEIGHT'] = click.prompt(" ", prompt_suffix="", type=click.IntRange(4, 100))
-                print("\033c")
+                config["HEIGHT"] = click.prompt(
+                    " ", prompt_suffix="", type=click.IntRange(4, 100)
+                )
+                print("\033c", end="")
                 self._ask_for_value("Enter Entry width")
-                config['ENTRY'] = [click.prompt(" ", prompt_suffix="", type=click.IntRange(0, config['WIDTH']))]
-                print("\033c")
+                config["ENTRY"] = [
+                    click.prompt(
+                        " ",
+                        prompt_suffix="",
+                        type=click.IntRange(0, config["WIDTH"]),
+                    )
+                ]
+                print("\033c", end="")
                 self._ask_for_value("Enter Entry height")
-                config['ENTRY'].append(click.prompt(" ", prompt_suffix="", type=click.IntRange(0, config['HEIGHT'])))
-                config['ENTRY'] = tuple(config['ENTRY'])
-                print("\033c")
+                config["ENTRY"].append(
+                    click.prompt(
+                        " ",
+                        prompt_suffix="",
+                        type=click.IntRange(0, config["HEIGHT"]),
+                    )
+                )
+                config["ENTRY"] = tuple(config["ENTRY"])
+                print("\033c", end="")
                 self._ask_for_value("Enter Exit width")
-                config['EXIT'] = [click.prompt(" ", prompt_suffix="", type=click.IntRange(0, config['WIDTH']))]
-                print("\033c")
+                config["EXIT"] = [
+                    click.prompt(
+                        " ",
+                        prompt_suffix="",
+                        type=click.IntRange(0, config["WIDTH"]),
+                    )
+                ]
+                print("\033c", end="")
                 self._ask_for_value("Enter Exit height")
-                config['EXIT'].append(click.prompt(" ", prompt_suffix="", type=click.IntRange(0, config['HEIGHT'])))
-                config['EXIT'] = tuple(config['EXIT'])
-                print("\033c")
+                config["EXIT"].append(
+                    click.prompt(
+                        " ",
+                        prompt_suffix="",
+                        type=click.IntRange(0, config["HEIGHT"]),
+                    )
+                )
+                config["EXIT"] = tuple(config["EXIT"])
+                print("\033c", end="")
                 self._ask_for_value("Enter Output file")
-                config['OUTPUT_FILE'] = click.prompt(" ", prompt_suffix="", type=str)
-                print("\033c")
+                config["OUTPUT_FILE"] = click.prompt(
+                    " ", prompt_suffix="", type=str
+                )
+                print("\033c", end="")
                 self._ask_for_value("Perfect ?")
-                config['PERFECT'] = click.confirm(" ")
-                print("\033c")
+                config["PERFECT"] = click.confirm(" ")
+                print("\033c", end="")
                 self._ask_for_value("Enter Seed (optional)")
-                config['SEED'] = click.prompt(" ", prompt_suffix="", type=click.IntRange(0), default=time.time_ns())
-                print("\033c")
+                config["SEED"] = click.prompt(
+                    " ",
+                    prompt_suffix="",
+                    type=click.IntRange(0),
+                    default=time.time_ns(),
+                )
+                print("\033c", end="")
                 try:
                     self._controller._config = ConfigFile(**config)
                 except ValidationError as errors:
-                    print(Fore.RED + "Error while creating the object, please try again" + Style.RESET_ALL)
+                    print(
+                        Fore.RED
+                        + "Error while creating the object, please try again"
+                        + Style.RESET_ALL
+                    )
                     for i, error in enumerate(errors.errors()):
-                        print(Fore.RED + f"{i + 1}. " + error['msg'] + Style.RESET_ALL)
+                        print(
+                            Fore.RED
+                            + f"{i + 1}. "
+                            + error["msg"]
+                            + Style.RESET_ALL
+                        )
                     print("Press Enter to retry...")
                     while True:
                         self._get_key()
-                        if self.input == '\r':
+                        if self.input == "\r":
                             break
-                    print("\033c")
+                    print("\033c", end="")
                 else:
-                    self._update_objects()
                     break
         except click.exceptions.Abort:
             pass
 
     def _execute(self):
         if self.index == 0:
+            self._update_objects()
             self._controller._generator.generate()
             tracks = self._controller._generator.track
-            paths = self._controller._finder.find_k_shortest_paths()
-            self._controller._view.show_solution(is_perfect=self._controller._generator.perfect, all_paths=paths, tracks=tracks)
+            paths = self._controller._finder.find_k_shortest_paths(k=3)
+            is_perfect = len(paths) == 1
+            self._controller._view.show_solution(
+                paths,
+                is_perfect,
+                tracks
+            )
             self._controller._generator.reset()
-            print("\033c")
+            print("\033c", end="")
         elif self.index == 1:
             self._settings()
 
     def _run(self):
         while True:
-            print("\033c")
+            print("\033[?25l", end="")
+            print("\033c", end="")
             self._print_menu()
             self._get_key()
             if self.input.startswith("\x1b"):
                 self._move()
-            elif self.input == '\r':
-                print("\033c")
+            elif self.input == "\r":
+                print("\033c", end="")
+                print("\033[?25h", end="")
                 if self.index == 2:
                     break
                 self._execute()
