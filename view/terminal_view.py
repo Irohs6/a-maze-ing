@@ -112,6 +112,23 @@ class TerminalView:
         """Écrit `text` à une position précise dans le terminal."""
         sys.stdout.write(f"\033[{screen_row};{screen_col}H{text}")
 
+    @staticmethod
+    def _screen_coords(x: int, y: int) -> tuple[int, int]:
+        """Retourne la position terminal correspondant à la cellule."""
+        return 2 + y * 2, 2 + x * 4
+
+    @staticmethod
+    def _is_adjacent_step(
+        previous_cell: tuple[int, int] | None,
+        x: int,
+        y: int,
+    ) -> bool:
+        """Vrai si l'étape courante est visuellement continue."""
+        if previous_cell is None:
+            return True
+        px, py = previous_cell
+        return abs(px - x) + abs(py - y) <= 1
+
     def _cell_content(
         self,
         col: int,
@@ -150,14 +167,14 @@ class TerminalView:
         cursor: tuple[int, int] | None = None,
     ) -> None:
         """Redessine une seule cellule à sa position écran."""
-        screen_row = 2 + y * 2
-        screen_col = 2 + x * 4
-        self._write_at(screen_row, screen_col, self._cell_content(x, y, cursor))
+        screen_row, screen_col = self._screen_coords(x, y)
+        self._write_at(
+            screen_row, screen_col, self._cell_content(x, y, cursor)
+        )
 
     def _erase_wall_segment(self, x: int, y: int, direction: str) -> None:
         """Efface visuellement le segment de mur supprimé."""
-        screen_row = 2 + y * 2
-        screen_col = 2 + x * 4
+        screen_row, screen_col = self._screen_coords(x, y)
 
         if direction == "N":
             self._write_at(screen_row - 1, screen_col, "   ")
@@ -168,6 +185,70 @@ class TerminalView:
         elif direction == "W":
             self._write_at(screen_row, screen_col - 1, " ")
 
+    def _redraw_cells(self, cells: set[tuple[int, int]]) -> None:
+        """Redessine uniquement les cellules demandées."""
+        for x, y in cells:
+            self._draw_cell(x, y)
+
+    def _render_status_lines(self, lines: list[str]) -> None:
+        """Met à jour la zone d'aide sous le labyrinthe sans tout effacer."""
+        base_row = 2 * self.maze.height + 3
+        total_rows = max(3, len(lines) + 1)
+
+        for offset in range(total_rows):
+            self._write_at(base_row + offset, 1, "\033[K")
+
+        for offset, line in enumerate(lines):
+            self._write_at(base_row + offset, 1, f"\033[K{line}")
+
+        self._write_at(base_row + total_rows, 1, "")
+
+    def _build_status_lines(
+        self,
+        total: int,
+        revealed: bool,
+        is_perfect: bool,
+        current: int,
+        color_name: str,
+    ) -> list[str]:
+        """Construit les lignes d'aide affichées sous le labyrinthe."""
+        if total == 0:
+            return [
+                (
+                    f"{Fore.RED}✗ Aucun chemin trouvé entre l'entrée "
+                    f"et la sortie.{self.RESET}"
+                ),
+                f"  [C] couleur 42 ({color_name})  [Q] quitter",
+            ]
+
+        if not revealed:
+            return [
+                (
+                    f"  [S] afficher la solution  [C] couleur 42 "
+                    f"({color_name})  [Q] quitter"
+                )
+            ]
+
+        if is_perfect:
+            return [
+                (
+                    f"{self.COLOR['info']}✓ Labyrinthe parfait "
+                    f"(chemin unique){self.RESET}"
+                ),
+                f"  [S] cacher  [C] couleur 42 ({color_name})  [Q] quitter",
+            ]
+
+        return [
+            (
+                f"{Fore.YELLOW}⚠ Labyrinthe imparfait — chemin "
+                f"{current + 1}/{total}{self.RESET}"
+            ),
+            (
+                f"  [S] cacher  [C] couleur 42 ({color_name})  "
+                f"[N] suivant  [P] précédent  [Q] quitter"
+            ),
+        ]
+
     # ------------------------------------------------------------------
     #  ANIMATIONS DE LA GÉNÉRATION
     # ------------------------------------------------------------------
@@ -175,7 +256,7 @@ class TerminalView:
     def play(
         self,
         tracks: list[tuple[int, int, str]] | None = None,
-        delay: float = 0.03,
+        delay: float = 0.001,
     ) -> None:
         """Anime la génération sans réimprimer tout le labyrinthe.
 
@@ -201,14 +282,9 @@ class TerminalView:
                     self._draw_cell(*previous_cursor)
                     previous_cursor = None
 
-                if previous_cell is None:
+                if self._is_adjacent_step(previous_cell, x, y):
                     self._draw_cell(x, y, cursor=(x, y))
                     previous_cursor = (x, y)
-                else:
-                    px, py = previous_cell
-                    if abs(px - x) + abs(py - y) <= 1:
-                        self._draw_cell(x, y, cursor=(x, y))
-                        previous_cursor = (x, y)
 
                 previous_cell = (x, y)
                 sys.stdout.flush()
@@ -242,63 +318,64 @@ class TerminalView:
             if self.COLOR["42"] in available_colors
             else 0
         )
+        previous_path_cells: set[tuple[int, int]] = set()
+        self.path_connections = {}
 
-        self.play(tracks=tracks, delay=0.001)
+        def refresh_screen(force_42_refresh: bool = False) -> None:
+            nonlocal previous_path_cells
+            current_path_cells = set(self.path_connections)
+            cells_to_refresh = previous_path_cells | current_path_cells
+
+            if force_42_refresh:
+                cells_to_refresh |= self.forty_two
+
+            if cells_to_refresh:
+                self._redraw_cells(cells_to_refresh)
+
+            previous_path_cells = current_path_cells
+            color_name = COLORS_42[color_idx][0]
+
+            lines = self._build_status_lines(
+                total=total,
+                revealed=revealed,
+                is_perfect=is_perfect,
+                current=current,
+                color_name=color_name,
+            )
+            self._render_status_lines(lines)
+            sys.stdout.flush()
+
+        self.play(tracks=tracks, delay=0.02)
+        refresh_screen(force_42_refresh=True)
 
         while True:
-            self.path_connections = (
-                all_paths[current] if revealed and total > 0 else {}
-            )
-            os.system("clear")
-            self._render(self._anim_maze)
-
-            color_name = COLORS_42[color_idx][0]
-            if total == 0:
-                print(
-                    f"\n{Fore.RED}✗ Aucun chemin trouvé "
-                    f"entre l'entrée et la sortie.{self.RESET}"
-                )
-                print(
-                    f"  [C] couleur 42 ({color_name})  "
-                    f"[Q] quitter"
-                )
-            elif not revealed:
-                print(
-                    f"\n  [S] afficher la solution  "
-                    f"[C] couleur 42 ({color_name})  [Q] quitter"
-                )
-            elif is_perfect:
-                print(
-                    f"\n{self.COLOR['info']}✓ Labyrinthe parfait "
-                    f"(chemin unique){self.RESET}"
-                )
-                print(
-                    f"  [S] cacher  [C] couleur 42 "
-                    f"({color_name})  [Q] quitter"
-                )
-            else:
-                print(
-                    f"\n{Fore.YELLOW}⚠ Labyrinthe imparfait — "
-                    f"chemin {current + 1}/{total}{self.RESET}"
-                )
-                print(
-                    f"  [S] cacher  [C] couleur 42 ({color_name})  "
-                    f"[N] suivant  [P] précédent  [Q] quitter"
-                )
-
             key = self._read_key().lower()
+            refresh = False
+            refresh_42 = False
+
             if key == "q":
                 break
             if key == "c":
                 color_idx = (color_idx + 1) % len(COLORS_42)
                 self.COLOR = {**self.COLOR, "42": COLORS_42[color_idx][1]}
+                refresh = True
+                refresh_42 = True
             elif key == "s" and total > 0:
                 revealed = not revealed
+                refresh = True
             elif revealed and not is_perfect and total > 0:
                 if key == "n":
                     current = (current + 1) % total
+                    refresh = True
                 elif key == "p":
                     current = (current - 1) % total
+                    refresh = True
+
+            if refresh:
+                self.path_connections = (
+                    all_paths[current] if revealed and total > 0 else {}
+                )
+                refresh_screen(force_42_refresh=refresh_42)
 
     def _render(
         self,
@@ -321,28 +398,6 @@ class TerminalView:
             return (col < width and bool(grid[row][col] & WALL_W)) or (
                 col > 0 and bool(grid[row][col - 1] & WALL_E)
             )
-
-        def cell_content(col: int, row: int) -> str:
-            if cursor and (col, row) == cursor:
-                return C["cursor"] + " ● " + R
-            if (col, row) == self.entry:
-                return C["entry"] + " E " + R
-            if (col, row) == self.exit_pos:
-                return C["exit"] + " E " + R
-            if (col, row) in self.forty_two:
-                return C["42"] + "███" + R
-            if (col, row) in self.path_connections:
-                dirs = self.path_connections[(col, row)]
-                idx = (
-                    (1 if "W" in dirs else 0)
-                    + (2 if "S" in dirs else 0)
-                    + (4 if "E" in dirs else 0)
-                    + (8 if "N" in dirs else 0)
-                )
-                seg_left = "─" if "W" in dirs else " "
-                seg_right = "─" if "E" in dirs else " "
-                return C["path"] + seg_left + BOX_PATH[idx] + seg_right + R
-            return "   "
 
         for row in range(height + 1):
             top_line = ""
@@ -371,5 +426,5 @@ class TerminalView:
                         C["wall"] + "║" + R if wall_left(col, row) else " "
                     )
                     if col < width:
-                        mid_line += cell_content(col, row)
+                        mid_line += self._cell_content(col, row, cursor)
                 print(mid_line)

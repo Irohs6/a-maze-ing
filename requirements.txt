@@ -1,5 +1,7 @@
 # ── Runtime ──
 colorama>=0.4
+click>=8.1
+pydantic>=2.0
 
 # ── Dev / Lint ──
 flake8>=7.0
