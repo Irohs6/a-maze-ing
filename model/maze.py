@@ -111,7 +111,7 @@ class Maze:
 
     def _cell_wall_count(self, x: int, y: int) -> int:
         """Return the number of walls surrounding cell (x, y) (0–4)."""
-        return bin(self.grid[y][x]).count('1')
+        return self.grid[y][x].bit_count()
 
     _DIRECTIONS: dict[str, tuple[int, int]] = {
         'N': (0, -1),

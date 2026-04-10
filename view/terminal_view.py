@@ -2,6 +2,7 @@
 # Affichage terminal du labyrinthe : animation de la génération + solution.
 
 import os
+import shutil
 import sys
 import termios
 import time
@@ -91,10 +92,33 @@ class TerminalView:
         )
         # Labyrinthe vierge pour l'animation : murs cassés au fil du track.
         self._anim_maze = Maze(maze.width, maze.height)
+        # Largeur d'une cellule : 3 (normal) ou 1 (compact si le terminal est
+        # trop étroit). Recalculé avant chaque rendu.
+        self._cell_w: int = 3
+        # Quand False, l'animation ANSI est désactivée (labyrinthe trop grand).
+        self._use_ansi: bool = True
 
     # ------------------------------------------------------------------
     #  LECTURE CLAVIER
     # ------------------------------------------------------------------
+
+    def _compute_scale(self) -> int:
+        """Retourne 3 (normal) ou 1 (compact) selon la largeur du terminal."""
+        cols = shutil.get_terminal_size().columns
+        # Largeur totale = (cell_w + 1) * width + 1
+        # (murs + cellules + coin final)
+        for cell_w in (3, 1):
+            if (cell_w + 1) * self.maze.width + 1 <= cols:
+                return cell_w
+        return 1
+
+    def _fits_terminal(self) -> bool:
+        """Vrai si le labyrinthe tient dans le terminal sans débordement."""
+        cols, rows = shutil.get_terminal_size()
+        fits_w = (self._cell_w + 1) * self.maze.width + 1 <= cols
+        # +3 pour les lignes de status sous le labyrinthe
+        fits_h = 2 * self.maze.height + 1 + 3 <= rows
+        return fits_w and fits_h
 
     @staticmethod
     def _read_key() -> str:
@@ -112,10 +136,9 @@ class TerminalView:
         """Écrit `text` à une position précise dans le terminal."""
         sys.stdout.write(f"\033[{screen_row};{screen_col}H{text}")
 
-    @staticmethod
-    def _screen_coords(x: int, y: int) -> tuple[int, int]:
+    def _screen_coords(self, x: int, y: int) -> tuple[int, int]:
         """Retourne la position terminal correspondant à la cellule."""
-        return 2 + y * 2, 2 + x * 4
+        return 2 + y * 2, 2 + x * (self._cell_w + 1)
 
     @staticmethod
     def _is_adjacent_step(
@@ -135,18 +158,19 @@ class TerminalView:
         row: int,
         cursor: tuple[int, int] | None = None,
     ) -> str:
-        """Construit le contenu visuel d'une cellule sur 3 caractères."""
+        """Construit le contenu visuel d'une cellule (1 ou 3 caractères)."""
         C = self.COLOR
         R = self.RESET
+        compact = self._cell_w == 1
 
         if cursor and (col, row) == cursor:
-            return C["cursor"] + " ● " + R
+            return C["cursor"] + ("●" if compact else " ● ") + R
         if (col, row) == self.entry:
-            return C["entry"] + " S " + R
+            return C["entry"] + ("S" if compact else " S ") + R
         if (col, row) == self.exit_pos:
-            return C["exit"] + " E " + R
+            return C["exit"] + ("E" if compact else " E ") + R
         if (col, row) in self.forty_two:
-            return C["42"] + "███" + R
+            return C["42"] + ("█" if compact else "███") + R
         if (col, row) in self.path_connections:
             dirs = self.path_connections[(col, row)]
             idx = (
@@ -155,10 +179,12 @@ class TerminalView:
                 + (4 if "E" in dirs else 0)
                 + (8 if "N" in dirs else 0)
             )
+            if compact:
+                return C["path"] + BOX_PATH[idx] + R
             seg_left = "─" if "W" in dirs else " "
             seg_right = "─" if "E" in dirs else " "
             return C["path"] + seg_left + BOX_PATH[idx] + seg_right + R
-        return "   "
+        return " " if compact else "   "
 
     def _draw_cell(
         self,
@@ -175,13 +201,14 @@ class TerminalView:
     def _erase_wall_segment(self, x: int, y: int, direction: str) -> None:
         """Efface visuellement le segment de mur supprimé."""
         screen_row, screen_col = self._screen_coords(x, y)
+        blank = " " * self._cell_w
 
         if direction == "N":
-            self._write_at(screen_row - 1, screen_col, "   ")
+            self._write_at(screen_row - 1, screen_col, blank)
         elif direction == "S":
-            self._write_at(screen_row + 1, screen_col, "   ")
+            self._write_at(screen_row + 1, screen_col, blank)
         elif direction == "E":
-            self._write_at(screen_row, screen_col + 3, " ")
+            self._write_at(screen_row, screen_col + self._cell_w, " ")
         elif direction == "W":
             self._write_at(screen_row, screen_col - 1, " ")
 
@@ -263,12 +290,28 @@ class TerminalView:
         Le labyrinthe initial est dessiné une seule fois, puis seules les
         cellules et segments de mur modifiés sont mis à jour par ANSI.
         """
+        self._cell_w = self._compute_scale()
+        self._use_ansi = self._fits_terminal()
         steps = tracks if tracks is not None else (self.track or [])
         self._anim_maze = Maze(self.maze.width, self.maze.height)
         previous_cell: tuple[int, int] | None = None
         previous_cursor: tuple[int, int] | None = None
 
         os.system("clear")
+
+        if not self._use_ansi:
+            # Le labyrinthe ne tient pas dans le terminal :
+            # rendu statique du résultat final, sans animation.
+            cols, rows = shutil.get_terminal_size()
+            need_w = (self._cell_w + 1) * self.maze.width + 1
+            need_h = 2 * self.maze.height + 4
+            print(
+                f"{Fore.YELLOW}⚠ Terminal {cols}×{rows}, "
+                f"labyrinthe : {need_w}×{need_h} lignes — "
+                f"animation désactivée (scrollez pour voir){self.RESET}"
+            )
+            self._render(self.maze)
+            return
         self._render(self._anim_maze)
         sys.stdout.write("\033[?25l")
         sys.stdout.flush()
@@ -323,6 +366,25 @@ class TerminalView:
 
         def refresh_screen(force_42_refresh: bool = False) -> None:
             nonlocal previous_path_cells
+
+            if not self._use_ansi:
+                # Rendu complet à chaque maj (pas de positionnement ANSI).
+                os.system("clear")
+                self._render(self.maze)
+                color_name = COLORS_42[color_idx][0]
+                lines = self._build_status_lines(
+                    total=total,
+                    revealed=revealed,
+                    is_perfect=is_perfect,
+                    current=current,
+                    color_name=color_name,
+                )
+                for line in lines:
+                    print(line)
+                sys.stdout.flush()
+                previous_path_cells = set(self.path_connections)
+                return
+
             current_path_cells = set(self.path_connections)
             cells_to_refresh = previous_path_cells | current_path_cells
 
@@ -345,7 +407,7 @@ class TerminalView:
             self._render_status_lines(lines)
             sys.stdout.flush()
 
-        self.play(tracks=tracks, delay=0.02)
+        self.play(tracks=tracks)
         refresh_screen(force_42_refresh=True)
 
         while True:
@@ -412,10 +474,11 @@ class TerminalView:
                 )
                 top_line += C["wall"] + BOX_WALL[corner_idx] + R
                 if col < width:
+                    wall_seg = "═" * self._cell_w
                     top_line += (
-                        C["wall"] + "═══" + R
+                        C["wall"] + wall_seg + R
                         if wall_above(col, row)
-                        else "   "
+                        else " " * self._cell_w
                     )
             print(top_line)
 

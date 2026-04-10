@@ -74,7 +74,7 @@ class MazeGenerator:
             if self.perfect == algorithm.perfect:
                 return algorithm(self.maze)
         else:
-            raise ValueError(f"Unsupported algorithm: {self.algorithm}")
+            raise ValueError(f"Unsupported algorithm: perfect={self.perfect!r}")
 
     def get_maze(self) -> Maze:
         """Return the generated maze."""

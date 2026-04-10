@@ -27,7 +27,7 @@ class Kruksal(Algorithm):
             if maze._cell_wall_count(x, y) > 2
             and (x, y) not in pattern_cells
         }
-        _to_destroy -= self._get_maze_boundaries()
+        _to_destroy -= self._boundaries
         for x, y in _to_destroy:
             while wall_count[(x, y)] > 2:
                 eligible_walls = self._breakable_walls(maze, x, y, pattern_cells)
@@ -46,7 +46,8 @@ class Kruksal(Algorithm):
 
         for _attempt in range(self._MAX_GLOBAL_ATTEMPTS):
             # Reset the maze and related attributes for a fresh attempt
-            maze_attempt = copy.deepcopy(self.maze)
+            maze_attempt = copy.copy(self.maze)
+            maze_attempt.grid = [row[:] for row in self.maze.grid]
             self.forty_two_cells = set()
             self.track = []
 
@@ -70,15 +71,16 @@ class Kruksal(Algorithm):
                     maze_attempt.remove_wall(x, y, wall_direction)
                     tracks.append((x, y, wall_direction))
 
-            wall_count = {
-                (x, y): maze_attempt._cell_wall_count(x, y)
+            wall_count_base: dict[tuple[int, int], int] = {
+                (x, y): c
                 for x in range(self.width)
                 for y in range(self.height)
-                if (x, y) not in self._get_maze_boundaries()
-                and maze_attempt._cell_wall_count(x, y) > 2
+                if (x, y) not in self._boundaries
+                and (c := maze_attempt._cell_wall_count(x, y)) > 2
             }
 
-            potential_maze = copy.deepcopy(maze_attempt)
+            potential_maze = copy.copy(maze_attempt)
+            potential_maze.grid = [row[:] for row in maze_attempt.grid]
             validator = MazeValidator(potential_maze)
             counter = 0
             until_now = len(tracks)
@@ -87,11 +89,13 @@ class Kruksal(Algorithm):
                 validator._has_forbidden_open_areas()
             ):
                 tracks = tracks[:until_now]
-                potential_maze = copy.deepcopy(maze_attempt)
+                for y_idx in range(self.height):
+                    potential_maze.grid[y_idx][:] = maze_attempt.grid[y_idx]
+                wall_count = wall_count_base.copy()
                 potential_maze, tracks = self.second_loop(potential_maze, wall_count, pattern_cells, tracks)
                 validator = MazeValidator(potential_maze)
                 counter += 1
-                if counter >= 33:
+                if counter >= 50:
                     # Abandon de cette tentative, on repart de zéro
                     break
             else:
@@ -99,6 +103,7 @@ class Kruksal(Algorithm):
                 for i in range(len(self.maze.grid)):
                     for j in range(len(self.maze.grid[i])):
                         self.maze.grid[i][j] = potential_maze.grid[i][j]
+                self.forty_two_cells = self.maze.forty_two_cells
                 self.track = tracks
                 return tracks
 

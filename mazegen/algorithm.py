@@ -26,6 +26,7 @@ class Algorithm(ABC):
                 'S': (0, 1),
                 'W': (-1, 0),
             }
+        self._boundaries: set[tuple[int, int]] = self._get_maze_boundaries()
 
     @abstractmethod
     def generate(self) -> list[Any]:

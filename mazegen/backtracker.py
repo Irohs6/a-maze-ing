@@ -37,4 +37,5 @@ class Backtracker(Algorithm):
                 track.append((x, y, direction))
 
         self.track = track
+        self.forty_two_cells = self.maze.forty_two_cells
         return track
