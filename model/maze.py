@@ -149,6 +149,26 @@ class Maze:
             boundaries.add((self.width - 1, y))
         return boundaries
 
+    def _is_border_wall(self, x, y, wall_direction) -> bool:
+        """Return True if all outer-border cells
+        have walls on their outer edge."""
+        # Check top and bottom rows:
+        if y == 0 and wall_direction == 'N':
+            return True
+        elif y == self.height - 1 and wall_direction == 'S':
+            return True
+        elif x == 0 and wall_direction == 'W':
+            return True
+        elif x == self.width - 1 and wall_direction == 'E':
+            return True
+        return False
+
+    def _is_42_wall(self, x, y, wall_direction) -> bool:
+        if self._get_direction_neighbor(x, y, wall_direction) not in self.forty_two_cells:
+            return False
+        else:
+            return True
+
     def place_42_center(self) -> set[tuple[int, int]]:
         """Place le motif '42' au centre du labyrinthe.
 

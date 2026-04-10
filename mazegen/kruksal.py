@@ -12,6 +12,33 @@ class Kruksal(Algorithm):
     # Nombre maximal de tentatives globales avant d'abandonner
     _MAX_GLOBAL_ATTEMPTS: int = 30
 
+    def _breakable_walls(self, maze, x, y, pattern_cells):
+        eligible_walls = []
+        for direction in ['N', 'E', 'S', 'W']:
+            if maze.has_wall(x, y, direction) and self._get_direction_neighbor(x, y, direction) not in pattern_cells and not maze._is_border_wall(x, y, direction) and not maze._is_42_wall(x, y, direction):
+                eligible_walls.append(direction)
+        return eligible_walls
+
+    def second_loop(self, maze: Maze, wall_count, pattern_cells, tracks) -> Maze:
+        _to_destroy: set[tuple[int, int]] = {
+            (x, y)
+            for x in range(self.width)
+            for y in range(self.height)
+            if maze._cell_wall_count(x, y) > 2
+            and (x, y) not in pattern_cells
+        }
+        _to_destroy -= self._get_maze_boundaries()
+        for x, y in _to_destroy:
+            while wall_count[(x, y)] > 2:
+                eligible_walls = self._breakable_walls(maze, x, y, pattern_cells)
+                if not eligible_walls:
+                    break
+                wall_direction = random.choice(eligible_walls)
+                maze.remove_wall(x, y, wall_direction)
+                tracks.append((x, y, wall_direction))
+                wall_count[(x, y)] -= 1
+        return (maze, tracks)
+
     def generate(self) -> list[tuple[int, int, str]]:
         """Generates the maze using a randomized version
         of Kruskal's algorithm."""
@@ -25,7 +52,6 @@ class Kruksal(Algorithm):
 
             tracks = []
             pattern_cells = maze_attempt.forty_two_cells
-            pattern_neighbors = self._get_42_neighbors()
 
             unvisited = {
                 (x, y)
@@ -36,72 +62,33 @@ class Kruksal(Algorithm):
             if not unvisited:
                 continue
             for x, y in unvisited:
-                wall_direction = random.choice(["N", "E", "S", "W"])
-                neighbor = self._get_direction_neighbor(
-                    x, y, wall_direction
-                )
-                if (
-                    (x, y) not in pattern_cells
-                    and neighbor not in pattern_cells
-                ):
-                    try:
-                        maze_attempt.remove_wall(x, y, wall_direction)
-                    except ValueError:
-                        continue
-                    else:
-                        tracks.append((x, y, wall_direction))
+                eligible_walls = self._breakable_walls(maze_attempt, x, y, pattern_cells)
+                if not eligible_walls:
+                    continue
+                else:
+                    wall_direction = random.choice(eligible_walls)
+                    maze_attempt.remove_wall(x, y, wall_direction)
+                    tracks.append((x, y, wall_direction))
 
-            def second_loop(maze: Maze) -> Maze:
-                _to_destroy: set[tuple[int, int]] = {
-                    (x, y)
-                    for x in range(self.width)
-                    for y in range(self.height)
-                    if maze._cell_wall_count(x, y) > 2
-                    and (x, y) not in pattern_cells
-                }
-                _to_destroy -= self._get_maze_boundaries()
-                to_be_destroyed: list[tuple[int, int]] = list(_to_destroy)
-                while to_be_destroyed:
-                    i = random.randint(0, len(to_be_destroyed) - 1)
-                    x, y = to_be_destroyed[i]
-                    wall_direction = random.choice(["N", "E", "S", "W"])
-                    if (
-                        maze.has_wall(x, y, wall_direction)
-                        and self._get_direction_neighbor(x, y, wall_direction)
-                        not in pattern_cells
-                    ):
-                        try:
-                            maze.remove_wall(x, y, wall_direction)
-                        except ValueError:
-                            continue
-                        else:
-                            tracks.append((x, y, wall_direction))
-                            to_be_destroyed[i] = to_be_destroyed[-1]
-                            to_be_destroyed.pop()
-                    elif maze._cell_wall_count(x, y) <= 2:
-                        to_be_destroyed = [
-                            (x, y)
-                            for x in range(self.width)
-                            for y in range(self.height)
-                            if maze._cell_wall_count(x, y) > 2
-                            and (x, y) not in pattern_cells
-                        ]
-                    elif (x, y) in pattern_neighbors:
-                        to_be_destroyed[i] = to_be_destroyed[-1]
-                        to_be_destroyed.pop()
-                return maze
+            wall_count = {
+                (x, y): maze_attempt._cell_wall_count(x, y)
+                for x in range(self.width)
+                for y in range(self.height)
+                if (x, y) not in self._get_maze_boundaries()
+                and maze_attempt._cell_wall_count(x, y) > 2
+            }
 
             potential_maze = copy.deepcopy(maze_attempt)
             validator = MazeValidator(potential_maze)
             counter = 0
             until_now = len(tracks)
             while (
-                not validator._validate_maze_connectivity()
-                or validator._has_forbidden_open_areas()
+                not validator._validate_maze_connectivity() or
+                validator._has_forbidden_open_areas()
             ):
                 tracks = tracks[:until_now]
                 potential_maze = copy.deepcopy(maze_attempt)
-                potential_maze = second_loop(potential_maze)
+                potential_maze, tracks = self.second_loop(potential_maze, wall_count, pattern_cells, tracks)
                 validator = MazeValidator(potential_maze)
                 counter += 1
                 if counter >= 33:
