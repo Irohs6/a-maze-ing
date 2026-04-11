@@ -47,3 +47,4 @@ logs/*.log
 # Sujet du projet (non destiné au dépôt Git)
 # ============================================================
 docs/
+*.bak

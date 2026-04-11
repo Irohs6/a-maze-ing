@@ -29,7 +29,7 @@ class MazeController:
     def _create_pathfinder(self):
         maze = self._generator.get_maze()
         entry = self._config.ENTRY
-        exit_pos = self._config.EXIT  
+        exit_pos = self._config.EXIT
         self._finder = PathFinder(maze, entry=entry, exit=exit_pos)
 
     def _create_view(self):

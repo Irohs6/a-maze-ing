@@ -28,6 +28,13 @@ class Maze:
         [0, 0, 15, 0, 15, 15, 15],
         ]
 
+    _DIRECTIONS: dict[str, tuple[int, int]] = {
+        'N': (0, -1),
+        'E': (1, 0),
+        'S': (0, 1),
+        'W': (-1, 0),
+    }
+
     def __init__(self, width: int, height: int) -> None:
         """Initialize an empty maze with given dimensions."""
         self.width: int = width
@@ -35,7 +42,7 @@ class Maze:
 
         FULL_WALL = 1 | 2 | 4 | 8  # = 15
         self.grid = [[FULL_WALL for _ in range(width)] for _ in range(height)]
-        self.forty_two_cells = set()
+        self.forty_two_cells: set[tuple[int, int]] = set()
         self.forty_two_cells = self.place_42_center()
 
     def set_wall(self, x: int, y: int, direction: str) -> None:
@@ -113,13 +120,6 @@ class Maze:
         """Return the number of walls surrounding cell (x, y) (0–4)."""
         return self.grid[y][x].bit_count()
 
-    _DIRECTIONS: dict[str, tuple[int, int]] = {
-        'N': (0, -1),
-        'E': (1, 0),
-        'S': (0, 1),
-        'W': (-1, 0),
-    }
-
     def _get_neighbors_of_cell(
         self, x: int, y: int
     ) -> list[tuple[int, int, str]]:
@@ -164,7 +164,8 @@ class Maze:
         return False
 
     def _is_42_wall(self, x, y, wall_direction) -> bool:
-        if self._get_direction_neighbor(x, y, wall_direction) not in self.forty_two_cells:
+        if self._get_direction_neighbor(x, y, wall_direction
+                                        ) not in self.forty_two_cells:
             return False
         else:
             return True
@@ -182,10 +183,6 @@ class Maze:
 
         # Marge minimale de 2 cellules de chaque côté
         if self.width < pw + 4 or self.height < ph + 4:
-            print(
-                f"[INFO] Labyrinthe trop petit ({self.width}x{self.height}) "
-                f"pour le motif '42' (min {pw + 4}x{ph + 4}) — motif omis."
-            )
             return set()
 
         start_x = (self.width - pw) // 2
@@ -200,9 +197,3 @@ class Maze:
                     self.forty_two_cells.add((x, y))
 
         return self.forty_two_cells
-
-
-if __name__ == "__main__":
-    maze = Maze(5, 5)
-    for row in maze.grid:
-        print(row)

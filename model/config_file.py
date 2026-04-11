@@ -100,9 +100,6 @@ class ConfigFile(BaseModel):
                 raise ValueError(
                     "VIEW must be 'terminal' or 'curse'," f" got '{value}'"
                 )
-        # TODO: bloc ALGORITHM devenu inutile — la clé ALGORITHM est supprimée
-        # du config : l'algo est maintenant choisi automatiquement via
-        # l'attribut `perfect` des sous-classes d'Algorithm.
         config[key] = value
 
     @staticmethod

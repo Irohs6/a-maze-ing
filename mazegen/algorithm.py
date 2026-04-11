@@ -19,37 +19,17 @@ class Algorithm(ABC):
         self.height = maze.height
         self.forty_two_cells: set[tuple[int, int]] = set()
         self.track: list[Any] = []
-
-        self.directions = {
-                'N': (0, -1),
-                'E': (1, 0),
-                'S': (0, 1),
-                'W': (-1, 0),
-            }
         self._boundaries: set[tuple[int, int]] = self._get_maze_boundaries()
 
     @abstractmethod
     def generate(self) -> list[Any]:
         pass
 
-    def _get_42_neighbors(self) -> list[tuple[int, int]]:
-        """Retourne les cellules voisines du motif '42' (hors motif)."""
-        pattern_neighbors: list[tuple[int, int]] = []
-        forty_two_cells = self.maze.forty_two_cells
-        for cell in forty_two_cells:
-            for neighbor in self._get_neighbors_of_cell(*cell):
-                if (neighbor[0], neighbor[1]) not in forty_two_cells and (
-                    neighbor[0],
-                    neighbor[1],
-                ) not in pattern_neighbors:
-                    pattern_neighbors.append((neighbor[0], neighbor[1]))
-        return pattern_neighbors
-
     def _get_neighbors_of_cell(
         self, x: int, y: int
     ) -> list[tuple[int, int, str]]:
         neighbors = []
-        for direction, (offset_x, offset_y) in self.directions.items():
+        for direction, (offset_x, offset_y) in self.maze._DIRECTIONS.items():
             nx = x + offset_x
             ny = y + offset_y
             if 0 <= nx < self.width and 0 <= ny < self.height:
@@ -57,9 +37,9 @@ class Algorithm(ABC):
         return neighbors
 
     def _get_direction_neighbor(
-        self, x: int, y: int, dir: str
+        self, x: int, y: int, direction: str
     ) -> tuple[int, int]:
-        nx, ny = self.directions[dir]
+        nx, ny = self.maze._DIRECTIONS[direction]
         return (x + nx, y + ny)
 
     def _get_maze_boundaries(self) -> set[tuple[int, int]]:

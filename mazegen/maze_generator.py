@@ -69,7 +69,7 @@ class MazeGenerator:
             raise ValueError("Generated maze is invalid.")
 
     def _build_algorithm(self) -> Algorithm:
-        """Instancie la classe d'algorithme selon self.algorithm."""
+        """Instantiate the algorithm class based on self.algorithm."""
         for algorithm in self.algorithms:
             if self.perfect == algorithm.perfect:
                 return algorithm(self.maze)
@@ -93,8 +93,7 @@ class MazeGenerator:
             self.seed = seed
             random.seed(seed)
 
-        for i in range(len(self.maze.grid)):
-            for j in range(len(self.maze.grid[i])):
-                self.maze.grid[i][j] = 15
+        self.maze = Maze(self.width, self.height)
         self.solution_path = None
         self.track = []
+        self.forty_two_cells = set()
