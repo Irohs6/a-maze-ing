@@ -93,7 +93,9 @@ class MazeGenerator:
             self.seed = seed
             random.seed(seed)
 
-        self.maze = Maze(self.width, self.height)
+        for i in range(len(self.maze.grid)):
+            for j in range(len(self.maze.grid[i])):
+                self.maze.grid[i][j] = 15
         self.solution_path = None
         self.track = []
         self.forty_two_cells = set()

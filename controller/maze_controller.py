@@ -42,5 +42,8 @@ class MazeController:
     def run(self) -> None:
         """Execute the full maze pipeline."""
         self._load_config()
+        self._create_gen()
+        self._create_pathfinder()
+        self._create_view()
         self.menu = Menu(self)
         self.menu._run()
