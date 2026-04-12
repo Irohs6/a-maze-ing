@@ -30,7 +30,7 @@ from datetime import datetime
 from pathlib import Path
 
 # --- Chemin vers la racine du projet (le script est dans benchmark/) ---------
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from mazegen.kruksal import Kruksal
@@ -320,9 +320,9 @@ def main() -> None:
     n_seeds = args.seeds
     seeds = list(range(1, n_seeds + 1))
 
-    results_dir = Path(__file__).parent / "results"
-    results_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    results_dir = Path(__file__).parent / "results" / f"kruskal_{timestamp}"
+    results_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"\n{'='*72}")
     print(f"  BENCHMARK KRUSKAL — A-Maze-ing")

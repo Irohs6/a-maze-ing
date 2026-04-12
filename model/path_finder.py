@@ -228,17 +228,140 @@ class PathFinder:
 
         return connections
 
-    def find_k_shortest_paths(
-        self, k: int = 3
-    ) -> list[dict[tuple[int, int], set[str]]]:
-        """Trouve jusqu'à k plus courts chemins de l'entrée vers la sortie.
+    def _bfs_with_forbidden_edge(
+        self,
+        forbidden_u: tuple[int, int],
+        forbidden_v: tuple[int, int],
+    ) -> list[str] | None:
+        """BFS standard de entry à exit en interdisant l'arête u→v.
 
-        Enchaîne le BFS (calcul des distances et prédécesseurs), la
-        reconstruction des chemins et leur conversion en dictionnaires de
-        connexions prêts à l'emploi pour la vue.
+        Une arête du plus court chemin est temporairement ignorée, forçant
+        le BFS à trouver un chemin de contournement s'il existe.
 
         Args:
-            k : Nombre maximal de chemins distincts à retourner (défaut : 3).
+            forbidden_u : Cellule source de l'arête à interdire.
+            forbidden_v : Cellule destination de l'arête à interdire.
+
+        Returns:
+            Liste de directions si un chemin alternatif existe, None sinon.
+        """
+        maze = self.maze
+        start = self.entry
+        goal = self.exit
+
+        dist: dict[tuple[int, int], int] = {start: 0}
+        # pred[cell] = (cellule_précédente, direction_empruntée)
+        pred: dict[
+            tuple[int, int],
+            tuple[tuple[int, int], str] | None
+        ] = {start: None}
+        queue: deque[tuple[int, int]] = deque([start])
+
+        while queue:
+            x, y = queue.popleft()
+            if (x, y) == goal:
+                break
+            for direction, (dx, dy) in self.DIRECTIONS.items():
+                if maze.has_wall(x, y, direction):
+                    continue
+                nx, ny = x + dx, y + dy
+                if not (0 <= nx < maze.width and 0 <= ny < maze.height):
+                    continue
+                neighbor = (nx, ny)
+                # Interdire l'arête forbidden_u → forbidden_v
+                if (x, y) == forbidden_u and neighbor == forbidden_v:
+                    continue
+                if neighbor not in dist:
+                    dist[neighbor] = dist[(x, y)] + 1
+                    pred[neighbor] = ((x, y), direction)
+                    queue.append(neighbor)
+
+        if goal not in pred:
+            return None
+
+        # Reconstruction du chemin (de la sortie vers l'entrée)
+        path: list[str] = []
+        cell = goal
+        while pred[cell] is not None:
+            prev_cell, direction = pred[cell]
+            path.append(direction)
+            cell = prev_cell
+        path.reverse()
+        return path
+
+    def _find_extra_paths(
+        self,
+        already_found: list[list[str]],
+        max_extra: int,
+    ) -> list[list[str]]:
+        """Cherche jusqu'à max_extra chemins alternatifs en supprimant
+        successivement chaque arête du plus court chemin (principe de Yen).
+
+        Pour chaque arête (u→v) du plus court chemin, un BFS est relancé
+        en interdisant cette arête. Si un chemin est trouvé, il prouve
+        l'imperfection du labyrinthe (boucle détectée).
+
+        Garantie : si le labyrinthe est imparfait, au moins une arête du
+        plus court chemin appartient à un cycle, et le BFS sans cette arête
+        trouvera un chemin de contournement — quelle que soit la taille du
+        labyrinthe.
+
+        Complexité : O(path_len × maze_cells) — très rapide en pratique
+        puisque chaque BFS est O(maze_cells).
+
+        Args:
+            already_found : Chemins déjà connus (listes de directions).
+            max_extra     : Nombre maximal de chemins alternatifs à retourner.
+
+        Returns:
+            Liste de chemins alternatifs (peut être vide si labyrinthe
+            parfait).
+        """
+        if not already_found or max_extra <= 0:
+            return []
+
+        found_set: set[tuple[str, ...]] = {tuple(p) for p in already_found}
+        extra: list[list[str]] = []
+
+        # Reconstruire la séquence de cellules du premier plus court chemin
+        cell_seq: list[tuple[int, int]] = [self.entry]
+        x, y = self.entry
+        for direction in already_found[0]:
+            dx, dy = self.DIRECTIONS[direction]
+            x, y = x + dx, y + dy
+            cell_seq.append((x, y))
+
+        # Pour chaque arête (u→v) du chemin, interdire cette arête et re-BFS
+        for i in range(len(cell_seq) - 1):
+            if len(extra) >= max_extra:
+                break
+            u, v = cell_seq[i], cell_seq[i + 1]
+            path = self._bfs_with_forbidden_edge(u, v)
+            if path is None:
+                continue
+            path_t = tuple(path)
+            if path_t not in found_set:
+                extra.append(path)
+                found_set.add(path_t)
+
+        return extra
+
+    def find_k_shortest_paths(
+        self, k: int = 1, n_extra: int = 2
+    ) -> list[dict[tuple[int, int], set[str]]]:
+        """Trouve le plus court chemin, puis jusqu'à n_extra
+        chemins alternatifs.
+
+        - Le 1er chemin (k=1 par défaut) est le plus court via BFS.
+        - Les n_extra chemins suivants peuvent être plus longs ; ils servent
+          à confirmer si le labyrinthe est parfait (0 alternatif trouvé)
+          ou imparfait (au moins 1 alternatif trouvé).
+        - Total retourné : au maximum k + n_extra (défaut : 3).
+
+        Args:
+            k       : Nombre max de plus courts chemins (défaut : 1).
+            n_extra : Nombre max de chemins alternatifs supplémentaires
+                      (défaut : 2). Passer 0 pour désactiver.
 
         Returns:
             Liste de dictionnaires de connexions ``[{(x,y): {dirs}}, ...]``.
@@ -251,6 +374,11 @@ class PathFinder:
         if self.exit not in dist:
             return []
 
-        # Reconstruire jusqu'à k chemins puis les convertir en connexions
-        paths = self._reconstruct_k_paths(pred, k)
-        return [self._build_connections_dict(path) for path in paths]
+        # 1. Plus courts chemins via BFS
+        shortest_paths = self._reconstruct_k_paths(pred, k)
+
+        # 2. Chemins alternatifs (longueur quelconque) via DFS borné
+        extra_paths = self._find_extra_paths(shortest_paths, max_extra=n_extra)
+
+        all_paths = shortest_paths + extra_paths
+        return [self._build_connections_dict(path) for path in all_paths]

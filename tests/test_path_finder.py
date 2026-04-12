@@ -182,7 +182,8 @@ def test_path_not_longer_than_necessary() -> None:
 def test_k_limits_results_to_one() -> None:
     maze = make_two_path_maze()
     pf = PathFinder(maze, entry=(0, 0), exit=(2, 2))
-    assert len(pf.find_k_shortest_paths(k=1)) == 1
+    # n_extra=0 : seul le plus court chemin, sans alternatifs
+    assert len(pf.find_k_shortest_paths(k=1, n_extra=0)) == 1
 
 
 def test_k_returns_multiple_paths() -> None:
