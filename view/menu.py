@@ -47,7 +47,8 @@ class Menu:
 
     def _print_menu(self):
         print("╭" + "─" * 30 + "╮")
-        print("│" + f"{Fore.YELLOW}A-Maze-Ing{Style.RESET_ALL}".center(39) + "│")
+        print("│" + f"{Fore.YELLOW}A-Maze-Ing{Style.RESET_ALL}".center(39) +
+              "│")
         print("├" + "─" * 30 + "┤")
         for i, option in enumerate(
             [" Generate  Maze ", " Settings ", " Exit "]
@@ -156,13 +157,13 @@ class Menu:
                             break
                     print("\033c", end="")
                 else:
+                    self._update_objects()
                     break
         except click.exceptions.Abort:
             pass
 
     def _execute(self):
         if self.index == 0:
-            self._update_objects()
             self._controller._generator.generate()
             tracks = self._controller._generator.track
             paths = self._controller._finder.find_k_shortest_paths(k=3)
@@ -172,22 +173,39 @@ class Menu:
                 is_perfect,
                 tracks
             )
-            self._controller._generator.reset()
+            output = self._controller._generator.maze.encode_hex() + '\n'
+            entry, exit = (str(self._controller._config.ENTRY).strip("()"),
+                           str(self._controller._config.EXIT).strip("()"))
+            output += entry + '\n'
+            output += exit + '\n'
+            with open(self._controller._config.OUTPUT_FILE, "w") as file:
+                file.write(output)
+            print("Maze Output:")
+            print(output, end="")
+            print("Press Enter to continue...")
+            while True:
+                self._get_key()
+                if self.input == '\r':
+                    break
+            self._controller._generator.reset(seed=time.time_ns())
             print("\033c", end="")
         elif self.index == 1:
             self._settings()
 
     def _run(self):
-        while True:
-            print("\033[?25l", end="")
-            print("\033c", end="")
-            self._print_menu()
-            self._get_key()
-            if self.input.startswith("\x1b"):
-                self._move()
-            elif self.input == "\r":
+        try:
+            while True:
+                print("\033[?25l", end="")
                 print("\033c", end="")
-                print("\033[?25h", end="")
-                if self.index == 2:
-                    break
-                self._execute()
+                self._print_menu()
+                self._get_key()
+                if self.input.startswith("\x1b"):
+                    self._move()
+                elif self.input == "\r":
+                    print("\033c", end="")
+                    print("\033[?25h", end="")
+                    if self.index == 2:
+                        break
+                    self._execute()
+        finally:
+            print("\033[?25h", end="")

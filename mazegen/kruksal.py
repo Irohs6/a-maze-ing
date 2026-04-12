@@ -109,7 +109,6 @@ class Kruksal(Algorithm):
                                                            wall_count,
                                                            pattern_cells,
                                                            tracks)
-                validator = MazeValidator(potential_maze)
                 counter += 1
 
                 if counter >= 50:

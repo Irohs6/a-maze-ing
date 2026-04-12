@@ -8,6 +8,7 @@
 # à l'utilisateur en cas de mauvaise utilisation.
 
 import sys
+from colorama import Fore, Style
 from controller.maze_controller import MazeController
 
 
@@ -24,6 +25,10 @@ def main() -> None:
         sys.exit(1)
     except (ValueError, KeyError) as error:
         print(f"Error in configuration file: {error}")
+        sys.exit(1)
+    except KeyboardInterrupt:
+        print(Fore.BLUE + "Bye-bye" + Style.RESET_ALL, end="")
+        print("👋")
         sys.exit(1)
 
 
