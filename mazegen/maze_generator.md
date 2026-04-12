@@ -8,8 +8,11 @@ Façade du module de génération de labyrinthe. Expose une API publique propre 
 - Initialise le `Maze` et le `random.seed`
 - Appelle `algo.generate()` et valide le résultat via `MazeValidator`
 - `get_maze()` : retourne l'instance `Maze` générée
-- `get_solution()` : retourne le chemin solution (liste de directions)
-- `reset(seed)` : réinitialise complètement le générateur pour un nouveau labyrinthe
+- `get_solution()` : retourne le chemin solution (lève `ValueError` si `generate()` non appelé ou solution non calculée)
+- `reset(seed)` : réinitialise complètement le générateur pour un nouveau labyrinthe :
+  - Met à jour le seed et relance `random.seed()`
+  - Remet toutes les cellules de la grille à `15` (tous murs fermés)
+  - Réinitialise `solution_path`, `track` et `forty_two_cells`
 - Lève une `ValueError` si le labyrinthe généré est invalide
 
 ## Note globale : 8.5/10
@@ -17,7 +20,7 @@ Façade du module de génération de labyrinthe. Expose une API publique propre 
 ## Améliorations possibles
 | Priorité | Amélioration |
 |----------|-------------|
-| Haute | `get_solution()` lève une `ValueError` si appelé avant `generate()` — mais `generate()` ne calcule pas la solution (c'est `PathFinder` qui le fait) : la méthode est trompeuse |
-| Moyenne | `_build_algorithm()` utilise `for...else` avec `raise` — le `else` est inutile ici, simplifier avec un `raise` indépendant |
-| Moyenne | Pas de timeout sur la génération Kruskal qui peut prendre plusieurs secondes pour de grands labyrinthes |
+| Haute | `get_solution()` lève une `ValueError` si appelé avant `generate()` — mais `generate()` ne calcule pas la solution (c'est `PathFinder` qui le fait) : la méthode est trompeuse, à supprimer ou renommer |
+| Moyenne | `_build_algorithm()` utilise `for...else` avec `raise` dans le `else` — le bloc `else` est inutile ici (le `raise` est dans la boucle), simplifier avec un `raise` indépendant après la boucle |
+| Moyenne | `reset()` ne restitue pas le motif "42" dans la grille (appelant `place_42_center()`) — la grille réinitialisée n'est pas identique à l'état post-`__init__` |
 | Faible | Permettre d'enregistrer des algorithmes customisés via un registre (pattern Strategy extensible) |

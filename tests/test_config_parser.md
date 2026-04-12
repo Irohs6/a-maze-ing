@@ -5,17 +5,17 @@ Tests unitaires du parser `ConfigFile.parse()`. Valide tous les cas de parsing e
 
 ## Ce qu'il fait
 - Utilise `tmp_path` (pytest) pour créer des fichiers de config temporaires
-- Cas valides : config minimale, commentaires ignorés, seed auto-généré, seed fourni, flag PLAYABLE
-- Cas d'erreur : fichier absent, clé manquante, valeur invalide, ENTRY hors bornes, ENTRY == EXIT
-- Couvre les conversions de types (int, tuple, bool)
-- Vérifie les messages d'erreur pour les cas invalides
+- Cas valides : config minimale, commentaires ignorés, seed auto-généré, seed fourni, flag PLAYABLE, PERFECT=True/False
+- Cas d'erreur : fichier absent, clé manquante (paramétrisé sur toutes les clés requises), valeur invalide, ENTRY hors bornes, ENTRY == EXIT
+- Lignes malformées : pas de `=`, clé vide, valeur vide
+- Conversions de types : int (WIDTH/HEIGHT), tuple (ENTRY/EXIT), bool (PERFECT/PLAYABLE)
+- Vérifie les messages d'erreur (`match=`) pour les cas invalides
 
-## Note globale : 9/10
+## Note globale : 9.5/10
 
 ## Améliorations possibles
 | Priorité | Amélioration |
 |----------|-------------|
-| Moyenne | Ajouter des tests pour les valeurs limites : WIDTH=4 (minimum), coordonnées aux coins exacts |
-| Moyenne | Tester les lignes malformées : pas de `=`, clé vide, valeur vide |
+| Faible | Ajouter des tests pour les valeurs limites exactes : WIDTH/HEIGHT=4 (minimum accepté), coordonnées aux coins exacts |
 | Faible | Ajouter un test de performance : parsing d'un fichier avec beaucoup de commentaires/lignes vides |
-| Faible | Paramétrer les cas d'erreur avec `@pytest.mark.parametrize` pour réduire la duplication |
+| Faible | Tester le comportement avec des espaces autour du `=` ou des valeurs avec espaces internes |
