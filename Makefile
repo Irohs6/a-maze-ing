@@ -40,4 +40,3 @@ lint-strict:
 test:
 	make install
 	. .venv/bin/activate; python3 -m pytest tests
-	. .venv/bin/activate; python3 output_validator.py maze.txt

@@ -170,7 +170,7 @@ def _draw_grid(
 
         return f"{color}{WALL}{Style.RESET_ALL}"
 
-    buf: list[str] = ["\033c"]  # efface l'écran
+    buf: list[str] = ["\033[2J\033[H"]  # efface l'écran (clear + home)
     for row in range(total_rows):
         is_hwall_row = row % (ch + 1) == 0
         line: list[str] = []

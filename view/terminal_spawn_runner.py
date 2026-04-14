@@ -77,47 +77,41 @@ def _show_hint(end_row: int) -> None:
     sys.stdout.flush()
 
 
-def _run_interaction(
-    cfg: dict,
-    initial_theme_idx: int,
-    solution_cells: list[tuple[int, int, set[str]]],
-    entry: tuple,
-    exit_pos: tuple,
-) -> None:
+def _run_interaction(cfg: dict, initial_theme_idx: int,
+                     solution_cells: list[tuple[int, int, set[str]]],
+                     entry: tuple, exit_pos: tuple,) -> None:
     """Boucle d'interaction clavier.
 
     [C] cycle le thème de couleur et relance le rendu sans délai.
-    [S] affiche/cache le chemin solution.
     [Q / Entrée / Échap / Ctrl-C] quitte.
     """
     theme_idx = initial_theme_idx % len(COLOR_THEMES)
-    cw = cfg["cell_width"]
-    end_row = ansi_utils.grid_rows(cfg["height"], cw) + 1
+    theme_idx_42 = initial_theme_idx % len(COLOR_THEMES_42)
+    w, h, cw = cfg["width"], cfg["height"], cfg["cell_width"]
+    end_row = ansi_utils.grid_rows(h, cw) + 1
     solution_visible = True
     _show_hint(end_row)
 
-    with ansi_utils.raw_stdin():
-        while True:
-            key = ansi_utils.read_key_or_timeout(None)
-            if key is None:
-                continue
-            if key.lower() == "c":
-                theme_idx = (theme_idx + 1) % len(COLOR_THEMES)
-                _run_render(
-                    cfg,
-                    COLOR_THEMES[theme_idx],
-                    COLOR_THEMES_42[theme_idx],
-                    delay=0.0,
-                )
-                _show_hint(end_row)
-            elif key in ("s", "S"):
-                if solution_visible:
-                    _erase_solution(cw, solution_cells, entry, exit_pos)
-                else:
-                    _draw_solution(cw, solution_cells, entry, exit_pos)
+    while True:
+        key = ansi_utils.read_key()
+        if key.lower() == "c":
+            theme_idx = (theme_idx + 1) % len(COLOR_THEMES)
+            theme_idx_42 = (theme_idx_42 + 1) % len(COLOR_THEMES_42)
+            _run_render(
+                cfg,
+                COLOR_THEMES[theme_idx],
+                COLOR_THEMES_42[theme_idx_42],
+                delay=0.0,
+            )
+            _show_hint(end_row)
+        elif key in ("s", "S"):
+            if solution_visible:
+                _erase_solution(cw, solution_cells, entry, exit_pos)
+            else:
+                _draw_solution(cw, solution_cells, entry, exit_pos)
                 solution_visible = not solution_visible
-            elif key in ("\r", "\n", "q", "Q", "\x03", "\x1b"):
-                break
+        elif key in ("\r", "\n", "q", "Q", "\x03", "\x1b"):
+            break
 
 
 def main() -> None:

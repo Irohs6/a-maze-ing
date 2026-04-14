@@ -73,40 +73,6 @@
 
 ---
 
-## `view/terminal_renderer.py`
-
-- `_draw_grid` recalcule `ch`, `total_cols`, `total_rows` et définit `_wall_char` à chaque appel — si `cell_width=1` est toujours utilisé, ces calculs sont inutilement redondants
-- `_draw_final` contient maintenant la boucle interactive `raw_stdin` — cette responsabilité devrait être dans `TerminalView` ou `terminal_spawn_runner`, pas dans le renderer pur
-- `_build_cell_buf` reçoit `ft` et `forty_two_color` mais ne les utilise plus depuis la refacto — supprimer ces paramètres devenus inutiles
-- `COLOR_THEMES` et `COLOR_THEMES_42` sont de longueurs égales mais rien ne le garantit — ajouter un `assert len(COLOR_THEMES) == len(COLOR_THEMES_42)` en tête de module
-- `_BOX_PATH` doit avoir exactement 16 caractères (index 0–15) — ajouter un `assert len(_BOX_PATH) == 16`
-
----
-
-## `view/terminal_view.py`
-
-- `show_solution` appelle `_spawn_solution_window` avec `tracks` mais `_draw_final` ignore maintenant `forty_two_color` en interne — la valeur passée en fallback est inutile
-- Le fallback `input("\nAppuie sur Entrée pour quitter…")` est mort code depuis que `_draw_final` gère la boucle interactive elle-même — à supprimer
-- `track` dans `__init__` est stocké mais jamais utilisé dans la classe — supprimer ou implémenter
-- Pas de gestion du cas `all_paths = []` dans `show_solution` (lève une `IndexError` sur `all_paths[0]`) — déjà partiellement géré mais la condition `if all_paths else []` mérite un guard plus clair
-
----
-
-## `view/terminal_launcher.py`
-
-- Le fichier JSON temporaire est supprimé dans `_load_config` (dans le runner) mais jamais supprimé si le Popen échoue avant lancement — ajouter un `try/finally` ou `NamedTemporaryFile` avec `delete=True`
-- `zoom: float = 0.28` est un magic number qui dépend de la taille des caractères de l'émulateur — documenter ou rendre configurable
-- Pas de timeout sur le `Popen` enfant — si le terminal ne démarre pas, le parent ne le sait pas
-
----
-
-## `view/terminal_spawn_runner.py`
-
-- La boucle `_run_interaction` recrée tout le rendu pour [C] avec `delay=0` — si le labyrinthe est grand, ça peut flasher. Envisager un double-buffer ou un redraw partiel
-- `_show_hint` écrit sur stdout sans ANSI de positionnement — peut écraser du contenu si le terminal est redimensionné
-- Le thème 42 (`theme_idx_42`) est cyclé indépendamment de `theme_idx` mais commence toujours synchronisé — si les listes ont des longueurs différentes, la synchro se perd
-
----
 
 ## `view/menu.py`
 
