@@ -250,12 +250,11 @@ def _animate(
                     redraw = True
                     advance = not paused
                 elif key in ("+", "="):
-                    speed_idx = max(0, speed_idx + 1)
+                    speed_idx = (speed_idx + 1) % len(_SPEED_LEVELS)
                     redraw = True
                     advance = not paused
                 elif key == "-":
-                    n = len(_SPEED_LEVELS) - 1
-                    speed_idx = min(n, speed_idx - 1)
+                    speed_idx = (speed_idx - 1) % len(_SPEED_LEVELS)
                     redraw = True
                     advance = not paused
                 elif key in ("n", "N") and paused:
