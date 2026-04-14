@@ -73,6 +73,7 @@ def _spawn_solution_window(
     maze_height: int,
     tracks: list[tuple[int, int, str]],
     cell_width: int,
+    # zoom calibré pour police Mono 12pt ; augmenter si trop petit
     zoom: float = 0.28,
     entry: tuple[int, int] = (0, 0),
     exit_pos: tuple[int, int] = (0, 0),
@@ -109,4 +110,10 @@ def _spawn_solution_window(
 
     cols = terminal_cols(maze_width, cell_width)
     rows = terminal_rows(maze_height, cell_width, extra=2)
-    return _open_terminal(backend, cols, rows, ["--config", tmp.name], zoom)
+    success = _open_terminal(backend, cols, rows, ["--config", tmp.name], zoom)
+    if not success:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
+    return success

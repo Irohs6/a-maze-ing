@@ -15,7 +15,9 @@ if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from view.terminal_renderer import (
-    _draw_grid, _animate, _draw_final, COLOR_THEMES, COLOR_THEMES_42
+    _draw_grid, _animate, _draw_final,
+    _draw_solution, _erase_solution,
+    COLOR_THEMES, COLOR_THEMES_42,
 )
 from view import ansi_utils
 
@@ -46,7 +48,7 @@ def _run_render(
     cfg: dict,
     wall_color: str,
     forty_two_color: str,
-    delay: float = 0.001,
+    delay: float = 0.01,
 ) -> None:
     """Effectue le rendu complet : grille + animation + solution finale."""
     tracks = [(int(x), int(y), str(d)) for x, y, d in cfg["tracks"]]
@@ -64,50 +66,73 @@ def _run_render(
                forty_two_cells=forty_two_cells, forty_two_color=forty_two_color)
     _animate(tracks, w, h, cw, delay=delay,
              forty_two_cells=forty_two_cells, forty_two_color=forty_two_color)
-    _draw_final(w, h, cw, entry, exit_pos, solution_cells,
-                forty_two_cells=forty_two_cells,
-                forty_two_color=forty_two_color)
+    _draw_final(w, h, cw, entry, exit_pos, solution_cells)
 
 
-def _show_hint() -> None:
-    sys.stdout.write("  [C] couleurs  [Q/Entrée] quitter")
+def _show_hint(end_row: int) -> None:
+    sys.stdout.write(
+        f"\033[{end_row};1H\033[2K"
+        "  [C] couleurs  [S] solution  [Q/Entrée] quitter"
+    )
     sys.stdout.flush()
 
 
-def _run_interaction(cfg: dict, initial_theme_idx: int) -> None:
+def _run_interaction(
+    cfg: dict,
+    initial_theme_idx: int,
+    solution_cells: list[tuple[int, int, set[str]]],
+    entry: tuple,
+    exit_pos: tuple,
+) -> None:
     """Boucle d'interaction clavier.
 
     [C] cycle le thème de couleur et relance le rendu sans délai.
+    [S] affiche/cache le chemin solution.
     [Q / Entrée / Échap / Ctrl-C] quitte.
     """
     theme_idx = initial_theme_idx % len(COLOR_THEMES)
-    theme_idx_42 = initial_theme_idx % len(COLOR_THEMES_42)
-    _show_hint()
+    cw = cfg["cell_width"]
+    end_row = ansi_utils.grid_rows(cfg["height"], cw) + 1
+    solution_visible = True
+    _show_hint(end_row)
 
-    while True:
-        key = ansi_utils.read_key()
-        if key.lower() == "c":
-            theme_idx = (theme_idx + 1) % len(COLOR_THEMES)
-            theme_idx_42 = (theme_idx_42 + 1) % len(COLOR_THEMES_42)
-            _run_render(
-                cfg,
-                COLOR_THEMES[theme_idx],
-                COLOR_THEMES_42[theme_idx_42],
-                delay=0.0,
-            )
-            _show_hint()
-        elif key in ("\r", "\n", "q", "Q", "\x03", "\x1b"):
-            break
+    with ansi_utils.raw_stdin():
+        while True:
+            key = ansi_utils.read_key_or_timeout(None)
+            if key is None:
+                continue
+            if key.lower() == "c":
+                theme_idx = (theme_idx + 1) % len(COLOR_THEMES)
+                _run_render(
+                    cfg,
+                    COLOR_THEMES[theme_idx],
+                    COLOR_THEMES_42[theme_idx],
+                    delay=0.0,
+                )
+                _show_hint(end_row)
+            elif key in ("s", "S"):
+                if solution_visible:
+                    _erase_solution(cw, solution_cells, entry, exit_pos)
+                else:
+                    _draw_solution(cw, solution_cells, entry, exit_pos)
+                solution_visible = not solution_visible
+            elif key in ("\r", "\n", "q", "Q", "\x03", "\x1b"):
+                break
 
 
 def main() -> None:
     args = _parse_args()
     cfg = _load_config(args.config)
 
+    solution_cells = [
+        (int(x), int(y), set(dirs)) for x, y, dirs in cfg["solution"]
+    ]
+    entry = tuple(cfg["entry"])
+    exit_pos = tuple(cfg["exit"])
+
     theme_idx = 0
-    ft_idx = theme_idx % len(COLOR_THEMES_42)
-    _run_render(cfg, COLOR_THEMES[theme_idx], COLOR_THEMES_42[ft_idx])
-    _run_interaction(cfg, theme_idx)
+    _run_render(cfg, COLOR_THEMES[theme_idx], COLOR_THEMES_42[theme_idx])
+    _run_interaction(cfg, theme_idx, solution_cells, entry, exit_pos)
 
 
 if __name__ == "__main__":

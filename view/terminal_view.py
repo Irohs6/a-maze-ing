@@ -7,7 +7,6 @@
 
 import sys
 from pathlib import Path
-from typing import Any
 
 if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parents[1]))
@@ -16,7 +15,9 @@ from colorama import init, Fore, Style
 from model.maze import Maze
 from view.ansi_utils import read_key
 from view.terminal_launcher import _spawn_solution_window
-from view.terminal_renderer import _draw_grid, _animate, _draw_final
+from view.terminal_renderer import (
+    _draw_grid, _animate, _draw_final, _run_solution_toggle,
+)
 
 init(autoreset=False)
 
@@ -37,14 +38,12 @@ class TerminalView:
     def __init__(
         self,
         maze: Maze,
-        track: list[Any] | None = None,
         entry: tuple[int, int] = (0, 0),
         exit: tuple[int, int] = (0, 0),
         forty_two_cells: set[tuple[int, int]] | None = None,
         path_connections: dict[tuple[int, int], set[str]] | None = None,
     ) -> None:
         self.maze = maze
-        self.track = track
         self.entry = entry
         self.exit_pos = exit
         self.forty_two: set[tuple[int, int]] = set(forty_two_cells or [])
@@ -90,18 +89,23 @@ class TerminalView:
         _animate(tracks or [], self.maze.width, self.maze.height, cell_width,
                  forty_two_cells=self.forty_two,
                  forty_two_color=self.COLOR["42"])
+        solution = (
+            [(x, y, dirs) for (x, y), dirs in all_paths[0].items()]
+            if all_paths
+            else []
+        )
         _draw_final(
             self.maze.width,
             self.maze.height,
             cell_width,
             self.entry,
             self.exit_pos,
-            (
-                [(x, y, dirs) for (x, y), dirs in all_paths[0].items()]
-                if all_paths
-                else []
-            ),
-            forty_two_cells=self.forty_two,
-            forty_two_color=self.COLOR["42"],
+            solution,
         )
-        input("\nAppuie sur Entrée pour quitter\u2026")
+        _run_solution_toggle(
+            self.maze.height,
+            cell_width,
+            solution,
+            self.entry,
+            self.exit_pos,
+        )
