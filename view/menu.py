@@ -166,7 +166,7 @@ class Menu:
         if self.index == 0:
             self._controller._generator.generate()
             tracks = self._controller._generator.track
-            paths = self._controller._finder.find_k_shortest_paths(k=3)
+            paths = self._controller._finder.find_k_shortest_paths()
             is_perfect = len(paths) == 1
             self._controller._view.show_solution(
                 paths,
@@ -178,6 +178,12 @@ class Menu:
                            str(self._controller._config.EXIT).strip("()"))
             output += entry + '\n'
             output += exit + '\n'
+            for directions in paths[0].values():
+                if len(directions) == 1:
+                    output += directions[0]
+                else:
+                    output += directions[1]
+            output += '\n'
             with open(self._controller._config.OUTPUT_FILE, "w") as file:
                 file.write(output)
             print("Maze Output:")

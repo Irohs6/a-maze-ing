@@ -31,12 +31,13 @@ fclean:
 
 lint:
 	make install
-	. .venv/bin/activate; python3 -m flake8; python3 -m mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
+	. .venv/bin/activate; python3 -m flake8 && printf '\033[1;32mFlake8 all good !\033[0m\n'; python3 -m mypy . --warn-return-any --warn-unused-ignores --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs
 
 lint-strict:
 	make install
-	. .venv/bin/activate; python3 -m flake8; python3 -m mypy . --strict
+	. .venv/bin/activate; python3 -m flake8 && printf '\033[1;32mFlake8 all good !\033[0m\n'; python3 -m mypy . --strict
 
 test:
 	make install
 	. .venv/bin/activate; python3 -m pytest tests
+	. .venv/bin/activate; python3 output_validator.py maze.txt

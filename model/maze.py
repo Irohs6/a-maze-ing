@@ -116,39 +116,6 @@ class Maze:
             hex_string += "\n"
         return hex_string
 
-    def _cell_wall_count(self, x: int, y: int) -> int:
-        """Return the number of walls surrounding cell (x, y) (0–4)."""
-        return self.grid[y][x].bit_count()
-
-    def _get_neighbors_of_cell(
-        self, x: int, y: int
-    ) -> list[tuple[int, int, str]]:
-        """Return (nx, ny, direction) tuples for all valid neighbors."""
-        neighbors: list[tuple[int, int, str]] = []
-        for direction, (dx, dy) in self._DIRECTIONS.items():
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < self.width and 0 <= ny < self.height:
-                neighbors.append((nx, ny, direction))
-        return neighbors
-
-    def _get_direction_neighbor(
-        self, x: int, y: int, direction: str
-    ) -> tuple[int, int]:
-        """Return the coordinates of the neighbor in the given direction."""
-        dx, dy = self._DIRECTIONS[direction]
-        return (x + dx, y + dy)
-
-    def _get_maze_boundaries(self) -> set[tuple[int, int]]:
-        """Return the set of all boundary cells."""
-        boundaries: set[tuple[int, int]] = set()
-        for x in range(self.width):
-            boundaries.add((x, 0))
-            boundaries.add((x, self.height - 1))
-        for y in range(self.height):
-            boundaries.add((0, y))
-            boundaries.add((self.width - 1, y))
-        return boundaries
-
     def _is_border_wall(self, x, y, wall_direction) -> bool:
         """Return True if all outer-border cells
         have walls on their outer edge."""
@@ -162,13 +129,6 @@ class Maze:
         elif x == self.width - 1 and wall_direction == 'E':
             return True
         return False
-
-    def _is_42_wall(self, x, y, wall_direction) -> bool:
-        if self._get_direction_neighbor(x, y, wall_direction
-                                        ) not in self.forty_two_cells:
-            return False
-        else:
-            return True
 
     def place_42_center(self) -> set[tuple[int, int]]:
         """Place le motif '42' au centre du labyrinthe.

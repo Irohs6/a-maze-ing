@@ -348,7 +348,7 @@ class PathFinder:
 
     def find_k_shortest_paths(
         self, k: int = 1, n_extra: int = 2
-    ) -> list[dict[tuple[int, int], set[str]]]:
+    ) -> list[dict[tuple[int, int], list[str]]]:
         """Trouve le plus court chemin, puis jusqu'à n_extra
         chemins alternatifs.
 

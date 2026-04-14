@@ -103,28 +103,28 @@ def test_all_directions_in_connections_are_valid(
 def test_entry_cell_direction_east_only(pf_corridor: PathFinder) -> None:
     """Dans le couloir 3×1, la cellule (0,0) ne sort que vers l'Est."""
     conn = pf_corridor.find_k_shortest_paths(k=1)[0]
-    assert conn[(0, 0)] == {'E'}
+    assert conn[(0, 0)] == ['E']
 
 
 def test_middle_cell_has_east_and_west(pf_corridor: PathFinder) -> None:
     """La cellule (1,0) communique vers l'Ouest (entrée) et l'Est (sortie)."""
     conn = pf_corridor.find_k_shortest_paths(k=1)[0]
-    assert conn[(1, 0)] == {'W', 'E'}
+    assert conn[(1, 0)] == ['W', 'E']
 
 
 def test_exit_cell_direction_west_only(pf_corridor: PathFinder) -> None:
     """La cellule (2,0) ne vient que de l'Ouest."""
     conn = pf_corridor.find_k_shortest_paths(k=1)[0]
-    assert conn[(2, 0)] == {'W'}
+    assert conn[(2, 0)] == ['W']
 
 
 def test_vertical_corridor_path_uses_south() -> None:
     """Couloir 1×3 : le chemin emprunte S et S."""
     pf = PathFinder(make_corridor_1x3(), entry=(0, 0), exit=(0, 2))
     conn = pf.find_k_shortest_paths(k=1)[0]
-    assert conn[(0, 0)] == {'S'}
-    assert conn[(0, 1)] == {'N', 'S'}
-    assert conn[(0, 2)] == {'N'}
+    assert conn[(0, 0)] == ['S']
+    assert conn[(0, 1)] == ['N', 'S']
+    assert conn[(0, 2)] == ['N']
 
 
 # ── find_k_shortest_paths — labyrinthe généré ───────────────────────
@@ -236,7 +236,7 @@ def test_build_connections_from_empty_path() -> None:
     maze = make_corridor_3x1()
     pf = PathFinder(maze, entry=(0, 0), exit=(0, 0))
     conn = pf._build_connections_dict([])
-    assert conn == {(0, 0): set()}
+    assert conn == {(0, 0): []}
 
 
 def test_build_connections_single_move_east() -> None:

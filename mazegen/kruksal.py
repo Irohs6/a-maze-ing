@@ -19,21 +19,20 @@ class Kruksal(Algorithm):
                     and self._get_direction_neighbor(x, y, direction)
                     not in pattern_cells
                     and not maze._is_border_wall(x, y, direction)
-                    and not maze._is_42_wall(x, y, direction)):
+                    and not self._is_42_wall(x, y, direction)):
                 eligible_walls.append(direction)
         return eligible_walls
 
     def _second_loop(self, maze: Maze, wall_count, pattern_cells,
                      tracks) -> Maze:
-        _to_destroy: set[tuple[int, int]] = {
+        _to_destroy: set[tuple[int, int]] = [
             (x, y)
             for x in range(self.width)
             for y in range(self.height)
-            if maze._cell_wall_count(x, y) > 2
-            and (x, y) not in pattern_cells
-        }
-        _to_destroy -= self._boundaries
-
+            if self._cell_wall_count(maze, x, y) > 2
+            and (x, y) not in pattern_cells and (x, y) not in self._boundaries
+        ]
+        random.shuffle(_to_destroy)
         for x, y in _to_destroy:
             while wall_count[(x, y)] > 2:
                 eligible_walls = self._breakable_walls(maze, x,
@@ -49,29 +48,41 @@ class Kruksal(Algorithm):
 
         return (maze, tracks)
 
+    def _is_42_wall(self, x, y, wall_direction) -> bool:
+        if self._get_direction_neighbor(x, y, wall_direction
+                                        ) not in self.forty_two_cells:
+            return False
+        else:
+            return True
+
+    @staticmethod
+    def _cell_wall_count(maze: Maze, x: int, y: int) -> int:
+        """Return the number of walls surrounding cell (x, y) (0–4)."""
+        return maze.grid[y][x].bit_count()
+
     def generate(self) -> list[tuple[int, int, str]]:
         """Generates the maze using a randomized version
         of Kruskal's algorithm."""
 
+        self.forty_two_cells = self.maze.forty_two_cells
         for _attempt in range(self._MAX_GLOBAL_ATTEMPTS):
             # Reset the maze and related attributes for a fresh attempt
             maze_attempt = copy.copy(self.maze)
             maze_attempt.grid = [row[:] for row in self.maze.grid]
-            self.forty_two_cells = set()
             self.track = []
 
             tracks = []
             pattern_cells = maze_attempt.forty_two_cells
 
-            unvisited = {
+            unvisited = [
                 (x, y)
                 for x in range(self.width)
                 for y in range(self.height)
                 if (x, y) not in pattern_cells
-            }
+            ]
             if not unvisited:
                 continue
-
+            random.shuffle(unvisited)
             for x, y in unvisited:
                 eligible_walls = self._breakable_walls(maze_attempt, x, y,
                                                        pattern_cells)
@@ -89,7 +100,7 @@ class Kruksal(Algorithm):
                 for x in range(self.width)
                 for y in range(self.height)
                 if (x, y) not in self._boundaries
-                and (c := maze_attempt._cell_wall_count(x, y)) > 2
+                and (c := self._cell_wall_count(maze_attempt, x, y)) > 2
             }
 
             potential_maze = copy.copy(maze_attempt)
