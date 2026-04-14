@@ -108,8 +108,10 @@ def _run_interaction(cfg: dict, initial_theme_idx: int,
             if solution_visible:
                 _erase_solution(cw, solution_cells, entry, exit_pos)
             else:
-                _draw_solution(cw, solution_cells, entry, exit_pos)
-                solution_visible = not solution_visible
+                # Redessine chemin + entrée/sortie + barre info
+                _draw_final(w, h, cw, entry, exit_pos, solution_cells)
+                _show_hint(end_row)
+            solution_visible = not solution_visible
         elif key in ("\r", "\n", "q", "Q", "\x03", "\x1b"):
             break
 
