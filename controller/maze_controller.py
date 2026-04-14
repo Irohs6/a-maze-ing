@@ -37,7 +37,8 @@ class MazeController:
         entry = self._config.ENTRY
         exit_pos = self._config.EXIT
 
-        self._view = TerminalView(maze, entry=entry, exit=exit_pos)
+        self._view = TerminalView(maze, entry=entry, exit=exit_pos,
+                                  forty_two_cells=maze.forty_two_cells)
 
     def run(self) -> None:
         """Execute the full maze pipeline."""
