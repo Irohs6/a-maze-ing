@@ -5,32 +5,104 @@
 #   Chaque cellule occupe cell_width × cell_height chars d'espace intérieur.
 #   Les murs sont des colonnes/rangées de █ (U+2588) épaisses d'1 char.
 #
-# Fonctions :
-#   _draw_grid()  : affiche la grille initiale (tous murs fermés)
-#   _animate()    : anime le perçage des murs en suivant le track
-#   _draw_final() : superpose entrée, sortie et chemin solution
+# Fonctions publiques :
+#   _draw_grid()  : affiche la grille initiale (tous murs fermés) — 1 flush
+#   _animate()    : anime le perçage des murs — 1 flush/cellule ou 1 flush total
+#   _draw_final() : superpose entrée, sortie et chemin solution — 1 flush
 
 import sys
 import time
 
 from colorama import Fore, Back, Style
 
+from view.ansi_utils import (
+    WALL, WALL_WIDTH,
+    cell_height, grid_cols, grid_rows,
+    inner_col, inner_row, center_col, center_row,
+    wall_row_n, wall_row_s, wall_col_e, wall_col_w,
+    raw_stdin, read_key_or_timeout,
+)
+
 # Caractères de trait simple pour le chemin solution.
 # Index = bitmask : W=1, S=2, E=4, N=8
 _BOX_PATH = " ╴╷┐╶─┌┬╵┘│┤└┴├┼"
 
-WALL = "██"
-WALL_WIDTH = 2  # colonnes terminales occupées par WALL (██ = 2 × U+2588, ANSI-colorable)
-
 # Thèmes de couleur (mur, 42).  Appuyer sur C pour cycler.
 # mur   → Fore.X sur ██ (premier plan)
 # 42    → Back.X sur espaces (fond) — toujours visuellement distinct
-COLOR_THEMES: list[tuple[str, str]] = [Fore.BLUE, Fore.WHITE, Fore.CYAN,
-                                       Fore.GREEN, Fore.MAGENTA, Fore.RED,
-                                       Fore.LIGHTYELLOW_EX, Fore.WHITE]
-COLOR_THEMES_42: list[str] = [Back.YELLOW, Back.MAGENTA, Back.RED,
-                               Back.CYAN, Back.YELLOW, Back.GREEN,
-                               Back.BLUE, Back.RED]
+COLOR_THEMES: list[str] = [
+    Fore.BLUE, Fore.WHITE, Fore.CYAN,
+    Fore.GREEN, Fore.MAGENTA, Fore.RED,
+    Fore.LIGHTYELLOW_EX, Fore.WHITE,
+]
+COLOR_THEMES_42: list[str] = [
+    Back.YELLOW, Back.MAGENTA, Back.RED,
+    Back.CYAN, Back.YELLOW, Back.GREEN,
+    Back.BLUE, Back.RED,
+]
+
+# Niveaux de vitesse d'animation : (délai en s, label affiché).
+# [+] → plus rapide (index plus bas), [-] → plus lent (index plus haut)
+_SPEED_LEVELS: list[tuple[float, str]] = [
+    (0.2,    "1"),   # très lent
+    (0.05,   "2"),
+    (0.01,   "3"),
+    (0.001,  "4"),   # vitesse par défaut
+    (0.0003, "5"),
+    (0.0,    "6"),   # instantané (MAX)
+]
+_DEFAULT_SPEED_IDX: int = 3
+
+
+def _build_cell_buf(
+    cell_x: int,
+    cell_y: int,
+    direction: str,
+    cell_width: int,
+    ft: set[tuple[int, int]],
+    forty_two_color: str,
+    pending_restore: str,
+) -> tuple[list[str], str]:
+    """Construit le buffer ANSI pour un pas d'animation.
+
+    Retourne (cell_buf, nouveau_pending_restore).
+    """
+    ch = cell_height(cell_width)
+    ww = WALL_WIDTH
+    ww_inner = cell_width * ww
+    ic = inner_col(cell_x, cell_width)
+    ir = inner_row(cell_y, cell_width)
+    cc = center_col(cell_x, cell_width)
+    cr = center_row(cell_y, cell_width)
+
+    buf: list[str] = [pending_restore] if pending_restore else []
+
+    if direction == "N":
+        wr = wall_row_n(cell_y, cell_width)
+        buf.append(f"\033[{wr};{ic}H{' ' * ww_inner}")
+    elif direction == "S":
+        wr = wall_row_s(cell_y, cell_width)
+        buf.append(f"\033[{wr};{ic}H{' ' * ww_inner}")
+    elif direction == "E":
+        wc = wall_col_e(cell_x, cell_width)
+        for r in range(ch):
+            buf.append(f"\033[{ir + r};{wc}H{' ' * ww}")
+    elif direction == "W":
+        wc = wall_col_w(cell_x, cell_width)
+        for r in range(ch):
+            buf.append(f"\033[{ir + r};{wc}H{' ' * ww}")
+
+    buf.append(f"\033[{cr};{cc}H{Fore.GREEN}\u25cf{Style.RESET_ALL}")
+
+    if (cell_x, cell_y) in ft and forty_two_color:
+        restore = (
+            f"\033[{ir};{ic}H"
+            f"{forty_two_color}{' ' * ww_inner}{Style.RESET_ALL}"
+        )
+    else:
+        restore = f"\033[{cr};{cc}H "
+
+    return buf, restore
 
 
 def _draw_grid(
@@ -43,37 +115,40 @@ def _draw_grid(
 ) -> None:
     """Affiche la grille initiale du labyrinthe (tous murs fermés).
 
-    ⬛⬛⬛⬛⬛
-    ⬛  ⬛  ⬛
-    ⬛⬛⬛⬛⬛
-    ⬛  ⬛  ⬛
-    ⬛⬛⬛⬛⬛
+    Tous les caractères sont accumulés dans un buffer puis envoyés en
+    un seul write + flush (évite O(lignes) flush implicites via print).
     """
-    cell_height = max(1, cell_width // 2)
-    total_cols = (cell_width + 1) * maze_width + 1
-    total_rows = (cell_height + 1) * maze_height + 1
+    ch = cell_height(cell_width)
+    total_cols = grid_cols(maze_width, cell_width)
+    total_rows = grid_rows(maze_height, cell_width)
+    ft = forty_two_cells or set()
 
-    print("\033c", end="")  # efface l'écran
-
+    buf: list[str] = ["\033c"]  # efface l'écran
     for row in range(1, total_rows + 1):
-        if row % (cell_height + 1) == 1:
+        if row % (ch + 1) == 1:
             # Rangée de mur horizontal
-            print(wall_color + WALL * total_cols + Style.RESET_ALL)
+            buf.append(wall_color + WALL * total_cols + Style.RESET_ALL + "\n")
         else:
             # Rangée de murs verticaux et espaces intérieurs
-            # La ligne logique (0-basé) au sein des cellules
-            cell_y = (row - 2) // (cell_height + 1)
-            line = ""
+            cell_y = (row - 2) // (ch + 1)
+            parts: list[str] = []
             for col in range(1, total_cols + 1):
                 if col % (cell_width + 1) == 1:
-                    line += wall_color + WALL + Style.RESET_ALL
+                    parts.append(wall_color + WALL + Style.RESET_ALL)
                 else:
                     cell_x = (col - 2) // (cell_width + 1)
-                    if forty_two_color and (cell_x, cell_y) in (forty_two_cells or set()):
-                        line += forty_two_color + " " * WALL_WIDTH + Style.RESET_ALL
+                    if forty_two_color and (cell_x, cell_y) in ft:
+                        parts.append(
+                            forty_two_color
+                            + " " * WALL_WIDTH
+                            + Style.RESET_ALL
+                        )
                     else:
-                        line += " " * WALL_WIDTH
-            print(line)
+                        parts.append(" " * WALL_WIDTH)
+            buf.append("".join(parts) + "\n")
+
+    sys.stdout.write("".join(buf))
+    sys.stdout.flush()
 
 
 def _animate(
@@ -84,77 +159,133 @@ def _animate(
     delay: float = 0.001,
     forty_two_cells: set[tuple[int, int]] | None = None,
     forty_two_color: str = "",
+    interactive: bool = True,
 ) -> None:
-    """Anime la génération en effaçant les murs █ pas à pas depuis le track.
+    """Anime la génération en effaçant les murs █ pas à pas.
 
-    Correspondance coordonnées → position ANSI (séquences 1-based) :
-        Première colonne intérieure de la cellule (cx) :
-            inner_col = 1 + cx * (cell_width + 1) + 1
-        Première ligne intérieure de la cellule (cy) :
-            inner_row = 1 + cy * (cell_height + 1) + 1
+    Stratégie de flush :
+      delay > 0, interactif  : 1 flush/cellule ; contrôles clavier actifs.
+      delay > 0, passif      : 1 flush/cellule, time.sleep(delay).
+      delay = 0 (replay)     : 1 flush total en fin de boucle.
 
-    Effacement d'un mur selon la direction :
-        N → efface la rangée de mur au-dessus de (cx, cy)
-        S → efface la rangée de mur en-dessous de (cx, cy)
-        E → efface la colonne de mur à droite de (cx, cy)
-        W → efface la colonne de mur à gauche de (cx, cy)
+    Contrôles (mode interactif, stdin est un tty) :
+      Espace  : pause / play
+      N       : avancer d'un pas (si en pause)
+      +       : vitesse plus rapide
+      -       : vitesse plus lente
     """
-    _ft = forty_two_cells or set()
-    cell_height = max(1, cell_width // 2)
+    ft = forty_two_cells or set()
+    is_interactive = (
+        interactive and delay > 0 and sys.stdin.isatty()
+    )
+    end_row = grid_rows(maze_height, cell_width) + 1
+    pending_restore = ""
 
-    sys.stdout.write("\033[?25l")  # masque le curseur terminal
+    sys.stdout.write("\033[?25l")  # masque le curseur
     sys.stdout.flush()
+
+    if is_interactive:
+        speed_idx = _DEFAULT_SPEED_IDX
+        paused = False
+
+        def _status() -> str:
+            lbl = _SPEED_LEVELS[speed_idx][1]
+            if paused:
+                return (
+                    f"\033[{end_row};1H\033[2K"
+                    f"⏸  [Espace] ▶  [N] étape  "
+                    f"[+/-] vitesse: {lbl}"
+                )
+            return (
+                f"\033[{end_row};1H\033[2K"
+                f"▶  [Espace] ⏸  [+/-] vitesse: {lbl}"
+            )
+
+        with raw_stdin():
+            sys.stdout.write(_status())
+            sys.stdout.flush()
+
+            idx = 0
+            while idx < len(track):
+                cell_x, cell_y, direction = track[idx]
+                d = _SPEED_LEVELS[speed_idx][0]
+                key = read_key_or_timeout(
+                    None if paused else d
+                )
+
+                advance = False
+                redraw = False
+                if key == " ":
+                    paused = not paused
+                    redraw = True
+                    advance = not paused
+                elif key in ("+", "="):
+                    speed_idx = max(0, speed_idx - 1)
+                    redraw = True
+                    advance = not paused
+                elif key == "-":
+                    n = len(_SPEED_LEVELS) - 1
+                    speed_idx = min(n, speed_idx + 1)
+                    redraw = True
+                    advance = not paused
+                elif key in ("n", "N") and paused:
+                    advance = True
+                elif key in ("\x03", "\x1b"):
+                    break
+                elif key is None:
+                    advance = True  # timeout → pas normal
+
+                if redraw:
+                    sys.stdout.write(_status())
+                if not advance:
+                    sys.stdout.flush()
+                    continue
+
+                cell_buf, pending_restore = _build_cell_buf(
+                    cell_x, cell_y, direction, cell_width,
+                    ft, forty_two_color, pending_restore,
+                )
+                sys.stdout.write("".join(cell_buf))
+                sys.stdout.flush()
+                idx += 1
+
+        # Efface la barre de statut, restaure la visibilité du curseur
+        sys.stdout.write(
+            f"{pending_restore}"
+            f"\033[{end_row};1H\033[2K"
+            f"\033[?25h"
+        )
+        sys.stdout.flush()
+        return
+
+    # --- Mode passif (delay=0 ou stdin pas tty) ---
+    buf_replay: list[str] = []
+    flush_per_cell = delay > 0
 
     for cell_x, cell_y, direction in track:
         if delay:
             time.sleep(delay)
 
-        ww = WALL_WIDTH
-        # Colonne terminale du 1er char intérieur de la cellule
-        inner_col = (cell_x * (cell_width + 1) + 1) * ww + 1
-        inner_row = 1 + cell_y * (cell_height + 1) + 1
-
-        if direction == "N":
-            wall_row = 1 + cell_y * (cell_height + 1)
-            sys.stdout.write(
-                f"\033[{wall_row};{inner_col}H{' ' * (cell_width * ww)}"
-            )
-        elif direction == "S":
-            wall_row = 1 + (cell_y + 1) * (cell_height + 1)
-            sys.stdout.write(
-                f"\033[{wall_row};{inner_col}H{' ' * (cell_width * ww)}"
-            )
-        elif direction == "E":
-            wall_col = (cell_x + 1) * (cell_width + 1) * ww + 1
-            for r in range(cell_height):
-                sys.stdout.write(f"\033[{inner_row + r};{wall_col}H{' ' * ww}")
-        elif direction == "W":
-            wall_col = cell_x * (cell_width + 1) * ww + 1
-            for r in range(cell_height):
-                sys.stdout.write(f"\033[{inner_row + r};{wall_col}H{' ' * ww}")
-
-        # Curseur vert au centre de la cellule
-        cursor_col = inner_col + (cell_width * ww) // 2
-        cursor_row = inner_row + (cell_height - 1) // 2
-        sys.stdout.write(
-            f"\033[{cursor_row};{cursor_col}H{Fore.GREEN}●{Style.RESET_ALL}"
+        cell_buf, pending_restore = _build_cell_buf(
+            cell_x, cell_y, direction, cell_width,
+            ft, forty_two_color, pending_restore,
         )
-        sys.stdout.flush()
 
-        # Restauration : espace ou fond 42
-        if (cell_x, cell_y) in _ft and forty_two_color:
-            ww_inner = cell_width * ww
-            sys.stdout.write(
-                f"\033[{inner_row};{inner_col}H"
-                f"{forty_two_color}{' ' * ww_inner}{Style.RESET_ALL}"
-            )
+        if flush_per_cell:
+            sys.stdout.write("".join(cell_buf))
             sys.stdout.flush()
         else:
-            sys.stdout.write(f"\033[{cursor_row};{cursor_col}H ")
+            buf_replay.extend(cell_buf)
 
-    sys.stdout.write(f"\033[{(cell_height + 1) * maze_height + 2};1H")
-    sys.stdout.write("\033[?25h")  # restaure le curseur terminal
-    sys.stdout.flush()
+    # Fin de boucle : restauration + repositionnement
+    end_seq = f"{pending_restore}\033[{end_row};1H\033[?25h"
+    if flush_per_cell:
+        sys.stdout.write(end_seq)
+        sys.stdout.flush()
+    else:
+        buf_replay.append(end_seq)
+        sys.stdout.write("".join(buf_replay))
+        sys.stdout.flush()
 
 
 def _draw_final(
@@ -169,23 +300,18 @@ def _draw_final(
 ) -> None:
     """Superpose entrée, sortie et chemin solution sur la grille finale.
 
-    À appeler après _animate(). Ne bloque pas (pas d'input).
+    À appeler après _animate(). Accumule tous les writes en un buffer
+    puis effectue un unique flush.
     """
-    cell_height = max(1, cell_width // 2)
-    ww = WALL_WIDTH
+    ww_inner = cell_width * WALL_WIDTH
+    end_row = grid_rows(maze_height, cell_width) + 1
+    buf: list[str] = []
 
-    def _center_col(x: int) -> int:
-        return (x * (cell_width + 1) + 1) * ww + 1 + (cell_width * ww) // 2
-
-    def _center_row(y: int) -> int:
-        return 1 + y * (cell_height + 1) + 1 + (cell_height - 1) // 2
-
-    # Cellules "42" — fond coloré sur espaces (visuellement distinct des murs ██)
-    ww_inner = cell_width * ww
+    # Cellules "42" — fond coloré sur espaces intérieurs
     for fx, fy in forty_two_cells or set():
-        inner_col = (fx * (cell_width + 1) + 1) * ww + 1
-        sys.stdout.write(
-            f"\033[{_center_row(fy)};{inner_col}H"
+        ic = inner_col(fx, cell_width)
+        buf.append(
+            f"\033[{center_row(fy, cell_width)};{ic}H"
             f"{forty_two_color}{' ' * ww_inner}{Style.RESET_ALL}"
         )
 
@@ -199,23 +325,27 @@ def _draw_final(
             + (4 if "E" in dirs else 0)
             + (8 if "N" in dirs else 0)
         )
-        char = _BOX_PATH[idx]
-        sys.stdout.write(
-            f"\033[{_center_row(sol_y)};{_center_col(sol_x)}H"
-            f"{Fore.YELLOW}{char}{Style.RESET_ALL}"
+        cr = center_row(sol_y, cell_width)
+        cc = center_col(sol_x, cell_width)
+        buf.append(
+            f"\033[{cr};{cc}H"
+            f"{Fore.YELLOW}{_BOX_PATH[idx]}{Style.RESET_ALL}"
         )
 
     # Marqueur entrée (vert S)
     ex, ey = entry
-    sys.stdout.write(
-        f"\033[{_center_row(ey)};{_center_col(ex)}H{Fore.GREEN}S{Style.RESET_ALL}"
+    buf.append(
+        f"\033[{center_row(ey, cell_width)};{center_col(ex, cell_width)}H"
+        f"{Fore.GREEN}S{Style.RESET_ALL}"
     )
 
     # Marqueur sortie (rouge E)
     xx, xy = exit_pos
-    sys.stdout.write(
-        f"\033[{_center_row(xy)};{_center_col(xx)}H{Fore.RED}E{Style.RESET_ALL}"
+    buf.append(
+        f"\033[{center_row(xy, cell_width)};{center_col(xx, cell_width)}H"
+        f"{Fore.RED}E{Style.RESET_ALL}"
     )
 
-    sys.stdout.write(f"\033[{(cell_height + 1) * maze_height + 2};1H")
+    buf.append(f"\033[{end_row};1H")
+    sys.stdout.write("".join(buf))
     sys.stdout.flush()

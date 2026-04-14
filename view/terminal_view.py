@@ -6,8 +6,6 @@
 #   - le rendu et l'animation   → view.terminal_renderer
 
 import sys
-import termios
-import tty
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +14,7 @@ if __package__ in {None, ""}:
 
 from colorama import init, Fore, Style
 from model.maze import Maze
+from view.ansi_utils import read_key
 from view.terminal_launcher import _spawn_solution_window
 from view.terminal_renderer import _draw_grid, _animate, _draw_final
 
@@ -56,13 +55,7 @@ class TerminalView:
     @staticmethod
     def _read_key() -> str:
         """Lit une touche sans attendre Entrée (mode raw)."""
-        fd = sys.stdin.fileno()
-        saved = termios.tcgetattr(fd)
-        try:
-            tty.setraw(fd)
-            return sys.stdin.read(1)
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, saved)
+        return read_key()
 
     def show_solution(
         self,
@@ -92,9 +85,11 @@ class TerminalView:
 
         # Fallback : affichage dans le terminal courant
         _draw_grid(self.maze.width, self.maze.height, cell_width,
-                   forty_two_cells=self.forty_two, forty_two_color=self.COLOR["42"])
+                   forty_two_cells=self.forty_two,
+                   forty_two_color=self.COLOR["42"])
         _animate(tracks or [], self.maze.width, self.maze.height, cell_width,
-                 forty_two_cells=self.forty_two, forty_two_color=self.COLOR["42"])
+                 forty_two_cells=self.forty_two,
+                 forty_two_color=self.COLOR["42"])
         _draw_final(
             self.maze.width,
             self.maze.height,
@@ -105,6 +100,8 @@ class TerminalView:
                 [(x, y, dirs) for (x, y), dirs in all_paths[0].items()]
                 if all_paths
                 else []
-            ),            forty_two_cells=self.forty_two,
-            forty_two_color=self.COLOR["42"],)
+            ),
+            forty_two_cells=self.forty_two,
+            forty_two_color=self.COLOR["42"],
+        )
         input("\nAppuie sur Entrée pour quitter\u2026")
