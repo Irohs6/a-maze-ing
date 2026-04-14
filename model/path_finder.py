@@ -191,7 +191,7 @@ class PathFinder:
 
     def _build_connections_dict(
         self, path: list[str]
-    ) -> dict[tuple[int, int], set[str]]:
+    ) -> dict[tuple[int, int], tuple[str]]:
         """Convertit un chemin (liste de directions) en dict de connexions.
 
         Pour chaque cellule traversée, enregistre les directions ouvertes :
@@ -206,25 +206,25 @@ class PathFinder:
             Dictionnaire ``{(x, y): {directions ouvertes}}`` utilisé par la vue
             pour colorier les cellules du chemin solution.
         """
-        connections: dict[tuple[int, int], set[str]] = {}
+        connections: dict[tuple[int, int], tuple[str]] = {}
         x, y = self.entry
 
         # Initialiser la cellule d'entrée
-        connections[(x, y)] = set()
+        connections[(x, y)] = []
 
         for direction in path:
             # La cellule courante peut sortir dans cette direction
-            connections[(x, y)].add(direction)
+            connections[(x, y)].append(direction)
 
             dx, dy = self.DIRECTIONS[direction]
             x, y = x + dx, y + dy
 
             # Initialiser la cellule suivante si elle n'a pas encore été visitée
             if (x, y) not in connections:
-                connections[(x, y)] = set()
+                connections[(x, y)] = []
 
             # La cellule d'arrivée sait d'où elle vient (direction inverse)
-            connections[(x, y)].add(self.REVERSE[direction])
+            connections[(x, y)].append(self.REVERSE[direction])
 
         return connections
 
