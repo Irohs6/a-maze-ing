@@ -10,10 +10,11 @@
 #   _animate()    : anime le perçage des murs — 1 flush/cellule ou 1 flush total
 #   _draw_final() : superpose entrée, sortie et chemin solution — 1 flush
 
+from re import I
 import sys
 import time
 
-from colorama import Fore, Style, Back
+from colorama import Fore, Style
 
 from view.ansi_utils import (
     WALL,
@@ -61,14 +62,21 @@ COLOR_THEMES_42: list[str] = [
 ]
 
 COLOR_THEMES_PATH = [
-    Back.MAGENTA + Style.BRIGHT,      # bleu/jaune → accent violet
-    Back.WHITE + Style.BRIGHT,       # rouge/vert → jaune (pop)
-    Back.BLUE + Style.BRIGHT,         # vert/cyan → bleu profond
-    Back.CYAN + Style.BRIGHT,         # magenta/bleu → cyan
-    Back.YELLOW + Style.BRIGHT,       # cyan/magenta → jaune
-    Back.MAGENTA + Style.BRIGHT,      # jaune/rouge → violet
-    Back.MAGENTA + Style.BRIGHT,      # bleu clair → violet
+    Fore.MAGENTA + Style.BRIGHT,      # bleu/jaune → accent violet
+    Fore.WHITE + Style.BRIGHT,       # rouge/vert → jaune (pop)
+    Fore.BLUE + Style.BRIGHT,         # vert/cyan → bleu profond
+    Fore.CYAN + Style.BRIGHT,         # magenta/bleu → cyan
+    Fore.YELLOW + Style.BRIGHT,       # cyan/magenta → jaune
+    Fore.MAGENTA + Style.BRIGHT,      # jaune/rouge → violet
+    Fore.MAGENTA + Style.BRIGHT,      # bleu clair → violet
 ]
+
+_DIRECTION_ARROWS = {
+    "N": "⮝",
+    "E": "⮞",
+    "S": "⮟",
+    "W": "⮜"
+}
 
 # Niveaux de vitesse d'animation : (délai en s, label affiché).
 # [+] → plus rapide (index plus bas), [-] → plus lent (index plus haut)
@@ -234,12 +242,12 @@ def _animate(
             if paused:
                 return (
                     f"\033[{end_row};1H\033[2K"
-                    f"⏸  [Espace] ▶  [N] étape  "
-                    f"[+/-] vitesse: {lbl}"
+                    f"⏸  [SPACE] ▶  [N] STEP  "
+                    f"[+/-] SPEED: {lbl}"
                 )
             return (
                 f"\033[{end_row};1H\033[2K"
-                f"▶  [Espace] ⏸  [+/-] vitesse: {lbl}"
+                f"▶  [SPACE] ⏸  [+/-] SPEED: {lbl}"
             )
 
         with raw_stdin():
@@ -332,30 +340,31 @@ def _animate(
 
 def _draw_solution(
     cell_width: int,
-    solution_cells: list[tuple[int, int, set[str]]],
+    solution_cells: list[tuple[int, int, list[str]]],
     entry: tuple[int, int],
     exit_pos: tuple[int, int],
     color: str = Fore.YELLOW,
 ) -> None:
     """Dessine le chemin solution en jaune avec traits directionnels."""
     buf: list[str] = []
-    ch = cell_height(cell_width)
-    ww = WALL_WIDTH
-    inner_w = cell_width * ww
 
-    for sol_x, sol_y, _ in solution_cells:
+    for sol_x, sol_y, direction in solution_cells:
         if (sol_x, sol_y) == entry or (sol_x, sol_y) == exit_pos:
+            continue
+
+        if not direction:
             continue
 
         ir = inner_row(sol_y, cell_width)
         ic = inner_col(sol_x, cell_width)
 
-        # Remplir toute la cellule
-        for r in range(ch):
-            buf.append(
-                f"\033[{ir + r};{ic}H"
-                f"{color}{' ' * inner_w}{Style.RESET_ALL}"
-            )
+        # Déterminer la direction principale à afficher sous forme de flèche.
+        arrow = _DIRECTION_ARROWS.get(direction[-1], " ")
+
+        buf.append(
+            f"\033[{ir};{ic}H"
+            f"{color}{arrow}{Style.RESET_ALL}"
+        )
 
     sys.stdout.write("".join(buf))
     sys.stdout.flush()
@@ -370,9 +379,6 @@ def _erase_solution(
     """Efface le chemin solution en réécrivant un espace au centre
     de chaque cellule. Les murs 42 colorés ne sont pas touchés."""
     buf: list[str] = []
-    ch = cell_height(cell_width)
-    ww = WALL_WIDTH
-    inner_w = cell_width * ww
 
     for sol_x, sol_y, _ in solution_cells:
         if (sol_x, sol_y) == entry or (sol_x, sol_y) == exit_pos:
@@ -381,8 +387,7 @@ def _erase_solution(
         ir = inner_row(sol_y, cell_width)
         ic = inner_col(sol_x, cell_width)
 
-        for r in range(ch):
-            buf.append(f"\033[{ir + r};{ic}H{' ' * inner_w}")
+        buf.append(f"\033[{ir};{ic}H{' '}")
 
     sys.stdout.write("".join(buf))
     sys.stdout.flush()
@@ -435,44 +440,41 @@ def _draw_final(
     end_row = grid_rows(maze_height, cell_width) + 1
     buf: list[str] = []
 
-    # Chemin solution
-    ch = cell_height(cell_width)
-    ww = WALL_WIDTH
-    inner_w = cell_width * ww
-
-    for sol_x, sol_y, _ in solution_cells:
+    for sol_x, sol_y, direction in solution_cells:
         if (sol_x, sol_y) == entry or (sol_x, sol_y) == exit_pos:
             continue
-
+        if not direction:
+            continue
         ir = inner_row(sol_y, cell_width)
         ic = inner_col(sol_x, cell_width)
 
-        # Remplir toute la cellule
-        for r in range(ch):
-            buf.append(
-                f"\033[{ir + r};{ic}H"
-                f"{solution_color}{' ' * inner_w}{Style.RESET_ALL}"
-            )
+        # Déterminer la direction principale à afficher sous forme de flèche.
+        arrow = _DIRECTION_ARROWS.get(direction[-1], " ")
+
+        buf.append(
+            f"\033[{ir};{ic}H"
+            f"{solution_color}{arrow}{Style.RESET_ALL}"
+        )
 
     # Marqueur entrée (vert S)
     ex, ey = entry
     buf.append(
-        f"\033[{center_row(ey, cell_width)};{center_col(ex, cell_width)}H"
-        f"{Fore.GREEN}S{Style.RESET_ALL}"
+        f"\033[{inner_row(ey, cell_width)};{inner_col(ex, cell_width)}H"
+        "🚪"
     )
 
     # Marqueur sortie (rouge E)
     xx, xy = exit_pos
     buf.append(
-        f"\033[{center_row(xy, cell_width)};{center_col(xx, cell_width)}H"
-        f"{Fore.RED}E{Style.RESET_ALL}"
+        f"\033[{inner_row(xy, cell_width)};{inner_col(xx, cell_width)}H"
+        "🚀"
     )
 
     # Barre de statut
     buf.append(
         f"\033[{end_row};1H\033[2K"
-        f"{Fore.CYAN}[S] CACHER/AFFICHER SOLUTION  "
-        f"[Q] QUITTER{Style.RESET_ALL}"
+        f"{Fore.CYAN}[S] HIDE/PRINT SOLUTION  "
+        f"[Q] EXIT{Style.RESET_ALL}"
     )
 
     sys.stdout.write("".join(buf))

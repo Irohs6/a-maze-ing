@@ -179,7 +179,8 @@ class Menu:
             output += entry + '\n'
             output += exit + '\n'
             for directions in paths[0].values():
-                output += directions[0]
+                output += directions[-1]
+            output = output[:-1]
             output += '\n'
             with open(self._controller._config.OUTPUT_FILE, "w") as file:
                 file.write(output)

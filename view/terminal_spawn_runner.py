@@ -51,9 +51,9 @@ def _run_render(
     delay: float = 0.01,
 ) -> None:
     """Effectue le rendu complet : grille + animation + solution finale."""
-    tracks = [(int(x), int(y), str(d)) for x, y, d in cfg["tracks"]]
+    tracks = [(int(x), int(y), d) for x, y, d in cfg["tracks"]]
     solution_cells = [
-        (int(x), int(y), set(dirs)) for x, y, dirs in cfg["solution"]
+        (int(x), int(y), dirs) for x, y, dirs in cfg["solution"]
     ]
     forty_two_cells: set[tuple[int, int]] = {
         (int(x), int(y)) for x, y in cfg["forty_two"]
@@ -73,7 +73,7 @@ def _run_render(
 def _show_hint(end_row: int) -> None:
     sys.stdout.write(
         f"\033[{end_row};1H\033[2K"
-        "  [C] couleurs  [S] solution  [Q/Entrée] quitter"
+        "  [C] COLORS  [S] SOLUTION  [Q/ENTER] EXIT"
     )
     sys.stdout.flush()
 
@@ -129,7 +129,7 @@ def main() -> None:
     cfg = _load_config(args.config)
 
     solution_cells = [
-        (int(x), int(y), set(dirs)) for x, y, dirs in cfg["solution"]
+        (int(x), int(y), dirs) for x, y, dirs in cfg["solution"]
     ]
     entry = tuple(cfg["entry"])
     exit_pos = tuple(cfg["exit"])
