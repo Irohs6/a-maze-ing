@@ -15,9 +15,8 @@ if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from view.terminal_renderer import (
-    _draw_grid, _animate, _draw_final,
-    _draw_solution, _erase_solution,
-    COLOR_THEMES, COLOR_THEMES_42,
+    _draw_grid, _animate, _draw_final, _erase_solution, _draw_solution,
+    COLOR_THEMES, COLOR_THEMES_42, COLOR_THEMES_PATH
 )
 from view import ansi_utils
 
@@ -48,6 +47,7 @@ def _run_render(
     cfg: dict,
     wall_color: str,
     forty_two_color: str,
+    solution_color: str,
     delay: float = 0.01,
 ) -> None:
     """Effectue le rendu complet : grille + animation + solution finale."""
@@ -66,7 +66,8 @@ def _run_render(
                forty_two_cells=forty_two_cells, forty_two_color=forty_two_color)
     _animate(tracks, w, h, cw, delay=delay,
              forty_two_cells=forty_two_cells, forty_two_color=forty_two_color)
-    _draw_final(w, h, cw, entry, exit_pos, solution_cells)
+    _draw_final(w, h, cw, entry, exit_pos, solution_cells,
+                solution_color=solution_color)
 
 
 def _show_hint(end_row: int) -> None:
@@ -101,15 +102,20 @@ def _run_interaction(cfg: dict, initial_theme_idx: int,
                 cfg,
                 COLOR_THEMES[theme_idx],
                 COLOR_THEMES_42[theme_idx_42],
+                COLOR_THEMES_PATH[theme_idx_42],
                 delay=0.0,
             )
+            if solution_visible:
+                _draw_solution(cw, solution_cells, entry, exit_pos,
+                               COLOR_THEMES_PATH[theme_idx_42])
             _show_hint(end_row)
         elif key in ("s", "S"):
             if solution_visible:
                 _erase_solution(cw, solution_cells, entry, exit_pos)
             else:
                 # Redessine chemin + entrée/sortie + barre info
-                _draw_final(w, h, cw, entry, exit_pos, solution_cells)
+                _draw_final(w, h, cw, entry, exit_pos, solution_cells,
+                            solution_color=COLOR_THEMES_PATH[theme_idx_42])
                 sys.stdout.write("\033[?25l")
                 sys.stdout.flush()
                 _show_hint(end_row)
@@ -129,7 +135,7 @@ def main() -> None:
     exit_pos = tuple(cfg["exit"])
 
     theme_idx = 0
-    _run_render(cfg, COLOR_THEMES[theme_idx], COLOR_THEMES_42[theme_idx])
+    _run_render(cfg, COLOR_THEMES[theme_idx], COLOR_THEMES_42[theme_idx], COLOR_THEMES_PATH[theme_idx])
     _run_interaction(cfg, theme_idx, solution_cells, entry, exit_pos)
 
 

@@ -9,7 +9,7 @@ class Backtracker(Algorithm):
         """Generates the maze using a depth-first search
         (backtracking) algorithm."""
         start = (0, 0)
-        visited = set(self.maze.forty_two_cells)
+        visited = set(self.forty_two_cells)
         stack = []
         track = []
 
@@ -37,5 +37,4 @@ class Backtracker(Algorithm):
                 track.append((x, y, direction))
 
         self.track = track
-        self.forty_two_cells = self.maze.forty_two_cells
         return track

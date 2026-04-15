@@ -18,6 +18,7 @@ class Algorithm(ABC):
         self.width = maze.width
         self.height = maze.height
         self.forty_two_cells: set[tuple[int, int]] = set()
+        self.forty_two_cells = maze.forty_two_cells
         self.track: list[Any] = []
         self._boundaries: set[tuple[int, int]] = self._get_maze_boundaries()
 

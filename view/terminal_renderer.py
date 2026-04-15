@@ -13,7 +13,7 @@
 import sys
 import time
 
-from colorama import Fore, Style
+from colorama import Fore, Style, Back
 
 from view.ansi_utils import (
     WALL,
@@ -41,24 +41,33 @@ _BOX_PATH = " ╴╷┐╶─┌┬╵┘│┤└┴├┼"
 # mur   → Fore.X sur ██ (premier plan)
 # 42    → Back.X sur espaces (fond) — toujours visuellement distinct
 COLOR_THEMES: list[str] = [
-    Fore.BLUE,
-    Fore.WHITE,
-    Fore.CYAN,
-    Fore.GREEN,
-    Fore.MAGENTA,
-    Fore.RED,
-    Fore.LIGHTYELLOW_EX,
-    Fore.WHITE,
+    Fore.BLUE + Style.BRIGHT,
+    Fore.RED + Style.BRIGHT,
+    Fore.GREEN + Style.BRIGHT,
+    Fore.MAGENTA + Style.BRIGHT,
+    Fore.CYAN + Style.BRIGHT,
+    Fore.YELLOW + Style.BRIGHT,
+    Fore.LIGHTBLUE_EX + Style.BRIGHT
 ]
+
 COLOR_THEMES_42: list[str] = [
-    Fore.YELLOW,
-    Fore.MAGENTA,
-    Fore.RED,
-    Fore.CYAN,
-    Fore.YELLOW,
-    Fore.GREEN,
-    Fore.BLUE,
-    Fore.RED,
+    Fore.YELLOW + Style.BRIGHT,
+    Fore.GREEN + Style.BRIGHT,
+    Fore.CYAN + Style.BRIGHT,
+    Fore.BLUE + Style.BRIGHT,
+    Fore.MAGENTA + Style.BRIGHT,
+    Fore.RED + Style.BRIGHT,
+    Fore.CYAN + Style.BRIGHT
+]
+
+COLOR_THEMES_PATH = [
+    Back.MAGENTA + Style.BRIGHT,      # bleu/jaune → accent violet
+    Back.WHITE + Style.BRIGHT,       # rouge/vert → jaune (pop)
+    Back.BLUE + Style.BRIGHT,         # vert/cyan → bleu profond
+    Back.CYAN + Style.BRIGHT,         # magenta/bleu → cyan
+    Back.YELLOW + Style.BRIGHT,       # cyan/magenta → jaune
+    Back.MAGENTA + Style.BRIGHT,      # jaune/rouge → violet
+    Back.MAGENTA + Style.BRIGHT,      # bleu clair → violet
 ]
 
 # Niveaux de vitesse d'animation : (délai en s, label affiché).
@@ -326,24 +335,28 @@ def _draw_solution(
     solution_cells: list[tuple[int, int, set[str]]],
     entry: tuple[int, int],
     exit_pos: tuple[int, int],
+    color: str = Fore.YELLOW,
 ) -> None:
     """Dessine le chemin solution en jaune avec traits directionnels."""
     buf: list[str] = []
-    for sol_x, sol_y, dirs in solution_cells:
+    ch = cell_height(cell_width)
+    ww = WALL_WIDTH
+    inner_w = cell_width * ww
+
+    for sol_x, sol_y, _ in solution_cells:
         if (sol_x, sol_y) == entry or (sol_x, sol_y) == exit_pos:
             continue
-        idx = (
-            (1 if "W" in dirs else 0)
-            + (2 if "S" in dirs else 0)
-            + (4 if "E" in dirs else 0)
-            + (8 if "N" in dirs else 0)
-        )
-        cr = center_row(sol_y, cell_width)
-        cc = center_col(sol_x, cell_width)
-        buf.append(
-            f"\033[{cr};{cc}H"
-            f"{Fore.YELLOW}{_BOX_PATH[idx]}{Style.RESET_ALL}"
-        )
+
+        ir = inner_row(sol_y, cell_width)
+        ic = inner_col(sol_x, cell_width)
+
+        # Remplir toute la cellule
+        for r in range(ch):
+            buf.append(
+                f"\033[{ir + r};{ic}H"
+                f"{color}{' ' * inner_w}{Style.RESET_ALL}"
+            )
+
     sys.stdout.write("".join(buf))
     sys.stdout.flush()
 
@@ -357,12 +370,20 @@ def _erase_solution(
     """Efface le chemin solution en réécrivant un espace au centre
     de chaque cellule. Les murs 42 colorés ne sont pas touchés."""
     buf: list[str] = []
+    ch = cell_height(cell_width)
+    ww = WALL_WIDTH
+    inner_w = cell_width * ww
+
     for sol_x, sol_y, _ in solution_cells:
         if (sol_x, sol_y) == entry or (sol_x, sol_y) == exit_pos:
             continue
-        cr = center_row(sol_y, cell_width)
-        cc = center_col(sol_x, cell_width)
-        buf.append(f"\033[{cr};{cc}H ")
+
+        ir = inner_row(sol_y, cell_width)
+        ic = inner_col(sol_x, cell_width)
+
+        for r in range(ch):
+            buf.append(f"\033[{ir + r};{ic}H{' ' * inner_w}")
+
     sys.stdout.write("".join(buf))
     sys.stdout.flush()
 
@@ -373,6 +394,7 @@ def _run_solution_toggle(
     solution_cells: list[tuple[int, int, set[str]]],
     entry: tuple[int, int],
     exit_pos: tuple[int, int],
+    solution_color: str,
 ) -> None:
     """Boucle interactive pour cacher/afficher le chemin solution.
 
@@ -388,7 +410,8 @@ def _run_solution_toggle(
                 if solution_visible:
                     _erase_solution(cell_width, solution_cells, entry, exit_pos)
                 else:
-                    _draw_solution(cell_width, solution_cells, entry, exit_pos)
+                    _draw_solution(cell_width, solution_cells, entry, exit_pos,
+                                   solution_color)
                 solution_visible = not solution_visible
             elif key in ("q", "Q", "\x03", "\x1b"):
                 break
@@ -401,6 +424,7 @@ def _draw_final(
     entry: tuple[int, int],
     exit_pos: tuple[int, int],
     solution_cells: list[tuple[int, int, set[str]]],
+    solution_color: str,
 ) -> None:
     """Superpose entrée, sortie et chemin solution sur la grille finale.
 
@@ -412,21 +436,23 @@ def _draw_final(
     buf: list[str] = []
 
     # Chemin solution
-    for sol_x, sol_y, dirs in solution_cells:
+    ch = cell_height(cell_width)
+    ww = WALL_WIDTH
+    inner_w = cell_width * ww
+
+    for sol_x, sol_y, _ in solution_cells:
         if (sol_x, sol_y) == entry or (sol_x, sol_y) == exit_pos:
             continue
-        idx = (
-            (1 if "W" in dirs else 0)
-            + (2 if "S" in dirs else 0)
-            + (4 if "E" in dirs else 0)
-            + (8 if "N" in dirs else 0)
-        )
-        cr = center_row(sol_y, cell_width)
-        cc = center_col(sol_x, cell_width)
-        buf.append(
-            f"\033[{cr};{cc}H"
-            f"{Fore.YELLOW}{_BOX_PATH[idx]}{Style.RESET_ALL}"
-        )
+
+        ir = inner_row(sol_y, cell_width)
+        ic = inner_col(sol_x, cell_width)
+
+        # Remplir toute la cellule
+        for r in range(ch):
+            buf.append(
+                f"\033[{ir + r};{ic}H"
+                f"{solution_color}{' ' * inner_w}{Style.RESET_ALL}"
+            )
 
     # Marqueur entrée (vert S)
     ex, ey = entry
@@ -445,8 +471,8 @@ def _draw_final(
     # Barre de statut
     buf.append(
         f"\033[{end_row};1H\033[2K"
-        f"{Fore.CYAN}[S] cacher/afficher la solution  "
-        f"[Q] quitter{Style.RESET_ALL}"
+        f"{Fore.CYAN}[S] CACHER/AFFICHER SOLUTION  "
+        f"[Q] QUITTER{Style.RESET_ALL}"
     )
 
     sys.stdout.write("".join(buf))
