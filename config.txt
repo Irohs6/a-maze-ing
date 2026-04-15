@@ -6,10 +6,10 @@
 # Les lignes commençant par # sont des commentaires ignorés par le parseur.
 # Ce fichier sert d'exemple et est utilisé par défaut lors des tests et démonstrations.
 
-WIDTH=15
-HEIGHT=15
+WIDTH=80
+HEIGHT=80
 ENTRY=0,0
-EXIT=3,3
+EXIT=79,79
 OUTPUT_FILE=maze.txt
 PERFECT=true
 PLAYABLE=True

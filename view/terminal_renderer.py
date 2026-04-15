@@ -42,13 +42,13 @@ _BOX_PATH = " ╴╷┐╶─┌┬╵┘│┤└┴├┼"
 # mur   → Fore.X sur ██ (premier plan)
 # 42    → Back.X sur espaces (fond) — toujours visuellement distinct
 COLOR_THEMES: list[str] = [
-    Fore.BLUE + Style.BRIGHT,
-    Fore.RED + Style.BRIGHT,
-    Fore.GREEN + Style.BRIGHT,
-    Fore.MAGENTA + Style.BRIGHT,
-    Fore.CYAN + Style.BRIGHT,
-    Fore.YELLOW + Style.BRIGHT,
-    Fore.LIGHTBLUE_EX + Style.BRIGHT
+    Fore.BLUE,
+    Fore.RED,
+    Fore.GREEN,
+    Fore.MAGENTA,
+    Fore.CYAN,
+    Fore.YELLOW,
+    Fore.LIGHTBLUE_EX
 ]
 
 COLOR_THEMES_42: list[str] = [
@@ -62,13 +62,13 @@ COLOR_THEMES_42: list[str] = [
 ]
 
 COLOR_THEMES_PATH = [
-    Fore.MAGENTA + Style.BRIGHT,      # bleu/jaune → accent violet
+    Fore.WHITE + Style.BRIGHT,      # bleu/jaune → accent violet
     Fore.WHITE + Style.BRIGHT,       # rouge/vert → jaune (pop)
-    Fore.BLUE + Style.BRIGHT,         # vert/cyan → bleu profond
-    Fore.CYAN + Style.BRIGHT,         # magenta/bleu → cyan
-    Fore.YELLOW + Style.BRIGHT,       # cyan/magenta → jaune
-    Fore.MAGENTA + Style.BRIGHT,      # jaune/rouge → violet
-    Fore.MAGENTA + Style.BRIGHT,      # bleu clair → violet
+    Fore.WHITE + Style.BRIGHT,         # vert/cyan → bleu profond
+    Fore.WHITE + Style.BRIGHT,         # magenta/bleu → cyan
+    Fore.WHITE + Style.BRIGHT,       # cyan/magenta → jaune
+    Fore.WHITE + Style.BRIGHT,      # jaune/rouge → violet
+    Fore.WHITE + Style.BRIGHT,      # bleu clair → violet
 ]
 
 _DIRECTION_ARROWS = {
