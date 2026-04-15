@@ -10,7 +10,6 @@
 #   _animate()    : anime le perçage des murs — 1 flush/cellule ou 1 flush total
 #   _draw_final() : superpose entrée, sortie et chemin solution — 1 flush
 
-from re import I
 import sys
 import time
 
@@ -59,16 +58,6 @@ COLOR_THEMES_42: list[str] = [
     Fore.MAGENTA + Style.BRIGHT,
     Fore.RED + Style.BRIGHT,
     Fore.CYAN + Style.BRIGHT
-]
-
-COLOR_THEMES_PATH = [
-    Fore.WHITE + Style.BRIGHT,      # bleu/jaune → accent violet
-    Fore.WHITE + Style.BRIGHT,       # rouge/vert → jaune (pop)
-    Fore.WHITE + Style.BRIGHT,         # vert/cyan → bleu profond
-    Fore.WHITE + Style.BRIGHT,         # magenta/bleu → cyan
-    Fore.WHITE + Style.BRIGHT,       # cyan/magenta → jaune
-    Fore.WHITE + Style.BRIGHT,      # jaune/rouge → violet
-    Fore.WHITE + Style.BRIGHT,      # bleu clair → violet
 ]
 
 _DIRECTION_ARROWS = {
@@ -343,7 +332,7 @@ def _draw_solution(
     solution_cells: list[tuple[int, int, list[str]]],
     entry: tuple[int, int],
     exit_pos: tuple[int, int],
-    color: str = Fore.YELLOW,
+    solution_visible: bool = True,
 ) -> None:
     """Dessine le chemin solution en jaune avec traits directionnels."""
     buf: list[str] = []
@@ -363,7 +352,7 @@ def _draw_solution(
 
         buf.append(
             f"\033[{ir};{ic}H"
-            f"{color}{arrow}{Style.RESET_ALL}"
+            f"{Fore.WHITE + Style.BRIGHT}{arrow}{Style.RESET_ALL}"
         )
 
     sys.stdout.write("".join(buf))
@@ -407,7 +396,7 @@ def _run_solution_toggle(
     [Q] / Échap / Ctrl-C : quitter.
     À appeler après _draw_final().
     """
-    solution_visible = True
+    solution_visible = False
     with raw_stdin():
         while True:
             key = read_key_or_timeout(None)
@@ -416,7 +405,7 @@ def _run_solution_toggle(
                     _erase_solution(cell_width, solution_cells, entry, exit_pos)
                 else:
                     _draw_solution(cell_width, solution_cells, entry, exit_pos,
-                                   solution_color)
+                                   solution_color, solution_visible)
                 solution_visible = not solution_visible
             elif key in ("q", "Q", "\x03", "\x1b"):
                 break
@@ -429,7 +418,7 @@ def _draw_final(
     entry: tuple[int, int],
     exit_pos: tuple[int, int],
     solution_cells: list[tuple[int, int, set[str]]],
-    solution_color: str,
+    solution_visible: bool = True
 ) -> None:
     """Superpose entrée, sortie et chemin solution sur la grille finale.
 
@@ -439,22 +428,22 @@ def _draw_final(
     """
     end_row = grid_rows(maze_height, cell_width) + 1
     buf: list[str] = []
+    if solution_visible:
+        for sol_x, sol_y, direction in solution_cells:
+            if (sol_x, sol_y) == entry or (sol_x, sol_y) == exit_pos:
+                continue
+            if not direction:
+                continue
+            ir = inner_row(sol_y, cell_width)
+            ic = inner_col(sol_x, cell_width)
 
-    for sol_x, sol_y, direction in solution_cells:
-        if (sol_x, sol_y) == entry or (sol_x, sol_y) == exit_pos:
-            continue
-        if not direction:
-            continue
-        ir = inner_row(sol_y, cell_width)
-        ic = inner_col(sol_x, cell_width)
+            # Déterminer la direction principale à afficher sous forme de flèche.
+            arrow = _DIRECTION_ARROWS.get(direction[-1], " ")
 
-        # Déterminer la direction principale à afficher sous forme de flèche.
-        arrow = _DIRECTION_ARROWS.get(direction[-1], " ")
-
-        buf.append(
-            f"\033[{ir};{ic}H"
-            f"{solution_color}{arrow}{Style.RESET_ALL}"
-        )
+            buf.append(
+                f"\033[{ir};{ic}H"
+                f"{Fore.WHITE + Style.BRIGHT}{arrow}{Style.RESET_ALL}"
+            )
 
     # Marqueur entrée (vert S)
     ex, ey = entry

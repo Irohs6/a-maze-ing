@@ -11,7 +11,7 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from colorama import init, Fore, Style, Back
+from colorama import init, Fore, Style
 from model.maze import Maze
 from view.ansi_utils import read_key
 from view.terminal_launcher import _spawn_solution_window
@@ -33,17 +33,6 @@ class TerminalView:
         "exit": Fore.RED,
         "info": Fore.GREEN,
     }
-
-    COLOR_THEMES_PATH = [
-        Back.MAGENTA + Style.BRIGHT,      # bleu/jaune → accent violet
-        Back.YELLOW + Style.BRIGHT,       # rouge/vert → jaune (pop)
-        Back.BLUE + Style.BRIGHT,         # vert/cyan → bleu profond
-        Back.CYAN + Style.BRIGHT,         # magenta/bleu → cyan
-        Back.YELLOW + Style.BRIGHT,       # cyan/magenta → jaune
-        Back.MAGENTA + Style.BRIGHT,      # jaune/rouge → violet
-        Back.GREEN + Style.BRIGHT,        # blanc/noir → vert lisible
-        Back.MAGENTA + Style.BRIGHT,      # bleu clair → violet
-    ]
 
     RESET = Style.RESET_ALL
 
@@ -113,7 +102,7 @@ class TerminalView:
             self.entry,
             self.exit_pos,
             solution,
-            solution_color=self.COLOR_THEMES_PATH[0],
+            solution_visible=True,
         )
         _run_solution_toggle(
             self.maze.height,
@@ -121,5 +110,4 @@ class TerminalView:
             solution,
             self.entry,
             self.exit_pos,
-            solution_color=self.COLOR_THEMES_PATH[0],
         )
