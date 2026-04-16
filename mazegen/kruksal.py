@@ -74,11 +74,8 @@ class Kruksal(Algorithm):
         """Generates the maze using a randomized version
         of Kruskal's algorithm."""
         random.shuffle(self._eligible_walls)
-        print(len(self._eligible_walls))
         while len(self._union) > 1:
-            if not self._eligible_walls:
-                break
-            x, y, wall_direction = self._eligible_walls[0]
+            x, y, wall_direction = self._eligible_walls.pop()
             neighbor = self._get_direction_neighbor(x, y, wall_direction)
             indexes = self._find_in_union((x, y), neighbor)
             if indexes:
@@ -87,28 +84,9 @@ class Kruksal(Algorithm):
                 self.tracks.append((x, y, wall_direction))
             neighbor_wall = neighbor + tuple(self.REVERSE.get(wall_direction))
             index = 0
-            if len(self._eligible_walls) > 1:
-                for i, wall in enumerate(self._eligible_walls[1:], 1):
-                    if neighbor_wall == wall:
-                        index = i
-                        break
-                self._eligible_walls.pop(index)
-            self._eligible_walls.pop()
-        print(len(self._union))
+            for i, wall in enumerate(self._eligible_walls):
+                if neighbor_wall == wall:
+                    index = i
+                    break
+            self._eligible_walls.pop(index)
         return self.tracks
-
-                    # wall_direction = random.choice(eligible_walls)
-                    # neighbor = self._get_direction_neighbor(x, y, wall_direction)
-                    # self.maze.remove_wall(x, y, wall_direction)
-                    # self.tracks.append((x, y, wall_direction))
-                    # indexes = self._find_in_union((x, y), neighbor)
-                    # if indexes is not False:
-                    #     self._concatenate_in_union(indexes)
-
-
-# if __name__ == "__main__":
-#     from view.terminal_view import TerminalView
-#     algo = Kruksal(Maze(10, 10))
-#     algo.generate()
-#     view = TerminalView(algo.maze, exit=(9, 9), forty_two_cells=algo.forty_two_cells)
-#     view.show_solution([], False, algo.tracks)

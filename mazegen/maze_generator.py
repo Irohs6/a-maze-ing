@@ -65,9 +65,9 @@ class MazeGenerator:
         self.forty_two_cells = algo.forty_two_cells
         self.maze = algo.maze
 
-        # validator = MazeValidator(self.maze)
-        # if not validator.validate():
-        #     raise ValueError("Generated maze is invalid.")
+        validator = MazeValidator(self.maze)
+        if not validator.validate():
+            raise ValueError("Generated maze is invalid.")
 
     def _build_algorithm(self) -> Algorithm:
         """Instantiate the algorithm class based on self.algorithm."""
