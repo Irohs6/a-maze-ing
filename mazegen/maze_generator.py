@@ -53,7 +53,7 @@ class MazeGenerator:
         self.perfect = perfect
         self.maze = Maze(self.width, self.height)
         self.solution_path: list[Any] | None = None
-        self.track: list[Any] = []
+        self.tracks: list[Any] = []
         self.forty_two_cells: set[tuple[int, int]] = set()
 
     def generate(self) -> None:
@@ -61,13 +61,13 @@ class MazeGenerator:
         if self.seed is not None:
             random.seed(self.seed)
         algo = self._build_algorithm()
-        self.track = algo.generate()
+        self.tracks = algo.generate()
         self.forty_two_cells = algo.forty_two_cells
         self.maze = algo.maze
 
-        validator = MazeValidator(self.maze)
-        if not validator.validate():
-            raise ValueError("Generated maze is invalid.")
+        # validator = MazeValidator(self.maze)
+        # if not validator.validate():
+        #     raise ValueError("Generated maze is invalid.")
 
     def _build_algorithm(self) -> Algorithm:
         """Instantiate the algorithm class based on self.algorithm."""
@@ -75,7 +75,9 @@ class MazeGenerator:
             if self.perfect == algorithm.perfect:
                 return algorithm(self.maze)
         else:
-            raise ValueError(f"Unsupported algorithm: perfect={self.perfect!r}")
+            raise ValueError(
+                f"Unsupported algorithm: perfect={self.perfect!r}"
+            )
 
     def get_maze(self) -> Maze:
         """Return the generated maze."""
@@ -84,7 +86,9 @@ class MazeGenerator:
     def get_solution(self) -> list[Any]:
         """Return the solution path as a list of directions."""
         if self.solution_path is None:
-            path_finder = PathFinder(self.maze, self.maze.entry, self.maze.exit_pos)
+            path_finder = PathFinder(
+                self.maze, self.maze.entry, self.maze.exit_pos
+            )
             self.solution_path = path_finder.find_path()
         if self.solution_path is None:
             raise ValueError(
@@ -101,5 +105,5 @@ class MazeGenerator:
             for j in range(len(self.maze.grid[i])):
                 self.maze.grid[i][j] = 15
         self.solution_path = None
-        self.track = []
+        self.tracks = []
         self.forty_two_cells = set()

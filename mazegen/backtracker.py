@@ -5,13 +5,13 @@ import random
 class Backtracker(Algorithm):
     perfect: bool = True
 
+
     def generate(self) -> list[str]:
         """Generates the maze using a depth-first search
         (backtracking) algorithm."""
         start = (0, 0)
         visited = set(self.forty_two_cells)
         stack = []
-        track = []
 
         visited.add(start)
         stack.append(start)
@@ -34,7 +34,6 @@ class Backtracker(Algorithm):
                 self.maze.remove_wall(x, y, direction)
                 visited.add((nx, ny))
                 stack.append((nx, ny))
-                track.append((x, y, direction))
+                self.tracks.append((x, y, direction))
 
-        self.track = track
-        return track
+        return self.tracks

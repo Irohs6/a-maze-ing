@@ -1,42 +1,60 @@
-import copy
 import random
-
 from .algorithm import Algorithm
 from model.maze import Maze
-from model.maze_validator import MazeValidator
 
 
 class Kruksal(Algorithm):
     perfect: bool = False
-
+    REVERSE: dict[str, str] = {'N': 'S', 'S': 'N', 'E': 'W', 'W': 'E'}
     # Maximum number of global attempts before giving up
-    _MAX_GLOBAL_ATTEMPTS: int = 30
 
-    def _breakable_walls(self, maze, x, y, pattern_cells):
+    def _breakable_walls(self, x, y):
         eligible_walls = []
-        for direction in ['N', 'E', 'S', 'W']:
-            if (maze.has_wall(x, y, direction)
-                    and self._get_direction_neighbor(x, y, direction)
-                    not in pattern_cells
-                    and not maze._is_border_wall(x, y, direction)
-                    and not self._is_42_wall(x, y, direction)):
+        for direction in ["N", "E", "S", "W"]:
+            if (
+                self.maze.has_wall(x, y, direction)
+                and self._get_direction_neighbor(x, y, direction)
+                not in self.forty_two_cells
+                and not self.maze._is_border_wall(x, y, direction)
+                and not self._is_42_wall(x, y, direction)
+                and (x, y) not in self._union[0]
+                and self._cell_wall_count(x, y) > 2
+            ):
                 eligible_walls.append(direction)
         return eligible_walls
 
-    def _second_loop(self, maze: Maze, wall_count, pattern_cells,
-                     tracks) -> Maze:
+    def _find_in_union(
+        self, coordinates: tuple[int, int], neighbor: tuple[int, int]
+    ) -> list[int] | bool:
+        indexes = []
+        for index, set in enumerate(self._union):
+            if coordinates in set and neighbor in set:
+                return False
+            elif coordinates in set or neighbor in set:
+                indexes.append(index)
+        return indexes
+
+    def _concatenate_in_union(self, indexes: list[int]):
+        self._union[indexes[0]] = self._union[indexes[0]].union(self._union[indexes[1]])
+        self._union.pop(indexes[1])
+
+    def _second_loop(
+        self, maze: Maze, wall_count, pattern_cells, tracks
+    ) -> Maze:
         _to_destroy: set[tuple[int, int]] = [
             (x, y)
             for x in range(self.width)
             for y in range(self.height)
             if self._cell_wall_count(maze, x, y) > 2
-            and (x, y) not in pattern_cells and (x, y) not in self._boundaries
+            and (x, y) not in pattern_cells
+            and (x, y) not in self._boundaries
         ]
         random.shuffle(_to_destroy)
         for x, y in _to_destroy:
             while wall_count[(x, y)] > 2:
-                eligible_walls = self._breakable_walls(maze, x,
-                                                       y, pattern_cells)
+                eligible_walls = self._breakable_walls(
+                    maze, x, y, pattern_cells
+                )
 
                 if not eligible_walls:
                     break
@@ -48,95 +66,49 @@ class Kruksal(Algorithm):
 
         return (maze, tracks)
 
-    def _is_42_wall(self, x, y, wall_direction) -> bool:
-        if self._get_direction_neighbor(x, y, wall_direction
-                                        ) not in self.forty_two_cells:
-            return False
-        else:
-            return True
-
-    @staticmethod
-    def _cell_wall_count(maze: Maze, x: int, y: int) -> int:
+    def _cell_wall_count(self, x: int, y: int) -> int:
         """Return the number of walls surrounding cell (x, y) (0–4)."""
-        return maze.grid[y][x].bit_count()
+        return self.maze.grid[y][x].bit_count()
 
     def generate(self) -> list[tuple[int, int, str]]:
         """Generates the maze using a randomized version
         of Kruskal's algorithm."""
+        random.shuffle(self._eligible_walls)
+        print(len(self._eligible_walls))
+        while len(self._union) > 1:
+            if not self._eligible_walls:
+                break
+            x, y, wall_direction = self._eligible_walls[0]
+            neighbor = self._get_direction_neighbor(x, y, wall_direction)
+            indexes = self._find_in_union((x, y), neighbor)
+            if indexes:
+                self.maze.remove_wall(x, y, wall_direction)
+                self._concatenate_in_union(indexes)
+                self.tracks.append((x, y, wall_direction))
+            neighbor_wall = neighbor + tuple(self.REVERSE.get(wall_direction))
+            index = 0
+            if len(self._eligible_walls) > 1:
+                for i, wall in enumerate(self._eligible_walls[1:], 1):
+                    if neighbor_wall == wall:
+                        index = i
+                        break
+                self._eligible_walls.pop(index)
+            self._eligible_walls.pop()
+        print(len(self._union))
+        return self.tracks
 
-        self.forty_two_cells = self.maze.forty_two_cells
-        for _attempt in range(self._MAX_GLOBAL_ATTEMPTS):
-            # Reset the maze and related attributes for a fresh attempt
-            maze_attempt = copy.copy(self.maze)
-            maze_attempt.grid = [row[:] for row in self.maze.grid]
-            self.track = []
+                    # wall_direction = random.choice(eligible_walls)
+                    # neighbor = self._get_direction_neighbor(x, y, wall_direction)
+                    # self.maze.remove_wall(x, y, wall_direction)
+                    # self.tracks.append((x, y, wall_direction))
+                    # indexes = self._find_in_union((x, y), neighbor)
+                    # if indexes is not False:
+                    #     self._concatenate_in_union(indexes)
 
-            tracks = []
-            pattern_cells = maze_attempt.forty_two_cells
 
-            unvisited = [
-                (x, y)
-                for x in range(self.width)
-                for y in range(self.height)
-                if (x, y) not in pattern_cells
-            ]
-            if not unvisited:
-                continue
-            random.shuffle(unvisited)
-            for x, y in unvisited:
-                eligible_walls = self._breakable_walls(maze_attempt, x, y,
-                                                       pattern_cells)
-
-                if not eligible_walls:
-                    continue
-
-                else:
-                    wall_direction = random.choice(eligible_walls)
-                    maze_attempt.remove_wall(x, y, wall_direction)
-                    tracks.append((x, y, wall_direction))
-
-            wall_count_base: dict[tuple[int, int], int] = {
-                (x, y): c
-                for x in range(self.width)
-                for y in range(self.height)
-                if (x, y) not in self._boundaries
-                and (c := self._cell_wall_count(maze_attempt, x, y)) > 2
-            }
-
-            potential_maze = copy.copy(maze_attempt)
-            potential_maze.grid = [row[:] for row in maze_attempt.grid]
-            validator = MazeValidator(potential_maze)
-            counter = 0
-            until_now = len(tracks)
-            while (
-                not validator._validate_maze_connectivity() or
-                validator._has_forbidden_open_areas()
-            ):
-                tracks = tracks[:until_now]
-                for y_idx in range(self.height):
-                    potential_maze.grid[y_idx][:] = maze_attempt.grid[y_idx]
-                wall_count = wall_count_base.copy()
-                potential_maze, tracks = self._second_loop(potential_maze,
-                                                           wall_count,
-                                                           pattern_cells,
-                                                           tracks)
-                counter += 1
-
-                if counter >= 50:
-                    # Abandon this attempt, start over
-                    break
-
-            else:
-                # The while loop ended without a break → valid maze found
-                for i in range(len(self.maze.grid)):
-                    for j in range(len(self.maze.grid[i])):
-                        self.maze.grid[i][j] = potential_maze.grid[i][j]
-                self.forty_two_cells = self.maze.forty_two_cells
-                self.track = tracks
-                return tracks
-
-        raise ValueError(
-            f"Kruskal: impossible to generate a valid maze "
-            f"in {self._MAX_GLOBAL_ATTEMPTS} "
-            f"attempts ({self.width}x{self.height})"
-        )
+# if __name__ == "__main__":
+#     from view.terminal_view import TerminalView
+#     algo = Kruksal(Maze(10, 10))
+#     algo.generate()
+#     view = TerminalView(algo.maze, exit=(9, 9), forty_two_cells=algo.forty_two_cells)
+#     view.show_solution([], False, algo.tracks)

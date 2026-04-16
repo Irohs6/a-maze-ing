@@ -19,8 +19,18 @@ class Algorithm(ABC):
         self.height = maze.height
         self.forty_two_cells: set[tuple[int, int]] = set()
         self.forty_two_cells = maze.forty_two_cells
-        self.track: list[Any] = []
+        self.tracks: list[Any] = []
         self._boundaries: set[tuple[int, int]] = self._get_maze_boundaries()
+        self._union = [
+            self.forty_two_cells.union({(0, 0)})
+        ]
+        self._union.extend([
+            {(x, y)}
+            for x in range(self.width)
+            for y in range(self.height)
+            if (x, y) not in self.forty_two_cells
+        ])
+        self._eligible_walls = self._get_eligible_walls()
 
     @abstractmethod
     def generate(self) -> list[Any]:
@@ -54,3 +64,27 @@ class Algorithm(ABC):
             boundaries.add((0, y))
             boundaries.add((self.width - 1, y))
         return boundaries
+
+    def _is_42_wall(self, x, y, wall_direction) -> bool:
+        if (
+            self._get_direction_neighbor(x, y, wall_direction)
+            not in self.forty_two_cells
+        ):
+            return False
+        else:
+            return True
+
+    def _get_eligible_walls(self):
+        walls = []
+        directions = ["N", "E", "S", "W"]
+        for y in range(self.height):
+            for x in range(self.width):
+                for direction in directions:
+                    if (
+                        self._get_direction_neighbor(x, y, direction)
+                        not in self.forty_two_cells
+                        and not self.maze._is_border_wall(x, y, direction)
+                        and (x, y) not in self.forty_two_cells
+                    ):
+                        walls.append((x, y, direction))
+        return walls

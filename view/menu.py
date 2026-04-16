@@ -165,7 +165,7 @@ class Menu:
     def _execute(self):
         if self.index == 0:
             self._controller._generator.generate()
-            tracks = self._controller._generator.track
+            tracks = self._controller._generator.tracks
             paths = self._controller._finder.find_k_shortest_paths()
             is_perfect = len(paths) == 1
             self._controller._view.show_solution(
