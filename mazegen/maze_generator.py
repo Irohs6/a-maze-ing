@@ -15,6 +15,7 @@ import random
 from typing import Any
 from model.maze import Maze
 from model.maze_validator import MazeValidator
+from model.path_finder import PathFinder
 from .algorithm import Algorithm
 from .backtracker import Backtracker
 from .kruksal import Kruksal
@@ -82,6 +83,9 @@ class MazeGenerator:
 
     def get_solution(self) -> list[Any]:
         """Return the solution path as a list of directions."""
+        if self.solution_path is None:
+            path_finder = PathFinder(self.maze, self.maze.entry, self.maze.exit_pos)
+            self.solution_path = path_finder.find_path()
         if self.solution_path is None:
             raise ValueError(
                 "Solution not generated yet. Call generate() first."

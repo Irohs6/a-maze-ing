@@ -16,7 +16,7 @@ from model.maze import Maze
 from view.ansi_utils import read_key
 from view.terminal_launcher import _spawn_solution_window
 from view.terminal_renderer import (
-    _draw_grid, _animate, _draw_final, _run_solution_toggle,
+    _draw_grid, _animate, _draw_final
 )
 
 init(autoreset=False)
@@ -103,11 +103,4 @@ class TerminalView:
             self.exit_pos,
             solution,
             solution_visible=True,
-        )
-        _run_solution_toggle(
-            self.maze.height,
-            cell_width,
-            solution,
-            self.entry,
-            self.exit_pos,
         )

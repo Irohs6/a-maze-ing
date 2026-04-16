@@ -327,38 +327,6 @@ def _animate(
         sys.stdout.flush()
 
 
-def _draw_solution(
-    cell_width: int,
-    solution_cells: list[tuple[int, int, list[str]]],
-    entry: tuple[int, int],
-    exit_pos: tuple[int, int],
-    solution_visible: bool = True,
-) -> None:
-    """Dessine le chemin solution en jaune avec traits directionnels."""
-    buf: list[str] = []
-
-    for sol_x, sol_y, direction in solution_cells:
-        if (sol_x, sol_y) == entry or (sol_x, sol_y) == exit_pos:
-            continue
-
-        if not direction:
-            continue
-
-        ir = inner_row(sol_y, cell_width)
-        ic = inner_col(sol_x, cell_width)
-
-        # Déterminer la direction principale à afficher sous forme de flèche.
-        arrow = _DIRECTION_ARROWS.get(direction[-1], " ")
-
-        buf.append(
-            f"\033[{ir};{ic}H"
-            f"{Fore.WHITE + Style.BRIGHT}{arrow}{Style.RESET_ALL}"
-        )
-
-    sys.stdout.write("".join(buf))
-    sys.stdout.flush()
-
-
 def _erase_solution(
     cell_width: int,
     solution_cells: list[tuple[int, int, set[str]]],
@@ -380,35 +348,6 @@ def _erase_solution(
 
     sys.stdout.write("".join(buf))
     sys.stdout.flush()
-
-
-def _run_solution_toggle(
-    maze_height: int,
-    cell_width: int,
-    solution_cells: list[tuple[int, int, set[str]]],
-    entry: tuple[int, int],
-    exit_pos: tuple[int, int],
-    solution_color: str,
-) -> None:
-    """Boucle interactive pour cacher/afficher le chemin solution.
-
-    [S] : toggle solution visible/cachée.
-    [Q] / Échap / Ctrl-C : quitter.
-    À appeler après _draw_final().
-    """
-    solution_visible = False
-    with raw_stdin():
-        while True:
-            key = read_key_or_timeout(None)
-            if key in ("s", "S"):
-                if solution_visible:
-                    _erase_solution(cell_width, solution_cells, entry, exit_pos)
-                else:
-                    _draw_solution(cell_width, solution_cells, entry, exit_pos,
-                                   solution_color, solution_visible)
-                solution_visible = not solution_visible
-            elif key in ("q", "Q", "\x03", "\x1b"):
-                break
 
 
 def _draw_final(
@@ -437,7 +376,8 @@ def _draw_final(
             ir = inner_row(sol_y, cell_width)
             ic = inner_col(sol_x, cell_width)
 
-            # Déterminer la direction principale à afficher sous forme de flèche.
+            # Déterminer la direction principale à afficher sous 
+            # forme de flèche.
             arrow = _DIRECTION_ARROWS.get(direction[-1], " ")
 
             buf.append(

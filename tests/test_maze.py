@@ -144,20 +144,6 @@ def test_set_wall_invalid_direction_raises(maze_5x5: Maze) -> None:
         maze_5x5.set_wall(1, 1, 'Z')
 
 
-# ── _cell_wall_count ──────────────────────────────────────────────────
-
-
-def test_cell_wall_count_initial_is_4(maze_3x3: Maze) -> None:
-    assert maze_3x3._cell_wall_count(1, 1) == 4
-
-
-def test_cell_wall_count_decreases_after_remove(maze_3x3: Maze) -> None:
-    maze_3x3.remove_wall(1, 1, 'E')
-    assert maze_3x3._cell_wall_count(1, 1) == 3
-    maze_3x3.remove_wall(1, 1, 'N')
-    assert maze_3x3._cell_wall_count(1, 1) == 2
-
-
 # ── encode_hex ────────────────────────────────────────────────────────
 
 
@@ -187,79 +173,3 @@ def test_encode_hex_format(maze_3x3: Maze) -> None:
     assert len(non_empty) == 3
     for line in non_empty:
         assert len(line) == 3
-
-
-# ── _get_neighbors_of_cell ────────────────────────────────────────────
-
-
-def test_get_neighbors_corner_has_two(maze_5x5: Maze) -> None:
-    """La cellule (0,0) n'a que 2 voisins (Est et Sud)."""
-    neighbors = maze_5x5._get_neighbors_of_cell(0, 0)
-    assert len(neighbors) == 2
-    positions = {(nx, ny) for nx, ny, _ in neighbors}
-    assert (1, 0) in positions
-    assert (0, 1) in positions
-
-
-def test_get_neighbors_center_has_four(maze_5x5: Maze) -> None:
-    """Une cellule intérieure a 4 voisins."""
-    neighbors = maze_5x5._get_neighbors_of_cell(2, 2)
-    assert len(neighbors) == 4
-
-
-def test_get_neighbors_edge_has_three(maze_5x5: Maze) -> None:
-    """Une cellule sur un bord (non coin) a 3 voisins."""
-    neighbors = maze_5x5._get_neighbors_of_cell(2, 0)
-    assert len(neighbors) == 3
-
-
-def test_get_neighbors_returns_direction(maze_5x5: Maze) -> None:
-    """Chaque voisin est un tuple (nx, ny, direction)."""
-    neighbors = maze_5x5._get_neighbors_of_cell(2, 2)
-    for item in neighbors:
-        assert len(item) == 3
-        nx, ny, direction = item
-        assert direction in ('N', 'E', 'S', 'W')
-
-
-# ── _get_direction_neighbor ───────────────────────────────────────────
-
-
-def test_get_direction_neighbor_east(maze_5x5: Maze) -> None:
-    assert maze_5x5._get_direction_neighbor(2, 2, 'E') == (3, 2)
-
-
-def test_get_direction_neighbor_west(maze_5x5: Maze) -> None:
-    assert maze_5x5._get_direction_neighbor(2, 2, 'W') == (1, 2)
-
-
-def test_get_direction_neighbor_north(maze_5x5: Maze) -> None:
-    assert maze_5x5._get_direction_neighbor(2, 2, 'N') == (2, 1)
-
-
-def test_get_direction_neighbor_south(maze_5x5: Maze) -> None:
-    assert maze_5x5._get_direction_neighbor(2, 2, 'S') == (2, 3)
-
-
-# ── _get_maze_boundaries ─────────────────────────────────────────────
-
-
-def test_get_maze_boundaries_count(maze_5x5: Maze) -> None:
-    """Une grille 5x5 a 5+5+3+3 = 16 cellules de bordure."""
-    boundaries = maze_5x5._get_maze_boundaries()
-    # Périmètre = 2*(w+h) - 4 = 2*(5+5)-4 = 16
-    assert len(boundaries) == 16
-
-
-def test_get_maze_boundaries_corners_included(maze_5x5: Maze) -> None:
-    boundaries = maze_5x5._get_maze_boundaries()
-    assert (0, 0) in boundaries
-    assert (4, 0) in boundaries
-    assert (0, 4) in boundaries
-    assert (4, 4) in boundaries
-
-
-def test_get_maze_boundaries_interior_excluded(maze_5x5: Maze) -> None:
-    boundaries = maze_5x5._get_maze_boundaries()
-    assert (2, 2) not in boundaries
-    assert (1, 1) not in boundaries

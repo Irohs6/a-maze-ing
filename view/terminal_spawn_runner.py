@@ -15,7 +15,7 @@ if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from view.terminal_renderer import (
-    _draw_grid, _animate, _draw_final, _erase_solution, _draw_solution,
+    _draw_grid, _animate, _draw_final, _erase_solution,
     COLOR_THEMES, COLOR_THEMES_42
 )
 from view import ansi_utils

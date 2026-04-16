@@ -187,15 +187,7 @@ def test_unsupported_perfect_value_raises() -> None:
     assert 'Unsupported algorithm' in str(excinfo.value)
 
 
-def test_get_solution_raises_before_generate() -> None:
-    gen = MazeGenerator(width=5, height=5)
-    with pytest.raises(ValueError) as excinfo:
-        gen.get_solution()
-    assert 'generate()' in str(excinfo.value)
-
-
 # ── Petits labyrinthes (sans motif 42) ────────────────────────────────
-
 
 def test_small_maze_no_forty_two_cells() -> None:
     """Tout labyrinthe < 11 cols ou < 9 lignes ne doit pas contenir le motif."""
@@ -243,3 +235,4 @@ def test_reset_allows_regeneration() -> None:
     gen.generate()
     second_grid = gen.get_maze().grid
     assert first_grid != second_grid
+
