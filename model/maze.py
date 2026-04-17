@@ -116,7 +116,7 @@ class Maze:
             hex_string += "\n"
         return hex_string
 
-    def _is_border_wall(self, x, y, wall_direction) -> bool:
+    def _is_border_wall(self, x: int, y: int, wall_direction: str) -> bool:
         """Return True if all outer-border cells
         have walls on their outer edge."""
         # Check top and bottom rows:

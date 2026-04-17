@@ -17,6 +17,17 @@ init(autoreset=False)
 
 
 class Menu:
+
+    SETTINGS_FIELDS = [
+        ("WIDTH", "Maze width"),
+        ("HEIGHT", "Maze height"),
+        ("ENTRY", "Entry position"),
+        ("EXIT", "Exit position"),
+        ("OUTPUT_FILE", "Output file name"),
+        ("PERFECT", "Perfect maze?"),
+        ("SEED", "Random seed"),
+    ]
+
     def __init__(self, controller: MazeController):
         self._controller = controller
         self._copy_config = deepcopy(self._controller._config)

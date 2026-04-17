@@ -83,19 +83,6 @@ class MazeGenerator:
         """Return the generated maze."""
         return self.maze
 
-    def get_solution(self) -> list[Any]:
-        """Return the solution path as a list of directions."""
-        if self.solution_path is None:
-            path_finder = PathFinder(
-                self.maze, self.maze.entry, self.maze.exit_pos
-            )
-            self.solution_path = path_finder.find_path()
-        if self.solution_path is None:
-            raise ValueError(
-                "Solution not generated yet. Call generate() first."
-            )
-        return self.solution_path
-
     def reset(self, seed: int | None = None) -> None:
         if seed is not None:
             self.seed = seed
@@ -104,6 +91,7 @@ class MazeGenerator:
         for i in range(len(self.maze.grid)):
             for j in range(len(self.maze.grid[i])):
                 self.maze.grid[i][j] = 15
+
         self.solution_path = None
         self.tracks = []
         self.forty_two_cells = set()

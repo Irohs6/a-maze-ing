@@ -19,6 +19,7 @@ class MazeController:
         self._config = ConfigFile.parse(self._config_file)
 
     def _create_gen(self):
+        """Instantiate the maze generator based on the configuration."""
         self._generator = MazeGenerator(
             width=self._config.WIDTH,
             height=self._config.HEIGHT,
@@ -27,12 +28,14 @@ class MazeController:
         )
 
     def _create_pathfinder(self):
+        """Instantiate the pathfinder based on the generated maze and config."""
         maze = self._generator.get_maze()
         entry = self._config.ENTRY
         exit_pos = self._config.EXIT
         self._finder = PathFinder(maze, entry=entry, exit=exit_pos)
 
     def _create_view(self):
+        """Instantiate the view based on the generated maze and config."""
         maze = self._generator.get_maze()
         entry = self._config.ENTRY
         exit_pos = self._config.EXIT

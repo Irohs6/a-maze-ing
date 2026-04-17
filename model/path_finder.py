@@ -210,7 +210,7 @@ class PathFinder:
         x, y = self.entry
 
         # Initialiser la cellule d'entrée
-        connections[(x, y)] = []
+        connections[(x, y)] = [()]
 
         for direction in path:
             # La cellule courante peut sortir dans cette direction
@@ -221,7 +221,7 @@ class PathFinder:
 
             # Initialiser la cellule suivante si elle n'a pas encore été visitée
             if (x, y) not in connections:
-                connections[(x, y)] = []
+                connections[(x, y)] = [()]
 
             # La cellule d'arrivée sait d'où elle vient (direction inverse)
             connections[(x, y)].append(self.REVERSE[direction])
