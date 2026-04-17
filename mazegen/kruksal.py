@@ -82,11 +82,4 @@ class Kruksal(Algorithm):
                 self.maze.remove_wall(x, y, wall_direction)
                 self._concatenate_in_union(indexes)
                 self.tracks.append((x, y, wall_direction))
-            neighbor_wall = neighbor + tuple(self.REVERSE.get(wall_direction))
-            index = 0
-            for i, wall in enumerate(self._eligible_walls):
-                if neighbor_wall == wall:
-                    index = i
-                    break
-            self._eligible_walls.pop(index)
         return self.tracks

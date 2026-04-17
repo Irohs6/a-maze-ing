@@ -83,14 +83,7 @@ class InstrumentedKruksal(Kruksal):
 
     def generate(self):
         self.second_loop_calls = 0
-        self.global_attempts = 0
-        # Patch pour compter les tentatives globales
-        for attempt in range(self._MAX_GLOBAL_ATTEMPTS):
-            self.global_attempts = attempt + 1
-            # Replier sur la logique parent mais on doit l'inliner
-            # → on appelle simplement super() une fois
-            break
-        # On utilise la génération parente normalement
+        self.global_attempts = 1  # Valeur par défaut, ou adapte selon besoin
         return super().generate()
 
 
