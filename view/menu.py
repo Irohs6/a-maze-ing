@@ -8,7 +8,6 @@ import sys
 from colorama import Back, init, Style, Fore
 import click
 from pydantic import ValidationError
-from model.config_file import ConfigFile
 
 if TYPE_CHECKING:
     from controller.maze_controller import MazeController
@@ -19,22 +18,24 @@ init(autoreset=False)
 class Menu:
 
     SETTINGS_FIELDS = [
-        ("WIDTH", "Maze width"),
-        ("HEIGHT", "Maze height"),
-        ("ENTRY", "Entry position"),
-        ("EXIT", "Exit position"),
-        ("OUTPUT_FILE", "Output file name"),
-        ("PERFECT", "Perfect maze?"),
-        ("SEED", "Random seed"),
+        "WIDTH",
+        "HEIGHT",
+        "ENTRY",
+        "EXIT",
+        "OUTPUT_FILE",
+        "PERFECT",
+        "SEED"
     ]
 
     def __init__(self, controller: MazeController):
         self._controller = controller
-        self._copy_config = deepcopy(self._controller._config)
+        self.copy_config = deepcopy(self._controller._config)
         self.fd = sys.stdin.fileno()
         self.old = termios.tcgetattr(self.fd)
         self.input = None
         self.index = 0
+        self.len_menu = [3, 8]
+        self.current_menu = 0
 
     def _update_objects(self):
         self._controller._create_gen()
@@ -52,11 +53,11 @@ class Menu:
 
     def _move(self):
         if self.input == "\x1b[A":
-            self.index = (self.index - 1) % 3
+            self.index = (self.index - 1) % self.len_menu[self.current_menu]
         elif self.input == "\x1b[B":
-            self.index = (self.index + 1) % 3
+            self.index = (self.index + 1) % self.len_menu[self.current_menu]
 
-    def _print_menu(self):
+    def _print_base_menu(self):
         print("╭" + "─" * 30 + "╮")
         print("│" + f"{Fore.YELLOW}A-Maze-Ing{Style.RESET_ALL}".center(39) +
               "│")
@@ -73,105 +74,99 @@ class Menu:
             print("│")
         print("╰" + "─" * 30 + "╯")
 
+    def _print_settings_menu(self):
+        print("╭" + "─" * 40 + "╮")
+        print("│" + f"{Fore.RED}Settings{Style.RESET_ALL}".center(49) +
+              "│")
+        print("├" + "─" * 40 + "┤")
+        for i, option in  enumerate(
+            [f"Width (current:  {self._controller._config.WIDTH})", f"Height (current: {self._controller._config.HEIGHT})", f"Entry (current:  {self._controller._config.ENTRY})", f"Exit (current: {self._controller._config.EXIT})", f"Output File (current:  {self._controller._config.OUTPUT_FILE})", f"Perfect (current: {self._controller._config.PERFECT})", f"Seed (current:  {self._controller._config.SEED})", "Go  Back"]
+        ):
+            center = 40
+            print("│", end="")
+            if i == self.index:
+                center = 49
+                option = Back.RED + option + Style.RESET_ALL
+            print(option.center(center), end="")
+            print("│")
+        print("╰" + "─" * 40 + "╯")
+
     def _ask_for_value(self, value: str):
         print("╭" + "─" * 30 + "╮")
         print("│" + value.center(30) + "│" + " :")
         print("╰" + "─" * 30 + "╯")
 
-    def _settings(self):
-        config = {}
+    def _change_setting(self):
         try:
+            field = self.SETTINGS_FIELDS[self.index]
+            if self.index < 2:
+                self._ask_for_value(f"Enter {field}")
+                dimension = click.prompt(" ", prompt_suffix="", type=click.IntRange(min=4, max=100))
+                setattr(self._controller._config, field,  dimension)
+            elif self.index < 4:
+                while True:
+                    click.clear()
+                    self._ask_for_value(f"Enter {field} Width:")
+                    width = click.prompt(" ", prompt_suffix="", type=click.IntRange(min=4, max=self._controller._config.WIDTH - 1))
+                    click.clear()
+                    self._ask_for_value(f"Enter {field} Height:")
+                    height = click.prompt(" ", prompt_suffix="", type=click.IntRange(min=4, max=self._controller._config.HEIGHT - 1))
+                    try:
+                        setattr(self._controller._config, field, (width, height))
+                    except ValidationError:
+                        continue
+                    else:
+                        break
+            elif self.index == 4:
+                self._ask_for_value(f"Enter {field}")
+                output_file = click.prompt(" ", prompt_suffix="", type=str)
+                setattr(self._controller._config, field, output_file)
+            elif self.index == 5:
+                self._ask_for_value(f"{field} ?")
+                perfect_bool = click.confirm(" ")
+                setattr(self._controller._config, field, perfect_bool)
+            elif self.index == 6:
+                self._ask_for_value(f"Enter {field} (optional)")
+                seed = click.prompt(
+                        " ",
+                        prompt_suffix="",
+                        type=click.IntRange(0),
+                        default=time.time_ns(),
+                    )
+                setattr(self._controller._config, field, seed)
+        except ValidationError as error:
+            self._controller._config = deepcopy(self.copy_config)
+            print(error)
+            print("\nPress Enter to continue...")
             while True:
-                self._ask_for_value("Enter Width")
-                config["WIDTH"] = click.prompt(
-                    " ", prompt_suffix="", type=click.IntRange(min=4, max=100)
-                )
-                print("\033c", end="")
-                self._ask_for_value("Enter Height")
-                config["HEIGHT"] = click.prompt(
-                    " ", prompt_suffix="", type=click.IntRange(4, 100)
-                )
-                print("\033c", end="")
-                self._ask_for_value("Enter Entry width")
-                config["ENTRY"] = [
-                    click.prompt(
-                        " ",
-                        prompt_suffix="",
-                        type=click.IntRange(0, config["WIDTH"]),
-                    )
-                ]
-                print("\033c", end="")
-                self._ask_for_value("Enter Entry height")
-                config["ENTRY"].append(
-                    click.prompt(
-                        " ",
-                        prompt_suffix="",
-                        type=click.IntRange(0, config["HEIGHT"]),
-                    )
-                )
-                config["ENTRY"] = tuple(config["ENTRY"])
-                print("\033c", end="")
-                self._ask_for_value("Enter Exit width")
-                config["EXIT"] = [
-                    click.prompt(
-                        " ",
-                        prompt_suffix="",
-                        type=click.IntRange(0, config["WIDTH"]),
-                    )
-                ]
-                print("\033c", end="")
-                self._ask_for_value("Enter Exit height")
-                config["EXIT"].append(
-                    click.prompt(
-                        " ",
-                        prompt_suffix="",
-                        type=click.IntRange(0, config["HEIGHT"]),
-                    )
-                )
-                config["EXIT"] = tuple(config["EXIT"])
-                print("\033c", end="")
-                self._ask_for_value("Enter Output file")
-                config["OUTPUT_FILE"] = click.prompt(
-                    " ", prompt_suffix="", type=str
-                )
-                print("\033c", end="")
-                self._ask_for_value("Perfect ?")
-                config["PERFECT"] = click.confirm(" ")
-                print("\033c", end="")
-                self._ask_for_value("Enter Seed (optional)")
-                config["SEED"] = click.prompt(
-                    " ",
-                    prompt_suffix="",
-                    type=click.IntRange(0),
-                    default=time.time_ns(),
-                )
-                print("\033c", end="")
-                try:
-                    self._controller._config = ConfigFile(**config)
-                except ValidationError as errors:
-                    print(
-                        Fore.RED
-                        + "Error while creating the object, please try again"
-                        + Style.RESET_ALL
-                    )
-                    for i, error in enumerate(errors.errors()):
-                        print(
-                            Fore.RED
-                            + f"{i + 1}. "
-                            + error["msg"]
-                            + Style.RESET_ALL
-                        )
-                    print("Press Enter to retry...")
-                    while True:
-                        self._get_key()
-                        if self.input == "\r":
-                            break
-                    print("\033c", end="")
-                else:
-                    self._update_objects()
+                self._get_key()
+                if self.input == '\r':
                     break
         except click.exceptions.Abort:
             pass
+        else:
+            self.copy_config = deepcopy(self._controller._config)
+            self._update_objects()
+
+    def _settings_menu(self):
+        try:
+            while True:
+                print("\033[?25l", end="")
+                self._print_settings_menu()
+                self._get_key()
+                if self.input.startswith("\x1b"):
+                    self._move()
+                elif self.input == '\r':
+                    if self.index == 7:
+                        break
+                    else:
+                        print("\033[?25h", end="")
+                        print("\033c", end="")
+                        self._change_setting()
+                print("\033c", end="")
+        finally:
+            self.index = 1
+            self.current_menu = 0
 
     def _execute(self):
         if self.index == 0:
@@ -205,14 +200,15 @@ class Menu:
             self._controller._generator.reset(seed=time.time_ns())
             print("\033c", end="")
         elif self.index == 1:
-            self._settings()
+            self.current_menu = 1
+            self._settings_menu()
 
     def _run(self):
         try:
             while True:
                 print("\033[?25l", end="")
                 print("\033c", end="")
-                self._print_menu()
+                self._print_base_menu()
                 self._get_key()
                 if self.input.startswith("\x1b"):
                     self._move()
