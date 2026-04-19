@@ -1,7 +1,5 @@
 import random
 from .algorithm import Algorithm
-from model.maze import Maze
-
 
 class Kruksal(Algorithm):
     perfect: bool = False
@@ -32,7 +30,7 @@ class Kruksal(Algorithm):
                 eligible_walls.append(direction)
         return eligible_walls
 
-    def _get_eligible_walls(self):
+    def _get_eligible_walls(self) -> list[tuple[int, int, str]]:
         self._eligible_walls = []
         directions = ["N", "E", "S", "W"]
         for y in range(self.height):
@@ -67,42 +65,13 @@ class Kruksal(Algorithm):
 
         return indexes
 
-    def _concatenate_in_union(self, indexes: list[int]):
+    def _concatenate_in_union(self, indexes: list[int]) -> None:
         """Merge the two sets at the given indexes in the union list."""
 
         self._union[indexes[0]] = self._union[indexes[0]].union(
             self._union[indexes[1]])
 
         self._union.pop(indexes[1])
-
-    def _second_loop(
-        self, maze: Maze, wall_count: dict[tuple[int, int], int],
-        pattern_cells: set[tuple[int, int]], tracks: list[tuple[int, int, str]]
-    ) -> Maze:
-        _to_destroy: list[tuple[int, int]] = [
-            (x, y)
-            for x in range(self.width)
-            for y in range(self.height)
-            if self._cell_wall_count(maze, x, y) > 2
-            and (x, y) not in pattern_cells
-            and (x, y) not in self._boundaries
-        ]
-        random.shuffle(_to_destroy)
-        for x, y in _to_destroy:
-            while wall_count[(x, y)] > 2:
-                eligible_walls = self._breakable_walls(
-                    maze, x, y, pattern_cells
-                )
-
-                if not eligible_walls:
-                    break
-
-                wall_direction = random.choice(eligible_walls)
-                maze.remove_wall(x, y, wall_direction)
-                tracks.append((x, y, wall_direction))
-                wall_count[(x, y)] -= 1
-
-        return (maze, tracks)
 
     def _cell_wall_count(self, x: int, y: int) -> int:
         """Return the number of walls surrounding cell (x, y) (0–4)."""

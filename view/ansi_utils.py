@@ -116,7 +116,7 @@ def read_key() -> str:
 
 
 @contextlib.contextmanager
-def raw_stdin():
+def raw_stdin() -> contextlib.AbstractContextManager[None]:
     """Context manager : stdin en mode raw, restauré à la sortie.
 
     Utile pour les boucles interactives appelant read_key_or_timeout()

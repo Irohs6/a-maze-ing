@@ -77,7 +77,7 @@ def _spawn_solution_window(
     zoom: float = 0.28,
     entry: tuple[int, int] = (0, 0),
     exit_pos: tuple[int, int] = (0, 0),
-    solution_cells: list[list] | None = None,
+    solution_cells: list[tuple[int, int]] | None = None,
     forty_two_cells: list[tuple[int, int]] | None = None,
 ) -> bool:
     """Sérialise la config dans un fichier JSON temporaire et ouvre le terminal.

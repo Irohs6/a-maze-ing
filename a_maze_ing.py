@@ -14,17 +14,17 @@ from controller.maze_controller import MazeController
 
 def main() -> None:
     if len(sys.argv) != 2:
-        print("Usage: python3 a_maze_ing.py <config.txt>", file=sys.stderr)
+        print("Usage: python3 a_maze_ing.py <config.txt>")
         sys.exit(2)
 
     try:
         controller = MazeController(sys.argv[1])
         controller.run()
     except FileNotFoundError as error:
-        print(error, file=sys.stderr)
+        print(error)
         sys.exit(3)
     except (ValueError, KeyError) as error:
-        print(f"Error in configuration file: {error}", file=sys.stderr)
+        print(f"Error in configuration file: {error}")
         sys.exit(4)
     except KeyboardInterrupt:
         print(Fore.BLUE + "Bye-bye" + Style.RESET_ALL, end="")

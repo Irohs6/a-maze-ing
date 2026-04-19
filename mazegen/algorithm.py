@@ -38,7 +38,7 @@ class Algorithm(ABC):
     def _get_direction_neighbor(
         self, x: int, y: int, direction: str
     ) -> tuple[int, int]:
-        """Return the coordinates of the neighboring 
+        """Return the coordinates of the neighboring
             cell in the given direction."""
 
         nx, ny = self.maze._DIRECTIONS[direction]
@@ -57,4 +57,3 @@ class Algorithm(ABC):
             boundaries.add((0, y))
             boundaries.add((self.width - 1, y))
         return boundaries
-

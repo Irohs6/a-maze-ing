@@ -60,7 +60,7 @@ COLOR_THEMES_42: list[str] = [
     Fore.CYAN + Style.BRIGHT
 ]
 
-_DIRECTION_ARROWS = {
+_DIRECTION_ARROWS: dict[str, str] = {
     "N": "⮝",
     "E": "⮞",
     "S": "⮟",
@@ -376,7 +376,7 @@ def _draw_final(
             ir = inner_row(sol_y, cell_width)
             ic = inner_col(sol_x, cell_width)
 
-            # Déterminer la direction principale à afficher sous 
+            # Déterminer la direction principale à afficher sous
             # forme de flèche.
             arrow = _DIRECTION_ARROWS.get(direction[-1], " ")
 
