@@ -42,13 +42,13 @@ class TerminalView:
         entry: tuple[int, int] = (0, 0),
         exit: tuple[int, int] = (0, 0),
         forty_two_cells: set[tuple[int, int]] | None = None,
-        path_connections: dict[tuple[int, int], set[str]] | None = None,
+        path_connections: dict[tuple[int, int], list[str]] | None = None,
     ) -> None:
         self.maze = maze
         self.entry = entry
         self.exit_pos = exit
         self.forty_two: set[tuple[int, int]] = set(forty_two_cells or [])
-        self.path_connections: dict[tuple[int, int], set[str]] = (
+        self.path_connections: dict[tuple[int, int], list[str]] = (
             path_connections or {}
         )
 
@@ -59,7 +59,7 @@ class TerminalView:
 
     def show_solution(
         self,
-        all_paths: list[dict[tuple[int, int], set[str]]],
+        all_paths: list[dict[tuple[int, int], list[str]]],
         is_perfect: bool,
         tracks: list[tuple[int, int, str]] | None = None,
     ) -> None:

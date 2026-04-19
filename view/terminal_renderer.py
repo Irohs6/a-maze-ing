@@ -329,7 +329,7 @@ def _animate(
 
 def _erase_solution(
     cell_width: int,
-    solution_cells: list[tuple[int, int, set[str]]],
+    solution_cells: list[tuple[int, int, list[str]]],
     entry: tuple[int, int],
     exit_pos: tuple[int, int],
 ) -> None:
@@ -356,7 +356,7 @@ def _draw_final(
     cell_width: int,
     entry: tuple[int, int],
     exit_pos: tuple[int, int],
-    solution_cells: list[tuple[int, int, set[str]]],
+    solution_cells: list[tuple[int, int, list[str]]],
     solution_visible: bool = True
 ) -> None:
     """Superpose entrée, sortie et chemin solution sur la grille finale.

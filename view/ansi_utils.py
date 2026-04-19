@@ -11,6 +11,7 @@ import select as _select
 import sys
 import termios
 import tty
+from typing import Iterator
 
 # Représentation d'un mur fermé.
 # U+2588 (FULL BLOCK) × 2 → 2 colonnes terminales, colorable via ANSI Fore.X
@@ -116,7 +117,7 @@ def read_key() -> str:
 
 
 @contextlib.contextmanager
-def raw_stdin() -> contextlib.AbstractContextManager[None]:
+def raw_stdin() -> Iterator[None]:
     """Context manager : stdin en mode raw, restauré à la sortie.
 
     Utile pour les boucles interactives appelant read_key_or_timeout()

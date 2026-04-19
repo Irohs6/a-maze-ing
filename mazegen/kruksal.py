@@ -1,8 +1,11 @@
+
 import random
+from typing import ClassVar
 from .algorithm import Algorithm
 
+
 class Kruksal(Algorithm):
-    perfect: bool = False
+    perfect: 'ClassVar[bool]' = False
     REVERSE: dict[str, str] = {'N': 'S', 'S': 'N', 'E': 'W', 'W': 'E'}
     # Maximum number of global attempts before giving up
 
@@ -68,10 +71,10 @@ class Kruksal(Algorithm):
     def _concatenate_in_union(self, indexes: list[int]) -> None:
         """Merge the two sets at the given indexes in the union list."""
 
-        self._union[indexes[0]] = self._union[indexes[0]].union(
-            self._union[indexes[1]])
-
-        self._union.pop(indexes[1])
+        if len(indexes) == 2:
+            self._union[indexes[0]] = self._union[indexes[0]].union(
+                self._union[indexes[1]])
+            self._union.pop(indexes[1])
 
     def _cell_wall_count(self, x: int, y: int) -> int:
         """Return the number of walls surrounding cell (x, y) (0–4)."""
@@ -86,8 +89,8 @@ class Kruksal(Algorithm):
         while len(self._union) > 1:
             x, y, wall_direction = _eligible_walls.pop()
             neighbor = self._get_direction_neighbor(x, y, wall_direction)
-            indexes = self._find_in_union((x, y), neighbor)
-            if indexes:
+            indexes: list[int] | bool = self._find_in_union((x, y), neighbor)
+            if isinstance(indexes, list):
                 self.maze.remove_wall(x, y, wall_direction)
                 self._concatenate_in_union(indexes)
                 self.tracks.append((x, y, wall_direction))

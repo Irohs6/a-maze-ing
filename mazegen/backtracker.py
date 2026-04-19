@@ -1,9 +1,11 @@
-from .algorithm import Algorithm
+
 import random
+from typing import ClassVar
+from .algorithm import Algorithm
 
 
 class Backtracker(Algorithm):
-    perfect: bool = True
+    perfect: 'ClassVar[bool]' = True
 
     def _get_neighbors_of_cell(self, x: int,
                                y: int) -> list[tuple[int, int, str]]:
