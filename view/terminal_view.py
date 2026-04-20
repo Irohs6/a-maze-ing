@@ -1,9 +1,9 @@
-# view/terminal_view.py — Façade principale de la vue terminal (eighth-block).
+# view/terminal_view.py — Main facade of the terminal view (eighth-block).
 #
-# Fournit la classe TerminalView utilisée par le contrôleur et le menu.
-# Délègue :
-#   - le lancement de terminal  → view.terminal_launcher
-#   - le rendu et l'animation   → view.terminal_renderer
+# Provides the TerminalView class used by the controller and the menu.
+# Delegates:
+#   - terminal launch  → view.terminal_launcher
+#   - rendering and animation   → view.terminal_renderer
 
 import sys
 from pathlib import Path
@@ -54,7 +54,7 @@ class TerminalView:
 
     @staticmethod
     def _read_key() -> str:
-        """Lit une touche sans attendre Entrée (mode raw)."""
+        """Reads a key without waiting for Enter (raw mode)."""
         return read_key()
 
     def show_solution(
@@ -63,19 +63,23 @@ class TerminalView:
         is_perfect: bool,
         tracks: list[tuple[int, int, str]] | None = None,
     ) -> None:
-        """Ouvre une nouvelle fenêtre de terminal et anime la génération."""
-        del is_perfect  # conservé pour compatibilité API
+        """Opens a new terminal window and animates the generation."""
+        # Displays whether the maze is perfect or imperfect
 
         cell_width = 1
         solution_cells = [
             [x, y, list(dirs)]
             for (x, y), dirs in (all_paths[0].items() if all_paths else [])
         ]
+        # Attempt to open a new window for smoother
+        # animation and cleaner rendering
+        # without the artifacts of the current terminal.
         if tracks and _spawn_solution_window(
             self.maze.width,
             self.maze.height,
             tracks,
             cell_width,
+            is_perfect,
             entry=self.entry,
             exit_pos=self.exit_pos,
             solution_cells=solution_cells,
@@ -83,10 +87,11 @@ class TerminalView:
         ):
             return
 
-        # Fallback : affichage dans le terminal courant
+        # Fallback: display in the current terminal
         _draw_grid(self.maze.width, self.maze.height, cell_width,
                    forty_two_cells=self.forty_two,
                    forty_two_color=self.COLOR["42"])
+
         _animate(tracks or [], self.maze.width, self.maze.height, cell_width,
                  forty_two_cells=self.forty_two,
                  forty_two_color=self.COLOR["42"])
@@ -95,6 +100,8 @@ class TerminalView:
             if all_paths
             else []
         )
+
+        # Also displays in the final status bar
         _draw_final(
             self.maze.width,
             self.maze.height,
@@ -102,5 +109,6 @@ class TerminalView:
             self.entry,
             self.exit_pos,
             solution,
+            is_perfect,
             solution_visible=True,
         )

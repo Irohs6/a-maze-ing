@@ -1,12 +1,13 @@
 # view/terminal_backends.py — Backends d'émulateurs de terminal.
 #
-# Chaque TerminalBackend décrit :
-#   - name          : nom du binaire (utilisé avec shutil.which)
-#   - desktop_hints : fragments de XDG_CURRENT_DESKTOP pour prioriser ce backend
-#   - build_cmd     : construit la liste d'arguments pour Popen
+# Each TerminalBackend describes:
+#   - name          : binary name (used with shutil.which)
+#   - desktop_hints : fragments of XDG_CURRENT_DESKTOP to prioritize
+#     this backend
+#   - build_cmd     : builds the argument list for Popen
 #
-# Pour ajouter un nouvel émulateur, créer une fonction _xxx() et l'enregistrer
-# dans BACKENDS. Le reste du code s'adapte automatiquement.
+# To add a new emulator, create a _xxx() function and register it
+# in BACKENDS. The rest of the code adapts automatically.
 
 import shlex
 from dataclasses import dataclass
@@ -15,7 +16,7 @@ from typing import Callable
 
 @dataclass(frozen=True)
 class TerminalBackend:
-    """Décrit comment détecter et lancer un émulateur de terminal."""
+    """Describes how to detect and launch a terminal emulator."""
 
     name: str
     desktop_hints: tuple[str, ...]  # fragments XDG_CURRENT_DESKTOP (lowercase)
@@ -23,7 +24,7 @@ class TerminalBackend:
 
 
 # ---------------------------------------------------------------------------
-# Constructeurs de commande par émulateur
+# Command builders by emulator
 # ---------------------------------------------------------------------------
 
 def _xterm(cols: int, rows: int, child: list[str], zoom: float) -> list[str]:
@@ -58,8 +59,8 @@ def _konsole(cols: int, rows: int, child: list[str], zoom: float) -> list[str]:
 
 
 def _xfce(cols: int, rows: int, child: list[str], zoom: float) -> list[str]:
-    # --zoom=-7 correspond à ≈28 % de la taille de base (1.2^-7 ≈ 0.279),
-    # ce qui aligne le comportement sur gnome-terminal --zoom=0.28.
+    # --zoom=-7 corresponds to ≈28 % of the base size (1.2^-7 ≈ 0.279),
+    # which aligns the behavior with gnome-terminal --zoom=0.28.
     return [
         "xfce4-terminal",
         "--fullscreen",

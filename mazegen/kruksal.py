@@ -87,6 +87,8 @@ class Kruksal(Algorithm):
 
         random.shuffle(_eligible_walls)
         while len(self._union) > 1:
+            if not _eligible_walls:
+                break
             x, y, wall_direction = _eligible_walls.pop()
             neighbor = self._get_direction_neighbor(x, y, wall_direction)
             indexes: list[int] | bool = self._find_in_union((x, y), neighbor)

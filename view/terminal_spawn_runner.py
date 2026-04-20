@@ -1,8 +1,8 @@
-"""Runner autonome pour l'animation en terminal séparé.
+"""Autonomous runner for separate terminal animation.
 
-Ce module est lancé dans une nouvelle fenêtre de terminal via Popen.
-Il lit sa configuration depuis un fichier JSON temporaire (--config),
-effectue le rendu complet puis gère l'interaction clavier.
+This module is launched in a new terminal window via Popen.
+It reads its configuration from a temporary JSON file (--config),
+performs the complete rendering, and then handles keyboard interaction.
 """
 
 import argparse
@@ -23,17 +23,17 @@ from view import ansi_utils
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Runner d'animation en terminal séparé"
+        description="Separate terminal animation runner"
     )
     parser.add_argument(
         "--config", metavar="FILE", required=True,
-        help="Fichier JSON de configuration (supprimé après lecture)",
+        help="JSON configuration file (deleted after reading)",
     )
     return parser.parse_args()
 
 
 def _load_config(path: str) -> dict:
-    """Lit le fichier JSON de config puis supprime le fichier."""
+    """Reads the JSON config file and then deletes the file."""
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
     try:
@@ -47,9 +47,11 @@ def _run_render(
     cfg: dict,
     wall_color: str,
     forty_two_color: str,
+    perfect: bool,
     delay: float = 0.01,
 ) -> None:
-    """Effectue le rendu complet : grille + animation + solution finale."""
+    """Performs the complete rendering: grid + animation + final solution."""
+
     tracks = [(int(x), int(y), d) for x, y, d in cfg["tracks"]]
     solution_cells = [
         (int(x), int(y), dirs) for x, y, dirs in cfg["solution"]
@@ -65,7 +67,7 @@ def _run_render(
                forty_two_cells=forty_two_cells, forty_two_color=forty_two_color)
     _animate(tracks, w, h, cw, delay=delay,
              forty_two_cells=forty_two_cells, forty_two_color=forty_two_color)
-    _draw_final(w, h, cw, entry, exit_pos, solution_cells,
+    _draw_final(w, h, cw, entry, exit_pos, solution_cells, perfect,
                 solution_visible=True)
 
 
@@ -80,11 +82,12 @@ def _show_hint(end_row: int) -> None:
 def _run_interaction(cfg: dict, initial_theme_idx: int,
                      solution_cells: list[tuple[int, int, set[str]]],
                      entry: tuple, exit_pos: tuple,) -> None:
-    """Boucle d'interaction clavier.
+    """Keyboard interaction loop.
 
-    [C] cycle le thème de couleur et relance le rendu sans délai.
-    [Q / Entrée / Échap / Ctrl-C] quitte.
+    [C] cycles the color theme and reruns the rendering without delay.
+    [Q / Enter / Esc / Ctrl-C] exits.
     """
+    perfect = cfg["is_perfect"]
     theme_idx = initial_theme_idx % len(COLOR_THEMES)
     theme_idx_42 = initial_theme_idx % len(COLOR_THEMES_42)
     w, h, cw = cfg["width"], cfg["height"], cfg["cell_width"]
@@ -101,6 +104,7 @@ def _run_interaction(cfg: dict, initial_theme_idx: int,
                 cfg,
                 COLOR_THEMES[theme_idx],
                 COLOR_THEMES_42[theme_idx_42],
+                perfect,
                 delay=0.0,
             )
             solution_visible = True
@@ -109,8 +113,8 @@ def _run_interaction(cfg: dict, initial_theme_idx: int,
             if solution_visible:
                 _erase_solution(cw, solution_cells, entry, exit_pos)
             else:
-                # Redessine chemin + entrée/sortie + barre info
-                _draw_final(w, h, cw, entry, exit_pos, solution_cells,
+                # Redraw path + entry/exit + info bar
+                _draw_final(w, h, cw, entry, exit_pos, solution_cells, perfect,
                             solution_visible=True)
                 sys.stdout.write("\033[?25l")
                 sys.stdout.flush()
@@ -121,18 +125,34 @@ def _run_interaction(cfg: dict, initial_theme_idx: int,
 
 
 def main() -> None:
-    args = _parse_args()
-    cfg = _load_config(args.config)
+    try:
+        try:
+            args = _parse_args()
+            cfg = _load_config(args.config)
+        except Exception:
+            import traceback
+            print("[ERROR] Exception while loading config or arguments:",
+                  file=sys.stderr)
+            traceback.print_exc()
+            input("Press Enter to exit...")
+            return
 
-    solution_cells = [
-        (int(x), int(y), dirs) for x, y, dirs in cfg["solution"]
-    ]
-    entry = tuple(cfg["entry"])
-    exit_pos = tuple(cfg["exit"])
+        solution_cells = [
+            (int(x), int(y), dirs) for x, y, dirs in cfg["solution"]
+        ]
+        entry = tuple(cfg["entry"])
+        exit_pos = tuple(cfg["exit"])
 
-    theme_idx = 0
-    _run_render(cfg, COLOR_THEMES[theme_idx], COLOR_THEMES_42[theme_idx])
-    _run_interaction(cfg, theme_idx, solution_cells, entry, exit_pos)
+        theme_idx = 0
+        _run_render(cfg, COLOR_THEMES[theme_idx], COLOR_THEMES_42[theme_idx],
+                    cfg["is_perfect"])
+        _run_interaction(cfg, theme_idx, solution_cells, entry, exit_pos)
+    except Exception:
+        import traceback
+        print("[ERROR] Exception during main execution:", file=sys.stderr)
+        traceback.print_exc()
+        input("Press Enter to exit...")
+        return
 
 
 if __name__ == "__main__":

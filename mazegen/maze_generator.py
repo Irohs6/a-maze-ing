@@ -15,7 +15,6 @@ import random
 from typing import Any
 from model.maze import Maze
 from model.maze_validator import MazeValidator
-from model.path_finder import PathFinder
 from .algorithm import Algorithm
 from .backtracker import Backtracker
 from .kruksal import Kruksal

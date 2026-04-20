@@ -1,15 +1,3 @@
-# view/terminal_renderer.py — Rendu et animation du labyrinthe (block-wall).
-#
-# Représentation :
-#   █ = mur fermé   espace = couloir ouvert ou intérieur de cellule
-#   Chaque cellule occupe cell_width × cell_height chars d'espace intérieur.
-#   Les murs sont des colonnes/rangées de █ (U+2588) épaisses d'1 char.
-#
-# Fonctions publiques :
-#   _draw_grid()  : affiche la grille initiale (tous murs fermés) — 1 flush
-#   _animate()    : anime le perçage des murs — 1 flush/cellule ou 1 flush total
-#   _draw_final() : superpose entrée, sortie et chemin solution — 1 flush
-
 import sys
 import time
 
@@ -33,13 +21,14 @@ from view.ansi_utils import (
     read_key_or_timeout,
 )
 
-# Caractères de trait simple pour le chemin solution.
-# Index = bitmask : W=1, S=2, E=4, N=8
+# Single-line characters for the solution path.
+# Index = bitmask: W=1, S=2, E=4, N=8
 _BOX_PATH = " ╴╷┐╶─┌┬╵┘│┤└┴├┼"
 
-# Thèmes de couleur (mur, 42).  Appuyer sur C pour cycler.
-# mur   → Fore.X sur ██ (premier plan)
-# 42    → Back.X sur espaces (fond) — toujours visuellement distinct
+# Color themes (wall, 42).  Press C to cycle.
+# wall  → Fore.X on ██ (foreground)
+
+# 42    → Back.X on spaces (background) — always visually distinct
 COLOR_THEMES: list[str] = [
     Fore.BLUE,
     Fore.RED,
@@ -67,15 +56,15 @@ _DIRECTION_ARROWS: dict[str, str] = {
     "W": "⮜"
 }
 
-# Niveaux de vitesse d'animation : (délai en s, label affiché).
-# [+] → plus rapide (index plus bas), [-] → plus lent (index plus haut)
+# Animation speed levels: (delay in s, displayed label).
+# [+] → faster (lower index), [-] → slower (higher index)
 _SPEED_LEVELS: list[tuple[float, str]] = [
-    (0.2, "1"),  # très lent
+    (0.2, "1"),  # very slow
     (0.05, "2"),
     (0.01, "3"),
-    (0.001, "4"),  # vitesse par défaut
+    (0.001, "4"),  # default speed
     (0.0003, "5"),
-    (0.0, "6"),  # instantané (MAX)
+    (0.0, "6"),  # as fast as possible (no delay, single final flush)
 ]
 _DEFAULT_SPEED_IDX: int = 3
 
@@ -92,9 +81,9 @@ def _build_cell_buf(
     cell_width: int,
     pending_restore: str,
 ) -> tuple[list[str], str]:
-    """Construit le buffer ANSI pour un pas d'animation.
+    """Builds the ANSI buffer for a single animation step.
 
-    Retourne (cell_buf, nouveau_pending_restore).
+    Returns (cell_buf, new_pending_restore).
     """
     ch = cell_height(cell_width)
     ww = WALL_WIDTH
@@ -136,10 +125,10 @@ def _draw_grid(
     forty_two_cells: set[tuple[int, int]] | None = None,
     forty_two_color: str = "",
 ) -> None:
-    """Affiche la grille initiale du labyrinthe (tous murs fermés).
+    """Displays the initial maze grid (all walls closed).
 
-    Tous les caractères sont accumulés dans un buffer puis envoyés en
-    un seul write + flush (évite O(lignes) flush implicites via print).
+    All characters are accumulated in a buffer and then sent in
+    a single write + flush (avoids O(lines) implicit flushes via print).
     """
     ch = cell_height(cell_width)
     total_cols = grid_cols(maze_width, cell_width)
@@ -147,7 +136,7 @@ def _draw_grid(
     ft = forty_two_cells or set()
 
     def _wall_char(col: int, row: int) -> str:
-        """Retourne le █ coloré selon les cellules adjacentes."""
+        """Returns the colored █ based on adjacent cells."""
         is_hwall_row = row % (ch + 1) == 0
         is_vwall_col = col % (cell_width + 1) == 0
 
@@ -159,7 +148,8 @@ def _draw_grid(
             xr = col // (cell_width + 1)
 
             if is_hwall_row:
-                # Aux coins (is_vwall_col aussi), vérifier xl ET xr
+                # A horizontal wall can be shared by 1 or 2 cells
+                # (depending on whether it's on a wall column or not).
                 xs = [xl, xr] if is_vwall_col else [xr]
                 for cx in xs:
                     if 0 <= ya < maze_height and (cx, ya) in ft:
@@ -176,7 +166,7 @@ def _draw_grid(
 
         return f"{color}{WALL}{Style.RESET_ALL}"
 
-    buf: list[str] = ["\033[2J\033[H"]  # efface l'écran (clear + home)
+    buf: list[str] = ["\033[2J\033[H"]  # clear screen (clear + home)
     for row in range(total_rows):
         is_hwall_row = row % (ch + 1) == 0
         line: list[str] = []
@@ -202,24 +192,24 @@ def _animate(
     forty_two_color: str = "",
     interactive: bool = True,
 ) -> None:
-    """Anime la génération en effaçant les murs █ pas à pas.
+    """Animates the generation by erasing the █ walls step by step.
 
-    Stratégie de flush :
-      delay > 0, interactif  : 1 flush/cellule ; contrôles clavier actifs.
-      delay > 0, passif      : 1 flush/cellule, time.sleep(delay).
-      delay = 0 (replay)     : 1 flush total en fin de boucle.
+    Flush strategy:
+      delay > 0, interactive  : 1 flush per cell; keyboard controls active.
+      delay > 0, passive      : 1 flush per cell, time.sleep(delay).
+      delay = 0 (replay)     : 1 flush total at the end of the loop.
 
-    Contrôles (mode interactif, stdin est un tty) :
-      Espace  : pause / play
-      N       : avancer d'un pas (si en pause)
-      +       : vitesse plus rapide
-      -       : vitesse plus lente
+    Controls (interactive mode, stdin is a tty):
+      Space  : pause / play
+      N       : advance one step (if paused)
+      +       : faster speed
+      -       : slower speed
     """
     is_interactive = interactive and delay > 0 and sys.stdin.isatty()
     end_row = grid_rows(maze_height, cell_width) + 1
     pending_restore = ""
 
-    sys.stdout.write("\033[?25l")  # masque le curseur
+    sys.stdout.write("\033[?25l")  # hide the cursor
     sys.stdout.flush()
 
     if is_interactive:
@@ -268,7 +258,7 @@ def _animate(
                 elif key in ("\x03", "\x1b"):
                     break
                 elif key is None:
-                    advance = True  # timeout → pas normal
+                    advance = True  # timeout → not normal
 
                 if redraw:
                     sys.stdout.write(_status())
@@ -287,14 +277,14 @@ def _animate(
                 sys.stdout.flush()
                 idx += 1
 
-        # Efface la barre de statut, restaure la visibilité du curseur
+        # Clear the status bar, restore cursor visibility
         sys.stdout.write(
             f"{pending_restore}" f"\033[{end_row};1H\033[2K" f"\033[?25h"
         )
         sys.stdout.flush()
         return
 
-    # --- Mode passif (delay=0 ou stdin pas tty) ---
+    # --- Passive mode (delay=0 or stdin not a tty) ---
     buf_replay: list[str] = []
     flush_per_cell = delay > 0
 
@@ -316,7 +306,7 @@ def _animate(
         else:
             buf_replay.extend(cell_buf)
 
-    # Fin de boucle : restauration + repositionnement
+    # End of loop: restore + reposition
     end_seq = f"{pending_restore}\033[{end_row};1H\033[?25h"
     if flush_per_cell:
         sys.stdout.write(end_seq)
@@ -333,8 +323,8 @@ def _erase_solution(
     entry: tuple[int, int],
     exit_pos: tuple[int, int],
 ) -> None:
-    """Efface le chemin solution en réécrivant un espace au centre
-    de chaque cellule. Les murs 42 colorés ne sont pas touchés."""
+    """Erase the solution path by rewriting a space in the center
+    of each cell. The 42 walls are not touched."""
     buf: list[str] = []
 
     for sol_x, sol_y, _ in solution_cells:
@@ -357,12 +347,13 @@ def _draw_final(
     entry: tuple[int, int],
     exit_pos: tuple[int, int],
     solution_cells: list[tuple[int, int, list[str]]],
+    is_perfect: bool,
     solution_visible: bool = True
 ) -> None:
-    """Superpose entrée, sortie et chemin solution sur la grille finale.
+    """Overlay entry, exit, and solution path on the final grid.
 
-    À appeler après _animate(). Accumule tous les writes en un buffer
-    puis effectue un unique flush. Les murs 42 sont déjà colorés par
+    To be called after _animate(). Accumulates all writes in a buffer
+    and then performs a single flush. The 42 walls are already colored by
     _draw_grid.
     """
     end_row = grid_rows(maze_height, cell_width) + 1
@@ -376,8 +367,7 @@ def _draw_final(
             ir = inner_row(sol_y, cell_width)
             ic = inner_col(sol_x, cell_width)
 
-            # Déterminer la direction principale à afficher sous
-            # forme de flèche.
+            # Determine the main direction to display as an arrow.
             arrow = _DIRECTION_ARROWS.get(direction[-1], " ")
 
             buf.append(
@@ -385,26 +375,34 @@ def _draw_final(
                 f"{Fore.WHITE + Style.BRIGHT}{arrow}{Style.RESET_ALL}"
             )
 
-    # Marqueur entrée (vert S)
+    # Entry marker (green S)
     ex, ey = entry
     buf.append(
         f"\033[{inner_row(ey, cell_width)};{inner_col(ex, cell_width)}H"
         "🚪"
     )
 
-    # Marqueur sortie (rouge E)
+    # Exit marker (red E)
     xx, xy = exit_pos
     buf.append(
         f"\033[{inner_row(xy, cell_width)};{inner_col(xx, cell_width)}H"
         "🚀"
     )
 
-    # Barre de statut
     buf.append(
         f"\033[{end_row};1H\033[2K"
         f"{Fore.CYAN}[S] HIDE/PRINT SOLUTION  "
         f"[Q] EXIT{Style.RESET_ALL}"
     )
+    if is_perfect:
+        perfect = f"{Fore.GREEN}Perfect maze{Style.RESET_ALL}"
+    else:
+        perfect = f"{Fore.RED}Imperfect maze{Style.RESET_ALL}"
+    # Perfect/imperfect message on the next line
+    if perfect:
+        buf.append(
+            f"\033[{end_row + 1};1H\033[2K{perfect}"
+        )
 
     sys.stdout.write("".join(buf))
     sys.stdout.flush()

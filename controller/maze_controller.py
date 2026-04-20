@@ -1,5 +1,6 @@
 
 from model.path_finder import PathFinder
+from model.cycle_cheker import Cycle_Checker
 from mazegen.maze_generator import MazeGenerator
 from view.terminal_view import TerminalView
 from model.config_file import ConfigFile
@@ -34,6 +35,11 @@ class MazeController:
         exit_pos = self._config.EXIT
         self._finder = PathFinder(maze, entry=entry, exit=exit_pos)
 
+    def _create_cycles_checker(self):
+        """Instantiate the cycle checker based on the generated maze."""
+        maze = self._generator.get_maze()
+        self._cycle_checker = Cycle_Checker(maze)
+
     def _create_view(self):
         """Instantiate the view based on the generated maze and config."""
         maze = self._generator.get_maze()
@@ -49,5 +55,6 @@ class MazeController:
         self._create_gen()
         self._create_pathfinder()
         self._create_view()
+        self._create_cycles_checker()
         self.menu = Menu(self)
         self.menu._run()

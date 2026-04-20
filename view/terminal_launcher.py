@@ -16,24 +16,24 @@ from view.ansi_utils import terminal_cols, terminal_rows
 
 
 def _find_backend() -> TerminalBackend | None:
-    """Retourne le premier backend disponible, en priorisant le bureau courant.
+    """Returns the first available backend, prioritizing the current desktop.
 
-    Consulte XDG_CURRENT_DESKTOP et préfère le terminal natif du bureau
-    (GNOME → gnome-terminal, KDE → konsole…), puis tombe en fallback sur
-    le premier binaire trouvé via shutil.which() dans l'ordre de BACKENDS.
+    Consults XDG_CURRENT_DESKTOP and prefers the native terminal of the desktop
+    (GNOME → gnome-terminal, KDE → konsole…), then falls back to the first
+    binary found via shutil.which() in the order of BACKENDS.
     """
     import shutil
 
     desktop = os.environ.get("XDG_CURRENT_DESKTOP", "").lower()
 
-    # 1. Terminal natif du bureau courant
+    # 1. Native terminal of the current desktop
     for backend in BACKENDS:
         hints = backend.desktop_hints
         if hints and any(h in desktop for h in hints):
             if shutil.which(backend.name):
                 return backend
 
-    # 2. Premier binaire disponible (ordre du registre)
+    # 2. First available binary (order of the registry)
     for backend in BACKENDS:
         if shutil.which(backend.name):
             return backend
@@ -48,10 +48,10 @@ def _open_terminal(
     child_args: list[str],
     zoom: float = 0.28,
 ) -> bool:
-    """Ouvre une fenêtre de terminal dimensionnée à (columns × rows) chars.
+    """Opens a terminal window sized to (columns × rows) chars.
 
-    Lance view.terminal_spawn_runner dans le processus enfant.
-    Retourne True si le lancement a réussi, False sinon.
+    Launches view.terminal_spawn_runner in the child process.
+    Returns True if the launch was successful, False otherwise.
     """
     runner_cmd = [
         sys.executable, "-m", "view.terminal_spawn_runner", *child_args
@@ -73,17 +73,18 @@ def _spawn_solution_window(
     maze_height: int,
     tracks: list[tuple[int, int, str]],
     cell_width: int,
-    # zoom calibré pour police Mono 12pt ; augmenter si trop petit
+    is_perfect: bool,
+    # zoom calibrated for Mono 12pt font; increase if too small
     zoom: float = 0.28,
     entry: tuple[int, int] = (0, 0),
     exit_pos: tuple[int, int] = (0, 0),
     solution_cells: list[tuple[int, int]] | None = None,
     forty_two_cells: list[tuple[int, int]] | None = None,
 ) -> bool:
-    """Sérialise la config dans un fichier JSON temporaire et ouvre le terminal.
+    """Serializes the config into a temporary JSON file and opens the terminal.
 
-    Le fichier est passé au runner via --config <path>.
-    Le runner est responsable de supprimer le fichier après lecture.
+    The file is passed to the runner via --config <path>.
+    The runner is responsible for deleting the file after reading.
     """
     backend = _find_backend()
     if not backend:
@@ -93,6 +94,7 @@ def _spawn_solution_window(
         "width": maze_width,
         "height": maze_height,
         "cell_width": cell_width,
+        "is_perfect": is_perfect,
         "tracks": tracks,
         "entry": list(entry),
         "exit": list(exit_pos),
@@ -100,7 +102,7 @@ def _spawn_solution_window(
         "forty_two": [list(c) for c in (forty_two_cells or [])],
     }
 
-    # delete=False : le fichier doit survivre jusqu'à ce que le runner le lise
+    # delete=False : the file must survive until the runner reads it
     tmp = tempfile.NamedTemporaryFile(
         mode="w", suffix=".json", delete=False, prefix="amaze_"
     )

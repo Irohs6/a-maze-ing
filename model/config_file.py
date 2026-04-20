@@ -81,6 +81,7 @@ class ConfigFile(BaseModel):
 
     @staticmethod
     def _parse_line(line: str, config: dict[str, Any]) -> None:
+        """Parse a single line of the config file and update *config*."""
         if "=" not in line:
             raise ValueError(
                 f"Invalid line in config: '{line.strip()}' (missing '=')"
@@ -104,6 +105,7 @@ class ConfigFile(BaseModel):
 
     @staticmethod
     def _validate_required_keys(config: dict[str, Any]) -> None:
+        """Check that all required keys are present in the config."""
         for key in ConfigFile.REQUIRED_KEYS:
             if key not in config:
                 raise KeyError(
