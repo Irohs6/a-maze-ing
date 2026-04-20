@@ -72,8 +72,8 @@ TIMEOUT_SECONDS = 5.0  # abandon si génération > N secondes
 class InstrumentedKruksal(Kruksal):
     """Kruskal avec compteurs d'instrumentation."""
 
-    def __init__(self, maze: Maze) -> None:
-        super().__init__(maze)
+    def __init__(self, maze: Maze, is_perfect: bool = False) -> None:
+        super().__init__(maze, is_perfect=is_perfect)
         self.second_loop_calls: int = 0
         self.global_attempts: int = 0
 

@@ -1,5 +1,7 @@
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (BaseModel, ConfigDict, Field,
+                      model_validator, field_validator)
 from typing import Annotated, Any, ClassVar
+
 from time import time_ns
 
 NonNegativeInt = Annotated[int, Field(ge=0)]
@@ -21,6 +23,13 @@ class ConfigFile(BaseModel):
     PERFECT: bool
     SEED: int | None = None
     PLAYABLE: bool = False
+
+    ALGORITHM: str = Field(..., pattern="^(?i)(backtracker|kruksal)$")
+
+    @field_validator("ALGORITHM")
+    @classmethod
+    def normalize_algorithm(cls, v):
+        return v.lower()
 
     @model_validator(mode="after")
     def validate_entry_exit_bounds(self) -> "ConfigFile":

@@ -40,7 +40,7 @@ class Menu:
     def _update_objects(self):
         self._controller._create_gen()
         self._controller._create_pathfinder()
-        self._controller.create_cycles_checker()
+        self._controller._create_cycles_checker()
         self._controller._create_view()
 
     def _get_key(self):
@@ -200,7 +200,7 @@ class Menu:
             self._controller._generator.generate()
             tracks = self._controller._generator.tracks
             paths = self._controller._finder.find()
-            is_perfect = self._controller._cycle_checker.has_cycle()
+            is_perfect = not self._controller._cycle_checker.has_cycle()
             self._controller._view.show_solution(paths, is_perfect, tracks)
             output = self._controller._generator.maze.encode_hex() + "\n"
             entry, exit = (
@@ -217,6 +217,7 @@ class Menu:
                 file.write(output)
             print("Maze Output:")
             print(output, end="")
+            print(self._controller._config.PERFECT)
             print("Press Enter to continue...")
             while True:
                 self._get_key()

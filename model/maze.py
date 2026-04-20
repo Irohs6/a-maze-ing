@@ -88,6 +88,23 @@ class Maze:
         else:
             raise ValueError(f"Invalid direction: {direction}")
 
+    def add_wall(self, x: int, y: int, direction: str) -> None:
+        """Add a wall in the specified direction for the cell at (x, y)."""
+        if direction == 'N' and y > 0:
+            self.grid[y][x] |= 1
+            self.grid[y - 1][x] |= 4
+        elif direction == 'S' and y < self.height - 1:
+            self.grid[y][x] |= 4
+            self.grid[y + 1][x] |= 1
+        elif direction == 'E' and x < self.width - 1:
+            self.grid[y][x] |= 2
+            self.grid[y][x + 1] |= 8
+        elif direction == 'W' and x > 0:
+            self.grid[y][x] |= 8
+            self.grid[y][x - 1] |= 2
+        else:
+            raise ValueError(f"Invalid direction: {direction}")
+
 #          +------------+ +------------+ +------------+
 #          |    N(1)    | |    N(1)    | |    N(1)    |
 #          | W   y=0  E | | W   y=0  E | | W   y=0  E |

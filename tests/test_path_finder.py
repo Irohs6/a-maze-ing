@@ -70,23 +70,23 @@ def pf_generated() -> PathFinder:
     return PathFinder(gen.get_maze(), entry=(0, 0), exit=(10, 10))
 
 
-# ── find_k_shortest_paths — cas nominal ──────────────────────────────
+# ──._shortest_path as nominal ──────────────────────────────
 
 
 def test_finds_path_in_simple_corridor(pf_corridor: PathFinder) -> None:
-    paths = pf_corridor.find_k_shortest_paths(k=1)
+    paths = pf_corridor._shortest_path()
     assert len(paths) == 1
 
 
 def test_path_contains_entry_and_exit(pf_corridor: PathFinder) -> None:
-    conn = pf_corridor.find_k_shortest_paths(k=1)[0]
+    conn = pf_corridor._shortest_path()[0]
     assert (0, 0) in conn
     assert (2, 0) in conn
 
 
 def test_path_covers_every_cell_of_corridor(pf_corridor: PathFinder) -> None:
     """Le couloir 3×1 → 3 cellules dans le dict de connexions."""
-    conn = pf_corridor.find_k_shortest_paths(k=1)[0]
+    conn = pf_corridor._shortest_path()[0]
     assert len(conn) == 3
 
 
@@ -94,7 +94,7 @@ def test_all_directions_in_connections_are_valid(
     pf_corridor: PathFinder,
 ) -> None:
     """Toutes les directions enregistrées sont dans {N, E, S, W}."""
-    conn = pf_corridor.find_k_shortest_paths(k=1)[0]
+    conn = pf_corridor._shortest_path()[0]
     for dirs in conn.values():
         for d in dirs:
             assert d in ('N', 'E', 'S', 'W')
@@ -102,43 +102,43 @@ def test_all_directions_in_connections_are_valid(
 
 def test_entry_cell_direction_east_only(pf_corridor: PathFinder) -> None:
     """Dans le couloir 3×1, la cellule (0,0) ne sort que vers l'Est."""
-    conn = pf_corridor.find_k_shortest_paths(k=1)[0]
+    conn = pf_corridor._shortest_path()[0]
     assert conn[(0, 0)] == ['E']
 
 
 def test_middle_cell_has_east_and_west(pf_corridor: PathFinder) -> None:
     """La cellule (1,0) communique vers l'Ouest (entrée) et l'Est (sortie)."""
-    conn = pf_corridor.find_k_shortest_paths(k=1)[0]
+    conn = pf_corridor._shortest_path()[0]
     assert conn[(1, 0)] == ['W', 'E']
 
 
 def test_exit_cell_direction_west_only(pf_corridor: PathFinder) -> None:
     """La cellule (2,0) ne vient que de l'Ouest."""
-    conn = pf_corridor.find_k_shortest_paths(k=1)[0]
+    conn = pf_corridor._shortest_path()[0]
     assert conn[(2, 0)] == ['W']
 
 
 def test_vertical_corridor_path_uses_south() -> None:
     """Couloir 1×3 : le chemin emprunte S et S."""
     pf = PathFinder(make_corridor_1x3(), entry=(0, 0), exit=(0, 2))
-    conn = pf.find_k_shortest_paths(k=1)[0]
+    conn = pf._shortest_path()[0]
     assert conn[(0, 0)] == ['S']
     assert conn[(0, 1)] == ['N', 'S']
     assert conn[(0, 2)] == ['N']
 
 
-# ── find_k_shortest_paths — labyrinthe généré ───────────────────────
+# ──._shortest_path abyrinthe généré ───────────────────────
 
 
 def test_finds_path_in_generated_maze(pf_generated: PathFinder) -> None:
-    paths = pf_generated.find_k_shortest_paths(k=1)
+    paths = pf_generated._shortest_path()
     assert len(paths) == 1
 
 
 def test_generated_maze_path_has_entry_and_exit(
     pf_generated: PathFinder,
 ) -> None:
-    conn = pf_generated.find_k_shortest_paths(k=1)[0]
+    conn = pf_generated._shortest_path()[0]
     assert (0, 0) in conn
     assert (10, 10) in conn
 
@@ -150,85 +150,28 @@ def test_generated_maze_path_is_deterministic() -> None:
     maze = gen.get_maze()
     pf_a = PathFinder(maze, entry=(0, 0), exit=(10, 10))
     pf_b = PathFinder(maze, entry=(0, 0), exit=(10, 10))
-    assert pf_a.find_k_shortest_paths(k=1) == pf_b.find_k_shortest_paths(k=1)
+    assert pf_a._shortest_path() == pf_b._shortest_path()
 
-
-# ── find_k_shortest_paths — chemin le plus court ────────────────────
-
-
-def test_shortest_path_length_is_minimal() -> None:
-    """Le couloir 3×1 ne peut avoir qu'un chemin de 2 pas (2 murs retirés)."""
-    maze = make_corridor_3x1()
-    pf = PathFinder(maze, entry=(0, 0), exit=(2, 0))
-    conn = pf.find_k_shortest_paths(k=1)[0]
-    # 3 cellules = chemin de 2 pas
-    assert len(conn) == 3
-
-
-def test_path_not_longer_than_necessary() -> None:
-    """Un labyrinthe avec deux chemins de longueur 4 —
-    les deux sont renvoyés."""
-    maze = make_two_path_maze()
-    pf = PathFinder(maze, entry=(0, 0), exit=(2, 2))
-    paths = pf.find_k_shortest_paths(k=10)
-    # Les deux plus courts chemins font 5 cellules chacun
-    for conn in paths:
-        assert len(conn) == 5
-
-
-# ── find_k_shortest_paths — paramètre k ─────────────────────────────
-
-
-def test_k_limits_results_to_one() -> None:
-    maze = make_two_path_maze()
-    pf = PathFinder(maze, entry=(0, 0), exit=(2, 2))
-    # n_extra=0 : seul le plus court chemin, sans alternatifs
-    assert len(pf.find_k_shortest_paths(k=1, n_extra=0)) == 1
-
-
-def test_k_returns_multiple_paths() -> None:
-    maze = make_two_path_maze()
-    pf = PathFinder(maze, entry=(0, 0), exit=(2, 2))
-    paths = pf.find_k_shortest_paths(k=2)
-    assert len(paths) == 2
-
-
-def test_k_larger_than_available_returns_all() -> None:
-    """Demander k=10 sur un labyrinthe avec 2 chemins → 2 chemins."""
-    maze = make_two_path_maze()
-    pf = PathFinder(maze, entry=(0, 0), exit=(2, 2))
-    assert len(pf.find_k_shortest_paths(k=10)) == 2
-
-
-# ── find_k_shortest_paths — cas limites ──────────────────────────────
+# ──._shortest_path as limites ──────────────────────────────
 
 
 def test_unreachable_exit_returns_empty_list() -> None:
     """Aucun passage dans le labyrinthe → sortie inaccessible."""
     maze = Maze(3, 3)  # todas las celdas value 15, aucun passage
     pf = PathFinder(maze, entry=(0, 0), exit=(2, 2))
-    assert pf.find_k_shortest_paths() == []
+    assert pf._shortest_path() == []
 
 
 def test_entry_equals_exit_returns_single_connection() -> None:
     """Entrée == sortie → un chemin vide mais connexions de l'entrée."""
     maze = make_corridor_3x1()
     pf = PathFinder(maze, entry=(0, 0), exit=(0, 0))
-    paths = pf.find_k_shortest_paths(k=1)
+    paths = pf._shortest_path()
     assert len(paths) == 1
     assert (0, 0) in paths[0]
 
 
-def test_default_k_is_three() -> None:
-    """Sans argument k, find_k_shortest_paths retourne jusqu'à 3 chemins."""
-    maze = make_two_path_maze()
-    pf = PathFinder(maze, entry=(0, 0), exit=(2, 2))
-    # Le labyrinthe n'a que 2 chemins → au plus 2 (< 3)
-    paths = pf.find_k_shortest_paths()
-    assert len(paths) <= 3
-
-
-# ── _build_connections_dict ───────────────────────────────────────────
+# ── _build_connections_dict ─────────────────────────────────────────--
 
 
 def test_build_connections_from_empty_path() -> None:

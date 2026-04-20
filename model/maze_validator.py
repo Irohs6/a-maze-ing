@@ -41,6 +41,7 @@ class MazeValidator:
     def __init__(self, maze: Maze) -> None:
         """Initialize the validator with the maze to validate."""
         self._maze = maze
+        self.errors = []  # Optional: collect error messages for debugging
 
     # ------------------------------------------------------------------
     # Public interface
@@ -52,14 +53,24 @@ class MazeValidator:
         Returns:
             True if every check passes, False on the first failure.
         """
-        return (
-            self._validate_cell_values()
-            and self._validate_maze_boundaries()
-            and self._validate_adjacent_cells()
-            and not self._has_forbidden_open_areas()
-            and self._validate_maze_connectivity()
-            and self._validate_42_pattern()
-        )
+
+        self.errors = []
+        if not self._validate_cell_values():
+            self.errors.append("Cell values must be in the range 0–15.")
+        if not self._validate_maze_boundaries():
+            self.errors.append("Outer borders must have walls.")
+        if not self._validate_adjacent_cells():
+            self.errors.append("Adjacent cells must have symmetric walls.")
+        if self._has_forbidden_open_areas():
+            self.errors.append("Forbidden open area: 3×3 block "
+                               "with no inner walls.")
+        if not self._validate_maze_connectivity():
+            self.errors.append("Maze must be fully connected (except "
+                               "isolated '42' cells).")
+        if not self._validate_42_pattern():
+            self.errors.append("Maze must contain the '42' pattern "
+                               "(or be too small).")
+        return not self.errors  # True if no errors, False if any error exists
 
     # ------------------------------------------------------------------
     # Individual checks

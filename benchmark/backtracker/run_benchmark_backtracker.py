@@ -60,7 +60,7 @@ DEFAULT_SEEDS_PER_SIZE = 10
 def bench_one(width: int, height: int, seed: int) -> dict[str, Any]:
     """Génère un labyrinthe Backtracker et mesure les métriques."""
     maze = Maze(width, height)
-    algo = Backtracker(maze)
+    algo = Backtracker(maze, is_perfect=True)
 
     success = False
     valid = False

@@ -1,24 +1,22 @@
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar
-
+from typing import Any
 from model.maze import Maze
 
 
 class Algorithm(ABC):
-
-    perfect: ClassVar[bool]  # True = perfect maze, False = imperfect
 
     # Pixelated "42" shape — 15 means the cell must be
     # fully isolated (value 15), 0 means it can be carved through.
     # Dimensions: 5 rows × 7 cols
     # ("4" = cols 0-2, gap col 3, "2" = cols 4-6)
 
-    def __init__(self, maze: Maze) -> None:
+    def __init__(self, maze: Maze, is_perfect: bool) -> None:
         self.maze = maze
         self.width = maze.width
         self.height = maze.height
         self.forty_two_cells: set[tuple[int, int]] = set()
         self.forty_two_cells = maze.forty_two_cells
+        self.is_perfect = is_perfect
         self.tracks: list[Any] = []
         self._boundaries: set[tuple[int, int]] = self._get_maze_boundaries()
         self._union = [

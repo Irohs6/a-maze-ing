@@ -1,11 +1,10 @@
 
 import random
-from typing import ClassVar
 from .algorithm import Algorithm
+from model import maze_validator
 
 
 class Kruksal(Algorithm):
-    perfect: 'ClassVar[bool]' = False
     REVERSE: dict[str, str] = {'N': 'S', 'S': 'N', 'E': 'W', 'W': 'E'}
     # Maximum number of global attempts before giving up
 
@@ -80,6 +79,25 @@ class Kruksal(Algorithm):
         """Return the number of walls surrounding cell (x, y) (0–4)."""
         return self.maze.grid[y][x].bit_count()
 
+    def second_loop(self) -> None:
+        """For imperfect mazes, break an additional 15% of the walls
+            that are not part of the 42 shape or borders."""
+
+        _eligible_walls = self._get_eligible_walls()
+        len_to_break = int(len(_eligible_walls) * 0.15)
+        random.shuffle(_eligible_walls)
+        while len_to_break > 0:
+            if not _eligible_walls:
+                break
+            x, y, wall_direction = _eligible_walls.pop()
+            len_to_break -= 1
+            self.maze.remove_wall(x, y, wall_direction)
+            if maze_validator.MazeValidator(self.maze
+                                            )._has_forbidden_open_areas():
+                self.maze.add_wall(x, y, wall_direction)
+                # Revert if it creates a forbidden open area
+            self.tracks.append((x, y, wall_direction))
+
     def generate(self) -> list[tuple[int, int, str]]:
         """Generates the maze using a randomized version
         of Kruskal's algorithm."""
@@ -96,4 +114,9 @@ class Kruksal(Algorithm):
                 self.maze.remove_wall(x, y, wall_direction)
                 self._concatenate_in_union(indexes)
                 self.tracks.append((x, y, wall_direction))
+        if self.is_perfect is False:
+            # Call second loop to break a 15% additional
+            # walls for an imperfect maze
+            self.second_loop()
+
         return self.tracks

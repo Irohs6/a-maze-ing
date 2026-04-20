@@ -15,6 +15,8 @@ class MazeController:
         self._config_file: str = config_file
         self._config: ConfigFile | None = None
         self._generator: MazeGenerator | None = None
+        self._cycle_checker: Cycle_Checker | None = None
+        self._finder: PathFinder | None = None
 
     def _load_config(self) -> None:
         self._config = ConfigFile.parse(self._config_file)
@@ -25,7 +27,8 @@ class MazeController:
             width=self._config.WIDTH,
             height=self._config.HEIGHT,
             seed=self._config.SEED,
-            perfect=self._config.PERFECT
+            perfect=self._config.PERFECT,
+            algorithm=self._config.ALGORITHM
         )
 
     def _create_pathfinder(self):

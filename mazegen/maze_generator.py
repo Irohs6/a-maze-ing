@@ -16,8 +16,15 @@ from typing import Any
 from model.maze import Maze
 from model.maze_validator import MazeValidator
 from .algorithm import Algorithm
+
 from .backtracker import Backtracker
 from .kruksal import Kruksal
+
+# Mapping algorithm name to class
+ALGO_MAP = {
+    "backtracker": Backtracker,
+    "kruksal": Kruksal,
+}
 
 
 class MazeGenerator:
@@ -41,9 +48,10 @@ class MazeGenerator:
         height: int,
         seed: int | None = None,
         perfect: bool = True,
+        algorithm: str = 'backtracker',
     ) -> None:
         """Initialize the maze generator with given parameters."""
-        self.algorithms = [Backtracker, Kruksal]
+        self.algorithm = algorithm
         self.width = width
         self.height = height
         self.seed = seed
@@ -66,17 +74,19 @@ class MazeGenerator:
 
         validator = MazeValidator(self.maze)
         if not validator.validate():
+            # Affiche les erreurs détaillées si disponibles
+            if hasattr(validator, 'errors'):
+                print("Validation errors:", validator.errors)
+            else:
+                print("Validation failed, no error details available.")
             raise ValueError("Generated maze is invalid.")
 
     def _build_algorithm(self) -> Algorithm:
-        """Instantiate the algorithm class based on self.algorithm."""
-        for algorithm in self.algorithms:
-            if self.perfect == algorithm.perfect:
-                return algorithm(self.maze)
-        else:
-            raise ValueError(
-                f"Unsupported algorithm: perfect={self.perfect!r}"
-            )
+        """Instantiate the algorithm class based on self.algorithm name."""
+        algo_cls = ALGO_MAP.get(self.algorithm)
+        if not algo_cls:
+            raise ValueError(f"Unknown algorithm: {self.algorithm}")
+        return algo_cls(self.maze, self.perfect)
 
     def get_maze(self) -> Maze:
         """Return the generated maze."""
