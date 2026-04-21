@@ -10,10 +10,14 @@ Mesure pour chaque taille de labyrinthe :
   - Comportement parfait vs imparfait (nb de chemins retournés)
 
 Usage :
-  python3 benchmark/run_benchmark_pathfinder.py              # benchmark standard
-  python3 benchmark/run_benchmark_pathfinder.py --seeds 20   # 20 seeds par taille
-  python3 benchmark/run_benchmark_pathfinder.py --no-csv     # sans export CSV
-  python3 benchmark/run_benchmark_pathfinder.py --max 201    # taille max 201x201
+  python3 benchmark/run_benchmark_pathfinder.py
+                # benchmark standard
+  python3 benchmark/run_benchmark_pathfinder.py --seeds 20
+     # 20 seeds par taille
+  python3 benchmark/run_benchmark_pathfinder.py --no-csv
+       # sans export CSV
+  python3 benchmark/run_benchmark_pathfinder.py --max 201
+      # taille max 201x201
 
 Résultats exportés dans benchmark/results/benchmark_pf_<timestamp>.csv
 et benchmark/results/benchmark_pf_<timestamp>.md
@@ -21,7 +25,6 @@ et benchmark/results/benchmark_pf_<timestamp>.md
 
 import sys
 import time
-import random
 import csv
 import argparse
 import statistics
@@ -64,7 +67,8 @@ def bench_one(width: int, height: int, seed: int, perfect: bool) -> dict:
 
     # --- Génération ---
     try:
-        gen = MazeGenerator(width=width, height=height, seed=seed, perfect=perfect)
+        gen = MazeGenerator(width=width, height=height,
+                            seed=seed, perfect=perfect)
         gen.generate()
         maze = gen.get_maze()
     except Exception as e:
@@ -127,18 +131,19 @@ def bench_one(width: int, height: int, seed: int, perfect: bool) -> dict:
 # =============================================================================
 
 def aggregate(results: list[dict]) -> dict:
-    ok = [r for r in results if r["gen_ok"] and r["time_shortest_s"] is not None]
+    ok = [r for r in results if r["gen_ok"] and r[
+        "time_shortest_s"] is not None]
     n = len(results)
 
-    times_s  = [r["time_shortest_s"]   for r in ok]
-    times_e  = [r["time_with_extra_s"] for r in ok]
-    lens     = [r["path_len"]          for r in ok if r["path_len"] is not None]
-    visited  = [r["bfs_visited"]       for r in ok if r["bfs_visited"] is not None]
-    alt      = [r["has_alternative"]   for r in ok]
+    times_s = [r["time_shortest_s"] for r in ok]
+    times_e = [r["time_with_extra_s"] for r in ok]
+    lens = [r["path_len"] for r in ok if r["path_len"] is not None]
+    visited = [r["bfs_visited"] for r in ok if r["bfs_visited"] is not None]
+    alt = [r["has_alternative"] for r in ok]
 
     def st(lst): return round(statistics.stdev(lst), 7) if len(lst) > 1 else 0.0
-    def mn(lst): return round(min(lst), 7)              if lst else None
-    def mx(lst): return round(max(lst), 7)              if lst else None
+    def mn(lst): return round(min(lst), 7) if lst else None
+    def mx(lst): return round(max(lst), 7) if lst else None
     def avg(lst): return round(statistics.mean(lst), 4) if lst else None
 
     return {
@@ -168,15 +173,22 @@ SEP = "-" * len(HEADER)
 
 
 def fmt_row(w: int, h: int, mode: str, agg: dict) -> str:
-    size   = f"{w}x{h}"
-    mean   = f"{agg['time_s_mean']:.5f}"   if agg['time_s_mean']   is not None else "   FAIL"
-    mn     = f"{agg['time_s_min']:.5f}"    if agg['time_s_min']    is not None else "   FAIL"
-    mx     = f"{agg['time_s_max']:.5f}"    if agg['time_s_max']    is not None else "   FAIL"
-    sd     = f"{agg['time_s_stdev']:.5f}"  if agg['time_s_mean']   is not None else "   FAIL"
-    extra  = f"{agg['time_e_mean']:.5f}"   if agg['time_e_mean']   is not None else "   FAIL"
-    plen   = f"{agg['path_len_mean']:.0f}" if agg['path_len_mean'] is not None else "      -"
-    vis    = f"{agg['bfs_visited_mean']:.0f}" if agg['bfs_visited_mean'] is not None else "       -"
-    alt    = f"{agg['alt_rate']:.0f}%"
+    size = f"{w}x{h}"
+    mean = f"{agg['time_s_mean']:.5f}" if agg[
+        'time_s_mean'] is not None else "   FAIL"
+    mn = f"{agg['time_s_min']:.5f}" if agg[
+        'time_s_min'] is not None else "   FAIL"
+    mx = f"{agg['time_s_max']:.5f}" if agg[
+        'time_s_max'] is not None else "   FAIL"
+    sd = f"{agg['time_s_stdev']:.5f}" if agg[
+        'time_s_stdev'] is not None else "   FAIL"
+    extra = f"{agg['time_e_mean']:.5f}" if agg[
+        'time_e_mean'] is not None else "   FAIL"
+    plen = f"{agg['path_len_mean']:.0f}" if agg[
+        'path_len_mean'] is not None else "      -"
+    vis = f"{agg['bfs_visited_mean']:.0f}" if agg[
+        'bfs_visited_mean'] is not None else "       -"
+    alt = f"{agg['alt_rate']:.0f}%"
     return (
         f"{size:>9} | {mode:>9} | {agg['n_runs']:>4} | "
         f"{mean:>9} | {mn:>9} | {mx:>9} | {sd:>9} | "
@@ -210,28 +222,38 @@ def export_markdown(
         "# Benchmark PathFinder — A-Maze-ing",
         "",
         f"> Généré le {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}  ",
-        f"> Seeds par taille : **{n_seeds}** | Taille max : **{max_size}×{max_size}**  ",
+        f"> Seeds par taille : **{n_seeds}** | Taille max : **{
+            max_size}×{max_size}**  ",
         f"> Durée totale du benchmark : **{total_elapsed:.2f}s**",
         "",
         "## Résultats par taille",
         "",
-        "| Taille | Mode | Runs | Moy(s) | Min(s) | Max(s) | StdDev | +Extra(s) | PathLen | BFSvisit | Alt% |",
-        "|--------|------|------|--------|--------|--------|--------|-----------|---------|----------|------|",
+        "| Taille | Mode | Runs | Moy(s) | Min(s) | Max(s) | StdDev |"
+        " +Extra(s) | PathLen | BFSvisit | Alt% |",
+        "|--------|------|------|--------|--------|--------|--------|"
+        "-----------|---------|----------|------|",
     ]
 
     for w, h, mode, agg in summary_rows:
-        size   = f"{w}×{h}"
-        mean   = f"{agg['time_s_mean']:.5f}"   if agg['time_s_mean']   is not None else "—"
-        mn     = f"{agg['time_s_min']:.5f}"    if agg['time_s_min']    is not None else "—"
-        mx     = f"{agg['time_s_max']:.5f}"    if agg['time_s_max']    is not None else "—"
-        sd     = f"{agg['time_s_stdev']:.5f}"  if agg['time_s_mean']   is not None else "—"
-        extra  = f"{agg['time_e_mean']:.5f}"   if agg['time_e_mean']   is not None else "—"
-        plen   = f"{agg['path_len_mean']:.0f}" if agg['path_len_mean'] is not None else "—"
-        vis    = f"{agg['bfs_visited_mean']:.0f}" if agg['bfs_visited_mean'] is not None else "—"
-        alt    = f"{agg['alt_rate']:.0f}%"
+        size = f"{w}×{h}"
+        mean = f"{agg['time_s_mean']:.5f}" if agg[
+            'time_s_mean'] is not None else "—"
+        mn = f"{agg['time_s_min']:.5f}" if agg[
+            'time_s_min'] is not None else "—"
+        mx = f"{agg['time_s_max']:.5f}" if agg[
+            'time_s_max'] is not None else "—"
+        sd = f"{agg['time_s_stdev']:.5f}" if agg[
+            'time_s_stdev'] is not None else "—"
+        extra = f"{agg['time_e_mean']:.5f}" if agg[
+            'time_e_mean'] is not None else "—"
+        plen = f"{agg['path_len_mean']:.0f}" if agg[
+            'path_len_mean'] is not None else "—"
+        vis = f"{agg['bfs_visited_mean']:.0f}" if agg[
+            'bfs_visited_mean'] is not None else "—"
+        alt = f"{agg['alt_rate']:.0f}%"
         lines.append(
-            f"| {size} | {mode} | {agg['n_runs']} | {mean} | {mn} | {mx} | {sd} | "
-            f"{extra} | {plen} | {vis} | {alt} |"
+            f"| {size} | {mode} | {agg['n_runs']} | {mean} | {mn} | {mx} "
+            f"| {sd} | {extra} | {plen} | {vis} | {alt} |"
         )
 
     lines += [
@@ -239,10 +261,12 @@ def export_markdown(
         "## Légende",
         "",
         "- **Moy/Min/Max(s)** : temps du BFS pour 1 plus court chemin",
-        "- **+Extra(s)** : temps du BFS + recherche DFS de 2 chemins alternatifs",
+        "- **+Extra(s)** : temps du BFS + recherche DFS "
+        "de 2 chemins alternatifs",
         "- **PathLen** : nombre de cellules dans le chemin solution",
         "- **BFSvisit** : nombre de cellules visitées par le BFS",
-        "- **Alt%** : pourcentage de runs où au moins 1 chemin alternatif a été trouvé",
+        "- **Alt%** : pourcentage de runs où au moins"
+        " 1 chemin alternatif a été trouvé",
         "  - Alt% ≈ 0% → labyrinthe parfait (un seul chemin)",
         "  - Alt% > 0% → labyrinthe imparfait (plusieurs chemins possibles)",
         "",
@@ -291,7 +315,8 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    sizes = [(w, h) for (w, h) in DEFAULT_SIZES if w <= args.max and h <= args.max]
+    sizes = [(w, h) for (w, h) in DEFAULT_SIZES
+             if w <= args.max and h <= args.max]
     seeds = list(range(1, args.seeds + 1))
 
     modes: list[tuple[str, bool]] = []
@@ -306,8 +331,9 @@ def main() -> None:
 
     total_runs = len(sizes) * len(seeds) * len(modes)
     print(f"\n{'='*len(HEADER)}")
-    print(f"  BENCHMARK PATHFINDER — A-Maze-ing")
-    print(f"  Tailles : {len(sizes)} | Seeds/taille : {args.seeds} | Modes : {len(modes)} | Total runs : {total_runs}")
+    print("  BENCHMARK PATHFINDER — A-Maze-ing")
+    print(f"  Tailles : {len(sizes)} | Seeds/taille : {args.seeds} |"
+          f" Modes : {len(modes)} | Total runs : {total_runs}")
     print(f"{'='*len(HEADER)}\n")
     print(HEADER)
     print(SEP)
@@ -324,7 +350,8 @@ def main() -> None:
                 all_raw.append(r)
                 size_results.append(r)
                 if not r["gen_ok"]:
-                    print(f"  !! {w}x{h} {mode_name} seed={seed} FAIL: {r['error']}")
+                    print(f"  !! {w}x{h} {mode_name} seed={seed} FAIL: "
+                          f"{r['error']}")
 
             agg = aggregate(size_results)
             summary_rows.append((w, h, mode_name, agg))
@@ -347,7 +374,8 @@ def main() -> None:
     # Résumé Alt% par mode
     print("\n--- Résumé Alt% (validation parfait/imparfait) ---")
     for w, h, mode_name, agg in summary_rows:
-        perfect_flag = "✓ parfait" if agg["alt_rate"] == 0.0 else f"~ imparfait (alt={agg['alt_rate']:.0f}%)"
+        perfect_flag = "✓ parfait" if agg[
+            "alt_rate"] == 0.0 else f"~ imparfait (alt={agg['alt_rate']:.0f}%)"
         print(f"  {w:>3}x{h:<3} [{mode_name:>9}] → {perfect_flag}")
 
 

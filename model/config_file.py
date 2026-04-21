@@ -28,8 +28,8 @@ class ConfigFile(BaseModel):
 
     @field_validator("ALGORITHM")
     @classmethod
-    def normalize_algorithm(cls, v):
-        return v.lower()
+    def normalize_algorithm(cls, value: str) -> str:
+        return value.lower()
 
     @model_validator(mode="after")
     def validate_entry_exit_bounds(self) -> "ConfigFile":

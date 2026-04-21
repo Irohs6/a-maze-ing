@@ -1,7 +1,6 @@
 
 import random
 from .algorithm import Algorithm
-from model import maze_validator
 
 
 class Kruksal(Algorithm):

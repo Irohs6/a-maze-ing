@@ -74,19 +74,19 @@ def pf_generated() -> PathFinder:
 
 
 def test_finds_path_in_simple_corridor(pf_corridor: PathFinder) -> None:
-    paths = pf_corridor._shortest_path()
+    paths: list[dict[tuple[int, int], list[str]]] = pf_corridor._shortest_path()
     assert len(paths) == 1
 
 
 def test_path_contains_entry_and_exit(pf_corridor: PathFinder) -> None:
-    conn = pf_corridor._shortest_path()[0]
+    conn: dict[tuple[int, int], list[str]] = pf_corridor._shortest_path()[0]
     assert (0, 0) in conn
     assert (2, 0) in conn
 
 
 def test_path_covers_every_cell_of_corridor(pf_corridor: PathFinder) -> None:
     """Le couloir 3×1 → 3 cellules dans le dict de connexions."""
-    conn = pf_corridor._shortest_path()[0]
+    conn: dict[tuple[int, int], list[str]] = pf_corridor._shortest_path()[0]
     assert len(conn) == 3
 
 
@@ -94,7 +94,7 @@ def test_all_directions_in_connections_are_valid(
     pf_corridor: PathFinder,
 ) -> None:
     """Toutes les directions enregistrées sont dans {N, E, S, W}."""
-    conn = pf_corridor._shortest_path()[0]
+    conn: dict[tuple[int, int], list[str]] = pf_corridor._shortest_path()[0]
     for dirs in conn.values():
         for d in dirs:
             assert d in ('N', 'E', 'S', 'W')
@@ -102,26 +102,26 @@ def test_all_directions_in_connections_are_valid(
 
 def test_entry_cell_direction_east_only(pf_corridor: PathFinder) -> None:
     """Dans le couloir 3×1, la cellule (0,0) ne sort que vers l'Est."""
-    conn = pf_corridor._shortest_path()[0]
+    conn: dict[tuple[int, int], list[str]] = pf_corridor._shortest_path()[0]
     assert conn[(0, 0)] == ['E']
 
 
 def test_middle_cell_has_east_and_west(pf_corridor: PathFinder) -> None:
     """La cellule (1,0) communique vers l'Ouest (entrée) et l'Est (sortie)."""
-    conn = pf_corridor._shortest_path()[0]
+    conn: dict[tuple[int, int], list[str]] = pf_corridor._shortest_path()[0]
     assert conn[(1, 0)] == ['W', 'E']
 
 
 def test_exit_cell_direction_west_only(pf_corridor: PathFinder) -> None:
     """La cellule (2,0) ne vient que de l'Ouest."""
-    conn = pf_corridor._shortest_path()[0]
+    conn: dict[tuple[int, int], list[str]] = pf_corridor._shortest_path()[0]
     assert conn[(2, 0)] == ['W']
 
 
 def test_vertical_corridor_path_uses_south() -> None:
     """Couloir 1×3 : le chemin emprunte S et S."""
     pf = PathFinder(make_corridor_1x3(), entry=(0, 0), exit=(0, 2))
-    conn = pf._shortest_path()[0]
+    conn: dict[tuple[int, int], list[str]] = pf._shortest_path()[0]
     assert conn[(0, 0)] == ['S']
     assert conn[(0, 1)] == ['N', 'S']
     assert conn[(0, 2)] == ['N']
@@ -131,14 +131,14 @@ def test_vertical_corridor_path_uses_south() -> None:
 
 
 def test_finds_path_in_generated_maze(pf_generated: PathFinder) -> None:
-    paths = pf_generated._shortest_path()
+    paths: list[dict[tuple[int, int], list[str]]] = pf_generated._shortest_path()
     assert len(paths) == 1
 
 
 def test_generated_maze_path_has_entry_and_exit(
     pf_generated: PathFinder,
 ) -> None:
-    conn = pf_generated._shortest_path()[0]
+    conn: dict[tuple[int, int], list[str]] = pf_generated._shortest_path()[0]
     assert (0, 0) in conn
     assert (10, 10) in conn
 

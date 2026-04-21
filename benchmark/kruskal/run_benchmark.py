@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-benchmark/run_benchmark.py — Benchmark complet de l'algorithme Kruskal (A-Maze-ing).
+benchmark/run_benchmark.py — Benchmark complet de
+l'algorithme Kruskal (A-Maze-ing).
 
 Mesure pour chaque taille de labyrinthe :
   - Temps de génération moyen / min / max
@@ -20,7 +21,6 @@ et benchmark/results/benchmark_<timestamp>.md
 """
 
 import sys
-import os
 import time
 import random
 import csv
@@ -34,7 +34,6 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from mazegen.kruksal import Kruksal
-from mazegen.maze_generator import MazeGenerator
 from model.maze import Maze
 from model.maze_validator import MazeValidator
 
@@ -166,24 +165,25 @@ def bench_one(width: int, height: int, seed: int, timeout: float
 def aggregate(results: list[dict]) -> dict:
     """Calcule les statistiques agrégées pour un ensemble de runs."""
     successes = [r for r in results if r["success"]]
-    failures  = [r for r in results if not r["success"]]
+    failures = [r for r in results if not r["success"]]
     n = len(results)
 
-    times  = [r["elapsed_s"] for r in successes]
+    times = [r["elapsed_s"] for r in successes]
     tracks = [r["track_len"] for r in successes]
-    loops  = [r["second_loop_calls"] for r in successes]
+    loops = [r["second_loop_calls"] for r in successes]
 
     return {
-        "n_runs":         n,
-        "n_success":      len(successes),
-        "n_failure":      len(failures),
-        "success_rate":   round(len(successes) / n * 100, 1) if n else 0,
-        "time_mean":      round(statistics.mean(times),   6) if times else None,
-        "time_min":       round(min(times),               6) if times else None,
-        "time_max":       round(max(times),               6) if times else None,
-        "time_stdev":     round(statistics.stdev(times),  6) if len(times) > 1 else 0,
-        "track_mean":     round(statistics.mean(tracks),  1) if tracks else None,
-        "loops_mean":     round(statistics.mean(loops),   2) if loops else None,
+        "n_runs":        n,
+        "n_success":     len(successes),
+        "n_failure":     len(failures),
+        "success_rate":  round(len(successes) / n * 100, 1) if n else 0,
+        "time_mean":     round(statistics.mean(times),   6) if times else None,
+        "time_min":      round(min(times),               6) if times else None,
+        "time_max":      round(max(times),               6) if times else None,
+        "time_stdev":    round(statistics.stdev(times),  6) if len(times
+                                                                   ) > 1 else 0,
+        "track_mean":    round(statistics.mean(tracks),  1) if tracks else None,
+        "loops_mean":    round(statistics.mean(loops),   2) if loops else None,
     }
 
 
@@ -202,12 +202,15 @@ SEP = "-" * len(HEADER)
 def fmt_row(w: int, h: int, agg: dict) -> str:
     size = f"{w}x{h}"
     rate = f"{agg['success_rate']:.1f}"
-    mean = f"{agg['time_mean']:.4f}" if agg['time_mean'] is not None else "  FAIL"
-    mn   = f"{agg['time_min']:.4f}"  if agg['time_min']  is not None else "  FAIL"
-    mx   = f"{agg['time_max']:.4f}"  if agg['time_max']  is not None else "  FAIL"
-    sd   = f"{agg['time_stdev']:.4f}"if agg['time_mean'] is not None else "  FAIL"
-    trk  = f"{agg['track_mean']:.0f}" if agg['track_mean'] is not None else "  FAIL"
-    lp   = f"{agg['loops_mean']:.1f}" if agg['loops_mean'] is not None else "  FAIL"
+    mean = f"{agg['time_mean']:.4f}" if agg[
+        'time_mean'] is not None else "  FAIL"
+    mn = f"{agg['time_min']:.4f}" if agg['time_min'] is not None else "  FAIL"
+    mx = f"{agg['time_max']:.4f}" if agg['time_max'] is not None else "  FAIL"
+    sd = f"{agg['time_stdev']:.4f}"if agg['time_mean'] is not None else "  FAIL"
+    trk = f"{agg['track_mean']:.0f}" if agg[
+        'track_mean'] is not None else "  FAIL"
+    lp = f"{agg['loops_mean']:.1f}" if agg[
+        'loops_mean'] is not None else "  FAIL"
     return (
         f"{size:>9} | {agg['n_runs']:>4} | {agg['n_success']:>4} | "
         f"{agg['n_failure']:>4} | {rate:>6} | {mean:>8} | {mn:>8} | "
@@ -237,26 +240,33 @@ def export_markdown(summary_rows: list[tuple], path: Path,
         "# Benchmark Kruskal — A-Maze-ing",
         "",
         f"> Généré le {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}  ",
-        f"> Seeds par taille : **{n_seeds}** | Taille max : **{max_size}×{max_size}**  ",
+        f"> Seeds par taille : **{n_seeds}** | Taille max : **{
+            max_size}×{max_size}**  ",
         f"> Durée totale du benchmark : **{total_elapsed:.2f}s**",
         "",
         "## Résultats par taille",
         "",
-        "| Taille | Runs | Succès | Échecs | Taux% | Moy(s) | Min(s) | Max(s) | StdDev | Track moy | Loops moy |",
-        "|--------|------|--------|--------|-------|--------|--------|--------|--------|-----------|-----------|",
+        "| Taille | Runs | Succès | Échecs | Taux% | Moy(s) | Min(s) | Max(s) |"
+        " StdDev | Track moy | Loops moy |",
+        "|--------|------|--------|--------|-------|--------|--------|--------|"
+        "--------|-----------|-----------|",
     ]
     for w, h, agg in summary_rows:
         size = f"{w}×{h}"
         rate = f"{agg['success_rate']:.1f}"
-        mean = f"{agg['time_mean']:.4f}" if agg['time_mean'] is not None else "—"
-        mn   = f"{agg['time_min']:.4f}"  if agg['time_min']  is not None else "—"
-        mx   = f"{agg['time_max']:.4f}"  if agg['time_max']  is not None else "—"
-        sd   = f"{agg['time_stdev']:.4f}"if agg['time_mean'] is not None else "—"
-        trk  = f"{agg['track_mean']:.0f}" if agg['track_mean'] is not None else "—"
-        lp   = f"{agg['loops_mean']:.1f}" if agg['loops_mean'] is not None else "—"
+        mean = f"{agg['time_mean']:.4f}" if agg[
+            'time_mean'] is not None else "—"
+        mn = f"{agg['time_min']:.4f}" if agg['time_min'] is not None else "—"
+        mx = f"{agg['time_max']:.4f}" if agg['time_max'] is not None else "—"
+        sd = f"{agg['time_stdev']:.4f}"if agg['time_mean'] is not None else "—"
+        trk = f"{agg['track_mean']:.0f}" if agg[
+            'track_mean'] is not None else "—"
+        lp = f"{agg['loops_mean']:.1f}" if agg[
+            'loops_mean'] is not None else "—"
         lines.append(
             f"| {size} | {agg['n_runs']} | {agg['n_success']} | "
-            f"{agg['n_failure']} | {rate} | {mean} | {mn} | {mx} | {sd} | {trk} | {lp} |"
+            f"{agg['n_failure']} | {rate} | {mean} | {mn} | {mx} "
+            f"| {sd} | {trk} | {lp} |"
         )
 
     # Find tipping point (first size with time_mean > 1s)
@@ -268,13 +278,16 @@ def export_markdown(summary_rows: list[tuple], path: Path,
         "## Notes d'interprétation",
         "",
         "- **Track** : nombre total d'ouvertures de murs effectuées",
-        "- **Loops moy** : nombre moyen d'itérations de `_second_loop` pour corriger la connectivité",
-        "- **Taux%** : pourcentage de seeds qui ont produit un labyrinthe valide en ≤ 30 tentatives globales",
+        "- **Loops moy** : nombre moyen d'itérations de "
+        "`_second_loop` pour corriger la connectivité",
+        "- **Taux%** : pourcentage de seeds qui ont "
+        "produit un labyrinthe valide en ≤ 30 tentatives globales",
         "",
     ]
     if slow_sizes:
         slow_str = ", ".join(f"{w}×{h}" for w, h in slow_sizes[:3])
-        lines.append(f"> ⚠️ Tailles lentes (>1s en moyenne) : **{slow_str}** — déconseillées pour un usage interactif.")
+        lines.append(f"> ⚠️ Tailles lentes (>1s en moyenne) : **{slow_str}** "
+                     "— déconseillées pour un usage interactif.")
     else:
         lines.append("> ✅ Toutes les tailles testées sont < 1s en moyenne.")
 
@@ -309,7 +322,8 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    sizes = [(w, h) for (w, h) in DEFAULT_SIZES if w <= args.max and h <= args.max]
+    sizes = [(w, h) for (w, h) in DEFAULT_SIZES
+             if w <= args.max and h <= args.max]
     n_seeds = args.seeds
     seeds = list(range(1, n_seeds + 1))
 
@@ -318,8 +332,9 @@ def main() -> None:
     results_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"\n{'='*72}")
-    print(f"  BENCHMARK KRUSKAL — A-Maze-ing")
-    print(f"  Tailles : {len(sizes)} | Seeds/taille : {n_seeds} | Total runs : {len(sizes)*n_seeds}")
+    print("  BENCHMARK KRUSKAL — A-Maze-ing")
+    print(f"  Tailles : {len(sizes)} | Seeds/taille : {n_seeds} "
+          f"| Total runs : {len(sizes)*n_seeds}")
     print(f"  Timeout par run : {args.timeout}s")
     print(f"{'='*72}\n")
     print(HEADER)
@@ -362,7 +377,8 @@ def main() -> None:
     # Résumé des limites
     print("\n--- Résumé des limites ---")
     for w, h, agg in summary_rows:
-        if agg["n_failure"] > 0 or (agg["time_mean"] is not None and agg["time_mean"] > 1.0):
+        if agg["n_failure"] > 0 or (agg["time_mean"]
+                                    is not None and agg["time_mean"] > 1.0):
             status = []
             if agg["n_failure"] > 0:
                 status.append(f"{agg['n_failure']} échec(s)")

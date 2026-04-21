@@ -6,7 +6,7 @@ class Cycle_Checker:
         self.maze = maze
 
     def has_cycle(self) -> bool:
-       
+
         widht = self.maze.width
         height = self.maze.height
 

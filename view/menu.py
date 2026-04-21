@@ -37,13 +37,13 @@ class Menu:
         self.len_menu = [3, 8]
         self.current_menu = 0
 
-    def _update_objects(self):
+    def _update_objects(self) -> None:
         self._controller._create_gen()
         self._controller._create_pathfinder()
         self._controller._create_cycles_checker()
         self._controller._create_view()
 
-    def _get_key(self):
+    def _get_key(self) -> None:
         try:
             tty.setraw(self.fd)
             self.input = sys.stdin.read(1)
@@ -52,13 +52,13 @@ class Menu:
         finally:
             termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old)
 
-    def _move(self):
+    def _move(self) -> None:
         if self.input == "\x1b[A":
             self.index = (self.index - 1) % self.len_menu[self.current_menu]
         elif self.input == "\x1b[B":
             self.index = (self.index + 1) % self.len_menu[self.current_menu]
 
-    def _print_base_menu(self):
+    def _print_base_menu(self) -> None:
         print("╭" + "─" * 30 + "╮")
         print(
             "│" + f"{Fore.YELLOW}A-Maze-Ing{Style.RESET_ALL}".center(39) + "│"
@@ -76,7 +76,7 @@ class Menu:
             print("│")
         print("╰" + "─" * 30 + "╯")
 
-    def _print_settings_menu(self):
+    def _print_settings_menu(self) -> None:
         print("╭" + "─" * 40 + "╮")
         print("│" + f"{Fore.RED}Settings{Style.RESET_ALL}".center(49) + "│")
         print("├" + "─" * 40 + "┤")
@@ -102,12 +102,12 @@ class Menu:
             print("│")
         print("╰" + "─" * 40 + "╯")
 
-    def _ask_for_value(self, value: str):
+    def _ask_for_value(self, value: str) -> None:
         print("╭" + "─" * 30 + "╮")
         print("│" + value.center(30) + "│" + " :")
         print("╰" + "─" * 30 + "╯")
 
-    def _change_setting(self):
+    def _change_setting(self) -> None:
         try:
             field = self.SETTINGS_FIELDS[self.index]
             if self.index < 2:
@@ -175,7 +175,7 @@ class Menu:
             self.copy_config = deepcopy(self._controller._config)
             self._update_objects()
 
-    def _settings_menu(self):
+    def _settings_menu(self) -> None:
         try:
             while True:
                 print("\033[?25l", end="")
@@ -195,7 +195,7 @@ class Menu:
             self.index = 1
             self.current_menu = 0
 
-    def _execute(self):
+    def _execute(self) -> None:
         if self.index == 0:
             self._controller._generator.generate()
             tracks = self._controller._generator.tracks
@@ -229,7 +229,7 @@ class Menu:
             self.current_menu = 1
             self._settings_menu()
 
-    def _run(self):
+    def _run(self) -> None:
         try:
             while True:
                 print("\033[?25l", end="")

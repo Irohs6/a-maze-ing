@@ -130,7 +130,8 @@ class PathFinder:
             return None
         while pred[cell] is not None:
             prev = pred[cell]
-
+            if prev is None:
+                break
             prev_cell, direction = prev
             path.append(direction)
             cell = prev_cell

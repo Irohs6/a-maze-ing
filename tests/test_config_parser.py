@@ -102,7 +102,8 @@ def test_file_not_found() -> None:
     "WIDTH", "HEIGHT", "ENTRY", "EXIT", "OUTPUT_FILE", "PERFECT"
 ])
 def test_missing_required_key(tmp_path: Path, missing_key: str) -> None:
-    lines = [l for l in VALID.splitlines() if not l.startswith(missing_key)]
+    lines = [line for line in VALID.splitlines()
+             if not line.startswith(missing_key)]
     with pytest.raises(KeyError, match="has not properly been defined"):
         ConfigFile.parse(make_config(tmp_path, "\n".join(lines)))
 

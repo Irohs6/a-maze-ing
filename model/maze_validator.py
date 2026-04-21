@@ -41,7 +41,8 @@ class MazeValidator:
     def __init__(self, maze: Maze) -> None:
         """Initialize the validator with the maze to validate."""
         self._maze = maze
-        self.errors = []  # Optional: collect error messages for debugging
+        self.errors: list[str] = []  # Optional: collect error
+                                     # messages for debugging
 
     # ------------------------------------------------------------------
     # Public interface

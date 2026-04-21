@@ -32,7 +32,7 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _load_config(path: str) -> dict:
+def _load_config(path: str) -> dict[str, any]:
     """Reads the JSON config file and then deletes the file."""
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -79,7 +79,7 @@ def _show_hint(end_row: int) -> None:
     sys.stdout.flush()
 
 
-def _run_interaction(cfg: dict, initial_theme_idx: int,
+def _run_interaction(cfg: dict[str, any], initial_theme_idx: int,
                      solution_cells: list[tuple[int, int, set[str]]],
                      entry: tuple, exit_pos: tuple,) -> None:
     """Keyboard interaction loop.

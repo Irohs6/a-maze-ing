@@ -34,24 +34,24 @@ def gen_kruskal() -> MazeGenerator:
 
 
 def test_init_default_perfect() -> None:
-    gen = MazeGenerator(width=5, height=5)
+    gen = MazeGenerator(width=5, height=5, perfect=True)
     assert gen.perfect is True
 
 
 def test_init_stores_dimensions() -> None:
-    gen = MazeGenerator(width=8, height=6)
+    gen = MazeGenerator(width=8, height=6, perfect=True)
     assert gen.width == 8
     assert gen.height == 6
 
 
 def test_init_stores_seed() -> None:
-    gen = MazeGenerator(width=5, height=5, seed=99)
+    gen = MazeGenerator(width=5, height=5, seed=99, perfect=True)
     assert gen.seed == 99
 
 
 def test_init_track_and_cells_empty() -> None:
-    gen = MazeGenerator(width=5, height=5)
-    assert gen.track == []
+    gen = MazeGenerator(width=5, height=5, perfect=True)
+    assert gen.tracks == []
     assert gen.forty_two_cells == set()
 
 
@@ -77,7 +77,7 @@ def test_generate_backtracker_dimensions(
 def test_generate_backtracker_track_nonempty(
         gen_backtracker: MazeGenerator) -> None:
     gen_backtracker.generate()
-    assert len(gen_backtracker.track) > 0
+    assert len(gen_backtracker.tracks) > 0
 
 
 def test_generate_backtracker_maze_is_valid(
@@ -112,7 +112,7 @@ def test_generate_kruskal_dimensions(gen_kruskal: MazeGenerator) -> None:
 
 def test_generate_kruskal_track_nonempty(gen_kruskal: MazeGenerator) -> None:
     gen_kruskal.generate()
-    assert len(gen_kruskal.track) > 0
+    assert len(gen_kruskal.tracks) > 0
 
 
 def test_generate_kruskal_maze_is_valid(gen_kruskal: MazeGenerator) -> None:
@@ -221,9 +221,9 @@ def test_small_maze_is_still_valid() -> None:
 def test_reset_clears_track_and_maze() -> None:
     gen = MazeGenerator(width=11, height=11, seed=1, perfect=True)
     gen.generate()
-    assert len(gen.track) > 0
+    assert len(gen.tracks) > 0
     gen.reset()
-    assert gen.track == []
+    assert gen.tracks == []
     assert gen.solution_path is None
 
 
@@ -235,4 +235,3 @@ def test_reset_allows_regeneration() -> None:
     gen.generate()
     second_grid = gen.get_maze().grid
     assert first_grid != second_grid
-
