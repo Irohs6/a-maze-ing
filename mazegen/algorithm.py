@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any
 from model.maze import Maze
+from model import maze_validator
+import random
 
 
 class Algorithm(ABC):
@@ -55,3 +57,37 @@ class Algorithm(ABC):
             boundaries.add((0, y))
             boundaries.add((self.width - 1, y))
         return boundaries
+
+    def _get_eligible_walls(self) -> list[tuple[int, int, str]]:
+        self._eligible_walls = []
+        directions = ["N", "E", "S", "W"]
+        for y in range(self.height):
+            for x in range(self.width):
+                for direction in directions:
+                    if (
+                        self._get_direction_neighbor(x, y, direction)
+                        not in self.forty_two_cells
+                        and not self.maze._is_border_wall(x, y, direction)
+                        and (x, y) not in self.forty_two_cells
+                    ):
+                        self._eligible_walls.append((x, y, direction))
+        return self._eligible_walls
+
+    def second_loop(self) -> None:
+        """For imperfect mazes, break an additional 15% of the walls
+            that are not part of the 42 shape or borders."""
+
+        _eligible_walls = self._get_eligible_walls()
+        len_to_break = int(len(_eligible_walls) * 0.15)
+        random.shuffle(_eligible_walls)
+        while len_to_break > 0:
+            if not _eligible_walls:
+                break
+            x, y, wall_direction = _eligible_walls.pop()
+            len_to_break -= 1
+            self.maze.remove_wall(x, y, wall_direction)
+            if maze_validator.MazeValidator(self.maze
+                                            )._has_forbidden_open_areas():
+                self.maze.add_wall(x, y, wall_direction)
+                # Revert if it creates a forbidden open area
+            self.tracks.append((x, y, wall_direction))

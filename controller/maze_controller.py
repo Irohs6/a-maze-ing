@@ -26,8 +26,8 @@ class MazeController:
         self._generator = MazeGenerator(
             width=self._config.WIDTH,
             height=self._config.HEIGHT,
-            seed=self._config.SEED,
             perfect=self._config.PERFECT,
+            seed=self._config.SEED,
             algorithm=self._config.ALGORITHM
         )
 

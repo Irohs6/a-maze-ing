@@ -58,4 +58,9 @@ class Backtracker(Algorithm):
                 stack.append((nx, ny))
                 self.tracks.append((x, y, direction))
 
+        if self.is_perfect is False:
+            # Call second loop to break a 15% additional
+            # walls for an imperfect maze
+            self.second_loop()
+
         return self.tracks

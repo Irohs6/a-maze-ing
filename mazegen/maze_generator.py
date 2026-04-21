@@ -46,8 +46,8 @@ class MazeGenerator:
         self,
         width: int,
         height: int,
+        perfect: bool,
         seed: int | None = None,
-        perfect: bool = True,
         algorithm: str = 'backtracker',
     ) -> None:
         """Initialize the maze generator with given parameters."""

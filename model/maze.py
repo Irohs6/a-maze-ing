@@ -174,3 +174,12 @@ class Maze:
                     self.forty_two_cells.add((x, y))
 
         return self.forty_two_cells
+
+    def count_walls(self) -> int:
+        """Count the total number of walls in the maze."""
+        total_walls = 0
+        for row in self.grid:
+            for cell in row:
+                # Count the number of set bits (walls) in the cell
+                total_walls += bin(cell).count('1')
+        return total_walls

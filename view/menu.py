@@ -217,7 +217,7 @@ class Menu:
                 file.write(output)
             print("Maze Output:")
             print(output, end="")
-            print(self._controller._config.PERFECT)
+            print(is_perfect)
             print("Press Enter to continue...")
             while True:
                 self._get_key()
