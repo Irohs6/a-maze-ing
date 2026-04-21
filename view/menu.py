@@ -25,6 +25,7 @@ class Menu:
         "OUTPUT_FILE",
         "PERFECT",
         "SEED",
+        "ALGORITHM"
     ]
 
     def __init__(self, controller: MazeController):
@@ -34,7 +35,7 @@ class Menu:
         self.old = termios.tcgetattr(self.fd)
         self.input = None
         self.index = 0
-        self.len_menu = [3, 8]
+        self.len_menu = [3, 9]
         self.current_menu = 0
 
     def _update_objects(self) -> None:
@@ -86,16 +87,19 @@ class Menu:
                 f"Height (current: {self._controller._config.HEIGHT})",
                 f"Entry (current:  {self._controller._config.ENTRY})",
                 f"Exit (current: {self._controller._config.EXIT})",
-                "Output File (current:"
+                "Output File (current: "
                 f"{self._controller._config.OUTPUT_FILE})",
                 f"Perfect (current: {self._controller._config.PERFECT})",
                 f"Seed (current:  {self._controller._generator.seed})",
+                f"Algorithm (current: {self._controller._config.ALGORITHM})",
                 "Go  Back",
             ]
         ):
             center = 40
             print("│", end="")
             if i == self.index:
+                if len(option) % 2 == 1:
+                    option += " "
                 center = 49
                 option = Back.RED + option + Style.RESET_ALL
             print(option.center(center), end="")
@@ -153,7 +157,7 @@ class Menu:
                 perfect_bool = click.confirm(" ")
                 setattr(self._controller._config, field, perfect_bool)
             elif self.index == 6:
-                self._ask_for_value(f"Enter {field} (optional)")
+                self._ask_for_value(f"Enter {field}")
                 seed = click.prompt(
                     " ",
                     prompt_suffix="",
@@ -161,6 +165,14 @@ class Menu:
                     default=time.time_ns(),
                 )
                 setattr(self._controller._config, field, seed)
+            elif self.index == 7:
+                self._ask_for_value(f"Choose {field}")
+                algo = click.prompt(
+                    " ", prompt_suffix="",
+                    type=click.Choice(["kruksal", "backtracker"],
+                                      case_sensitive=False)
+                )
+                setattr(self._controller._config, field, algo)
         except ValidationError as error:
             self._controller._config = deepcopy(self.copy_config)
             print(error)
@@ -184,7 +196,7 @@ class Menu:
                 if self.input.startswith("\x1b"):
                     self._move()
                 elif self.input == "\r":
-                    if self.index == 7:
+                    if self.index == 8:
                         break
                     else:
                         print("\033[?25h", end="")
@@ -213,11 +225,16 @@ class Menu:
                 output += directions[-1]
             output = output[:-1]
             output += "\n"
-            with open(self._controller._config.OUTPUT_FILE, "w") as file:
-                file.write(output)
             print("Maze Output:")
             print(output, end="")
             print(is_perfect)
+            try:
+                with open(self._controller._config.OUTPUT_FILE, "w") as file:
+                    file.write(output)
+            except PermissionError:
+                print(Fore.RED +
+                      "Error: You don't have the permission to write in the "
+                      "output file" + Style.RESET_ALL)
             print("Press Enter to continue...")
             while True:
                 self._get_key()

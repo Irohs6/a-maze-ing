@@ -7,16 +7,19 @@ class Cycle_Checker:
 
     def has_cycle(self) -> bool:
 
-        widht = self.maze.width
+        width = self.maze.width
         height = self.maze.height
 
-        nodes = widht * height
+        nodes = width * height - len(self.maze.forty_two_cells)
         edges = 0
 
         for y in range(height):
-            for x in range(widht):
-                if x < widht - 1 and not self.maze.has_wall(x, y, 'E'):
-                    edges += 1
-                if y < height - 1 and not self.maze.has_wall(x, y, 'S'):
-                    edges += 1
+            for x in range(width):
+                if (x, y) in self.maze.forty_two_cells:
+                    continue
+                else:
+                    if x < width - 1 and not self.maze.has_wall(x, y, 'E'):
+                        edges += 1
+                    if y < height - 1 and not self.maze.has_wall(x, y, 'S'):
+                        edges += 1
         return edges >= nodes

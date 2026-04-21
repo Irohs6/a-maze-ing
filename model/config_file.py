@@ -1,8 +1,13 @@
-from pydantic import (BaseModel, ConfigDict, Field,
-                      model_validator, field_validator)
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    model_validator,
+    field_validator,
+)
 from typing import Annotated, Any, ClassVar
-
 from time import time_ns
+from mimetypes import guess_type
 
 NonNegativeInt = Annotated[int, Field(ge=0)]
 
@@ -11,7 +16,12 @@ class ConfigFile(BaseModel):
     model_config = ConfigDict(validate_assignment=True)
 
     REQUIRED_KEYS: ClassVar[list[str]] = [
-        "WIDTH", "HEIGHT", "ENTRY", "EXIT", "OUTPUT_FILE", "PERFECT",
+        "WIDTH",
+        "HEIGHT",
+        "ENTRY",
+        "EXIT",
+        "OUTPUT_FILE",
+        "PERFECT",
     ]
     OPTIONAL_KEYS: ClassVar[list[str]] = ["SEED", "PLAYABLE"]
 
@@ -129,9 +139,7 @@ class ConfigFile(BaseModel):
             for key in ["WIDTH", "HEIGHT"]:
                 config[key] = int(config[key])
             for key in ["ENTRY", "EXIT"]:
-                config[key] = tuple(
-                    int(v) for v in config[key].split(",")
-                )
+                config[key] = tuple(int(v) for v in config[key].split(","))
             config["PERFECT"] = config["PERFECT"].strip().lower() == "true"
         except ValueError as error:
             raise ValueError(error)
@@ -152,3 +160,13 @@ class ConfigFile(BaseModel):
                         config[key] = config[key].strip().lower() == "true"
         except ValueError as error:
             raise ValueError(error)
+
+    @model_validator(mode="after")
+    def _parse_output(self) -> "ConfigFile":
+        if (
+            self.OUTPUT_FILE.lower().endswith(".txt")
+            and guess_type(self.OUTPUT_FILE)[0] == "text/plain"
+        ):
+            return self
+        else:
+            raise ValueError(f"{self.OUTPUT_FILE} must be a .txt file.")
