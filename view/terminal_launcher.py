@@ -80,6 +80,7 @@ def _spawn_solution_window(
     exit_pos: tuple[int, int] = (0, 0),
     solution_cells: list[tuple[int, int]] | None = None,
     forty_two_cells: list[tuple[int, int]] | None = None,
+    maze_grid: list[list[int]] | None = None,
 ) -> bool:
     """Serializes the config into a temporary JSON file and opens the terminal.
 
@@ -100,6 +101,7 @@ def _spawn_solution_window(
         "exit": list(exit_pos),
         "solution": solution_cells or [],
         "forty_two": [list(c) for c in (forty_two_cells or [])],
+        "grid": maze_grid or [],
     }
 
     # delete=False : the file must survive until the runner reads it

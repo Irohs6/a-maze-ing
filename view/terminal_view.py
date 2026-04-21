@@ -16,7 +16,7 @@ from model.maze import Maze
 from view.ansi_utils import read_key
 from view.terminal_launcher import _spawn_solution_window
 from view.terminal_renderer import (
-    _draw_grid, _animate, _draw_final
+    _draw_grid, _animate, _draw_final, _erase_corners
 )
 
 init(autoreset=False)
@@ -84,6 +84,7 @@ class TerminalView:
             exit_pos=self.exit_pos,
             solution_cells=solution_cells,
             forty_two_cells=list(self.forty_two),
+            maze_grid=[list(row) for row in self.maze.grid],
         ):
             return
 
@@ -95,6 +96,10 @@ class TerminalView:
         _animate(tracks or [], self.maze.width, self.maze.height, cell_width,
                  forty_two_cells=self.forty_two,
                  forty_two_color=self.COLOR["42"])
+        _erase_corners(
+            [list(row) for row in self.maze.grid],
+            self.maze.width, self.maze.height, cell_width
+        )
         solution = (
             [(x, y, dirs) for (x, y), dirs in all_paths[0].items()]
             if all_paths

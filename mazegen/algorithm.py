@@ -120,4 +120,3 @@ class Algorithm(ABC):
 
             else:
                 self.tracks.append((x, y, wall_direction))
-

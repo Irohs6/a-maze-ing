@@ -117,6 +117,41 @@ def _build_cell_buf(
     return buf, restore
 
 
+def _erase_corners(
+    grid: list[list[int]],
+    maze_width: int,
+    maze_height: int,
+    cell_width: int,
+) -> None:
+    """Erase corner pixels that are surrounded by 4 open wall segments.
+
+    A corner at the SE of cell (cx, cy) is erased when these 4 wall
+    segments are all absent:
+      - South wall of (cx,   cy)   → grid[cy][cx]   & 4
+      - East  wall of (cx,   cy)   → grid[cy][cx]   & 2
+      - East  wall of (cx,   cy+1) → grid[cy+1][cx] & 2
+      - South wall of (cx+1, cy)   → grid[cy][cx+1] & 4
+    """
+    if not grid:
+        return
+    buf: list[str] = []
+    ww = WALL_WIDTH
+    for cy in range(maze_height - 1):
+        for cx in range(maze_width - 1):
+            if (
+                (grid[cy][cx] & 4) == 0       # pas de mur Sud de (cx, cy)
+                and (grid[cy][cx] & 2) == 0    # pas de mur Est de (cx, cy)
+                and (grid[cy + 1][cx] & 2) == 0  # pas de mur Est de (cx, cy+1)
+                and (grid[cy][cx + 1] & 4) == 0  # pas de mur Sud de (cx+1, cy)
+            ):
+                row = wall_row_s(cy, cell_width)
+                col = wall_col_e(cx, cell_width)
+                buf.append(f"\033[{row};{col}H{' ' * ww}")
+    if buf:
+        sys.stdout.write("".join(buf))
+        sys.stdout.flush()
+
+
 def _draw_grid(
     maze_width: int,
     maze_height: int,

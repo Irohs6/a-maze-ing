@@ -15,7 +15,7 @@ if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from view.terminal_renderer import (
-    _draw_grid, _animate, _draw_final, _erase_solution,
+    _draw_grid, _animate, _draw_final, _erase_solution, _erase_corners,
     COLOR_THEMES, COLOR_THEMES_42
 )
 from view import ansi_utils
@@ -67,6 +67,7 @@ def _run_render(
                forty_two_cells=forty_two_cells, forty_two_color=forty_two_color)
     _animate(tracks, w, h, cw, delay=delay,
              forty_two_cells=forty_two_cells, forty_two_color=forty_two_color)
+    _erase_corners(cfg.get("grid", []), w, h, cw)
     _draw_final(w, h, cw, entry, exit_pos, solution_cells, perfect,
                 solution_visible=True)
 
