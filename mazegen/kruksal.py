@@ -7,30 +7,6 @@ class Kruksal(Algorithm):
     REVERSE: dict[str, str] = {'N': 'S', 'S': 'N', 'E': 'W', 'W': 'E'}
     # Maximum number of global attempts before giving up
 
-    def _is_42_wall(self, x: int, y: int, wall_direction: str) -> bool:
-        if (
-            self._get_direction_neighbor(x, y, wall_direction)
-            not in self.forty_two_cells
-        ):
-            return False
-        else:
-            return True
-
-    def _breakable_walls(self, x: int, y: int) -> list[str]:
-        eligible_walls: list[str] = []
-        for direction in ["N", "E", "S", "W"]:
-            if (
-                self.maze.has_wall(x, y, direction)
-                and self._get_direction_neighbor(x, y, direction)
-                not in self.forty_two_cells
-                and not self.maze._is_border_wall(x, y, direction)
-                and not self._is_42_wall(x, y, direction)
-                and (x, y) not in self._union[0]
-                and self._cell_wall_count(x, y) > 2
-            ):
-                eligible_walls.append(direction)
-        return eligible_walls
-
     def _find_in_union(
         self, coordinates: tuple[int, int], neighbor: tuple[int, int]
     ) -> list[int] | bool:

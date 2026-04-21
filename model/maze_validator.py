@@ -42,7 +42,7 @@ class MazeValidator:
         """Initialize the validator with the maze to validate."""
         self._maze = maze
         self.errors: list[str] = []  # Optional: collect error
-                                     # messages for debugging
+        # messages for debugging
 
     # ------------------------------------------------------------------
     # Public interface
@@ -63,14 +63,17 @@ class MazeValidator:
         if not self._validate_adjacent_cells():
             self.errors.append("Adjacent cells must have symmetric walls.")
         if self._has_forbidden_open_areas():
-            self.errors.append("Forbidden open area: 3×3 block "
-                               "with no inner walls.")
+            self.errors.append(
+                "Forbidden open area: 3×3 block " "with no inner walls."
+            )
         if not self._validate_maze_connectivity():
-            self.errors.append("Maze must be fully connected (except "
-                               "isolated '42' cells).")
+            self.errors.append(
+                "Maze must be fully connected (except " "isolated '42' cells)."
+            )
         if not self._validate_42_pattern():
-            self.errors.append("Maze must contain the '42' pattern "
-                               "(or be too small).")
+            self.errors.append(
+                "Maze must contain the '42' pattern " "(or be too small)."
+            )
         return not self.errors  # True if no errors, False if any error exists
 
     # ------------------------------------------------------------------
@@ -91,15 +94,15 @@ class MazeValidator:
         maze = self._maze
         # Check top and bottom rows:
         for x in range(maze.width):
-            if not maze.has_wall(x, 0, 'N'):
+            if not maze.has_wall(x, 0, "N"):
                 return False
-            if not maze.has_wall(x, maze.height - 1, 'S'):
+            if not maze.has_wall(x, maze.height - 1, "S"):
                 return False
         # Check left and right columns:
         for y in range(maze.height):
-            if not maze.has_wall(0, y, 'W'):
+            if not maze.has_wall(0, y, "W"):
                 return False
-            if not maze.has_wall(maze.width - 1, y, 'E'):
+            if not maze.has_wall(maze.width - 1, y, "E"):
                 return False
         return True
 
@@ -115,11 +118,15 @@ class MazeValidator:
             for x in range(maze.width):
                 # Check East-West symmetry with right neighbor:
                 if x + 1 < maze.width:
-                    if maze.has_wall(x, y, 'E') != maze.has_wall(x + 1, y, 'W'):
+                    if maze.has_wall(x, y, "E") != maze.has_wall(
+                        x + 1, y, "W"
+                    ):
                         return False
                 # Check North-South symmetry with bottom neighbor:
                 if y + 1 < maze.height:
-                    if maze.has_wall(x, y, 'S') != maze.has_wall(x, y + 1, 'N'):
+                    if maze.has_wall(x, y, "S") != maze.has_wall(
+                        x, y + 1, "N"
+                    ):
                         return False
         return True
 
@@ -147,9 +154,7 @@ class MazeValidator:
         width, height = maze.width, maze.height
 
         # Count isolated cells (value == 15)
-        isolated = sum(
-            1 for row in maze.grid for cell in row if cell == 15
-        )
+        isolated = sum(1 for row in maze.grid for cell in row if cell == 15)
 
         queue = deque([(0, 0)])
         visited = set()
@@ -157,10 +162,10 @@ class MazeValidator:
 
         # Direction offsets: (offset_x, offset_y)
         directions = {
-            'N': (0, -1),
-            'E': (1, 0),
-            'S': (0, 1),
-            'W': (-1, 0),
+            "N": (0, -1),
+            "E": (1, 0),
+            "S": (0, 1),
+            "W": (-1, 0),
         }
 
         while queue:
@@ -229,7 +234,7 @@ class MazeValidator:
 
     def _is_3x3_open(self, start_x: int, start_y: int) -> bool:
         """Return True if the 3×3 block whose top-left is (start_x, start_y)
-         has no inner walls."""
+        has no inner walls."""
         maze = self._maze
         # Horizontal passages (East direction) between adjacent columns
         # representation visuel de la zone 3x3 interdite :
@@ -239,12 +244,12 @@ class MazeValidator:
         #   x0,y2 | x1,y2 | x2,y2
         for y in range(start_y, start_y + 3):
             for x in range(start_x, start_x + 2):
-                if maze.has_wall(x, y, 'E'):
+                if maze.has_wall(x, y, "E"):
                     return False
         # Vertical passages (South direction) between adjacent rows
         for y in range(start_y, start_y + 2):
             for x in range(start_x, start_x + 3):
-                if maze.has_wall(x, y, 'S'):
+                if maze.has_wall(x, y, "S"):
                     return False
         return True
 

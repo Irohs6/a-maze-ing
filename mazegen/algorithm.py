@@ -56,6 +56,15 @@ class Algorithm(ABC):
             boundaries.add((self.width - 1, y))
         return boundaries
 
+    def _is_42_wall(self, x: int, y: int, wall_direction: str) -> bool:
+        if (
+            self._get_direction_neighbor(x, y, wall_direction)
+            not in self.forty_two_cells and (x, y) not in self.forty_two_cells
+        ):
+            return False
+        else:
+            return True
+
     def _get_eligible_walls(self) -> list[tuple[int, int, str]]:
         self._eligible_walls = []
         directions = ["N", "E", "S", "W"]
@@ -71,22 +80,59 @@ class Algorithm(ABC):
                         self._eligible_walls.append((x, y, direction))
         return self._eligible_walls
 
+    def _get_breakable_walls(self) -> list[str]:
+        eligible_walls: list[str] = []
+        for y in range(self.height):
+            for x in range(self.width):
+                for direction in ["N", "E", "S", "W"]:
+                    if (
+                        self.maze.has_wall(x, y, direction)
+                        and self._get_direction_neighbor(x, y, direction)
+                        not in self.forty_two_cells
+                        and not self.maze._is_border_wall(x, y, direction)
+                        and not self._is_42_wall(x, y, direction)
+                        and self._cell_wall_count(x, y) > 2
+                    ):
+                        eligible_walls.append((x, y, direction))
+        return eligible_walls
+
+    def _is_open(self, start_x: int, start_y: int) -> bool:
+        """Return True if the 3×3 block whose top-left is (start_x, start_y)
+        has no inner walls."""
+        maze = self.maze
+        # Horizontal passages (East direction) between adjacent columns
+        # representation visuel de la zone 3x3 interdite :
+        #   x0,y0 E x1,y0 E x2,y0
+        #     0   |   1   |   2
+        #   x0,y1 | x1,y1 | x2,y1
+        #   x0,y2 | x1,y2 | x2,y2
+        for y in range(start_y - 4, start_y + 4):
+            for x in range(start_x - 3, start_x + 3):
+                if maze.has_wall(x, y, "E"):
+                    return False
+        # Vertical passages (South direction) between adjacent rows
+        for y in range(start_y - 3, start_y + 3):
+            for x in range(start_x - 4, start_x + 4):
+                if maze.has_wall(x, y, "S"):
+                    return False
+        return True
+
     def second_loop(self) -> None:
         """For imperfect mazes, break an additional 15% of the walls
             that are not part of the 42 shape or borders."""
 
-        _eligible_walls = self._get_eligible_walls()
+        _eligible_walls = self._get_breakable_walls()
         len_to_break = int(len(_eligible_walls) * 0.15)
         random.shuffle(_eligible_walls)
-        validator = maze_validator.MazeValidator(self.maze)
         while len_to_break > 0:
             if not _eligible_walls:
                 break
             x, y, wall_direction = _eligible_walls.pop()
             len_to_break -= 1
             self.maze.remove_wall(x, y, wall_direction)
-            if validator._has_forbidden_open_areas():
-                self.maze.add_wall(x, y, wall_direction)
-                # Revert if it creates a forbidden open area
-            else:
-                self.tracks.append((x, y, wall_direction))
+            if x <= self.width - 4 and y <= self.height - 4:
+                if self._is_open(x, y):
+                    self.maze.add_wall(x, y, wall_direction)
+                    # Revert if it creates a forbidden open area
+                else:
+                    self.tracks.append((x, y, wall_direction))
