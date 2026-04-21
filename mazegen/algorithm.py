@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 from model.maze import Maze
-from model import maze_validator
+from model.maze_validator import MazeValidator
 import random
 
 
@@ -82,43 +82,42 @@ class Algorithm(ABC):
         return eligible_walls
 
     def _no_open_area_around(self, original_x: int, original_y: int) -> bool:
-        """Return True if the 3×3 block whose top-left is (start_x, start_y)
-        has no inner walls."""
-        maze = self.maze
-        # Horizontal passages (East direction) between adjacent columns
-        # representation visuel de la zone 3x3 interdite :
-        #   x0,y0 E x1,y0 E x2,y0
-        #     0   |   1   |   2
-        #   x0,y1 | x1,y1 | x2,y1
-        #   x0,y2 | x1,y2 | x2,y2
-        start_y = 0 if original_y - 4 <= 0 else original_y - 4
-        start_x = 0 if original_x - 4 <= 0 else original_x - 4
-        for y in range(start_y - 4, start_y + 4):
-            for x in range(start_x - 3, start_x + 3):
-                if maze.has_wall(x, y, "E"):
-                    return False
-        # Vertical passages (South direction) between adjacent rows
-        for y in range(start_y - 3, start_y + 3):
-            for x in range(start_x - 4, start_x + 4):
-                if maze.has_wall(x, y, "S"):
-                    return False
-        return True
+        """Returns True if there is no fully open 3x3 block (without internal walls)
+        in the 9x9 area centered on (original_x, original_y).
+        Uses MazeValidator._is_3x3_open for detection.
+        """
+
+        validator = MazeValidator(self.maze)
+
+        # Check all 3x3 blocks in the 9x9 area around the original cell
+        for dy in range(-2, 1):
+            for dx in range(-2, 1):
+                top_left_x = original_x + dx
+                top_left_y = original_y + dy
+                if 0 <= top_left_x <= self.width - 3 and \
+                   0 <= top_left_y <= self.height - 3:
+                    if validator._is_3x3_open(top_left_x, top_left_y):
+                        return True
+        return False
 
     def second_loop(self) -> None:
-        """For imperfect mazes, break an additional 15% of the walls
-            that are not part of the 42 shape or borders."""
+        """For imperfect mazes, break an additional 30% of the walls
+            that are not part of the 42 shape or borders.
+            Log the number of walls actually opened."""
 
         _eligible_walls = self._get_breakable_walls()
-        len_to_break = int(len(_eligible_walls) * 0.15)
+        len_to_break = int(len(_eligible_walls) * 0.3)
         random.shuffle(_eligible_walls)
         while len_to_break > 0:
             if not _eligible_walls:
                 break
             x, y, wall_direction = _eligible_walls.pop()
             len_to_break -= 1
+
             self.maze.remove_wall(x, y, wall_direction)
             if self._no_open_area_around(x, y):
                 self.maze.add_wall(x, y, wall_direction)
-                # Revert if it creates a forbidden open area
+
             else:
                 self.tracks.append((x, y, wall_direction))
+
