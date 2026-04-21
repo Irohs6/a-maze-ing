@@ -89,7 +89,7 @@ class Menu:
                 "Output File (current:"
                 f"{self._controller._config.OUTPUT_FILE})",
                 f"Perfect (current: {self._controller._config.PERFECT})",
-                f"Seed (current:  {self._controller._config.SEED})",
+                f"Seed (current:  {self._controller._generator.seed})",
                 "Go  Back",
             ]
         ):
@@ -124,7 +124,7 @@ class Menu:
                         " ",
                         prompt_suffix="",
                         type=click.IntRange(
-                            min=4, max=self._controller._config.WIDTH - 1
+                            min=0, max=self._controller._config.WIDTH - 1
                         ),
                     )
                     click.clear()
@@ -133,7 +133,7 @@ class Menu:
                         " ",
                         prompt_suffix="",
                         type=click.IntRange(
-                            min=4, max=self._controller._config.HEIGHT - 1
+                            min=0, max=self._controller._config.HEIGHT - 1
                         ),
                     )
                     try:

@@ -22,14 +22,12 @@ class Algorithm(ABC):
         self.tracks: list[Any] = []
         self._boundaries: set[tuple[int, int]] = self._get_maze_boundaries()
         self._union = [
-            self.forty_two_cells.union({(0, 0)})
-        ]
-        self._union.extend([
             {(x, y)}
             for x in range(self.width)
             for y in range(self.height)
             if (x, y) not in self.forty_two_cells
-        ])
+        ]
+        self._union[0] = self.forty_two_cells.union(self._union[0])
 
     @abstractmethod
     def generate(self) -> list[Any]:
@@ -80,14 +78,15 @@ class Algorithm(ABC):
         _eligible_walls = self._get_eligible_walls()
         len_to_break = int(len(_eligible_walls) * 0.15)
         random.shuffle(_eligible_walls)
+        validator = maze_validator.MazeValidator(self.maze)
         while len_to_break > 0:
             if not _eligible_walls:
                 break
             x, y, wall_direction = _eligible_walls.pop()
             len_to_break -= 1
             self.maze.remove_wall(x, y, wall_direction)
-            if maze_validator.MazeValidator(self.maze
-                                            )._has_forbidden_open_areas():
+            if validator._has_forbidden_open_areas():
                 self.maze.add_wall(x, y, wall_direction)
                 # Revert if it creates a forbidden open area
-            self.tracks.append((x, y, wall_direction))
+            else:
+                self.tracks.append((x, y, wall_direction))

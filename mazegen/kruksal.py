@@ -80,9 +80,9 @@ class Kruksal(Algorithm):
                 self._concatenate_in_union(indexes)
                 self.tracks.append((x, y, wall_direction))
                 nx, ny = neighbor
-                oposite_direction = self.REVERSE[wall_direction]
+                opposite_direction = self.REVERSE[wall_direction]
                 try:
-                    _eligible_walls.remove((nx, ny, oposite_direction))
+                    _eligible_walls.remove((nx, ny, opposite_direction))
                 except ValueError:
                     pass
         if self.is_perfect is False:
