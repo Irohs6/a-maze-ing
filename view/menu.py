@@ -78,33 +78,35 @@ class Menu:
         print("╰" + "─" * 30 + "╯")
 
     def _print_settings_menu(self) -> None:
-        print("╭" + "─" * 40 + "╮")
-        print("│" + f"{Fore.RED}Settings{Style.RESET_ALL}".center(49) + "│")
-        print("├" + "─" * 40 + "┤")
-        for i, option in enumerate(
-            [
-                f"Width (current:  {self._controller._config.WIDTH})",
+        options = [
+                f"Width (current: {self._controller._config.WIDTH})",
                 f"Height (current: {self._controller._config.HEIGHT})",
-                f"Entry (current:  {self._controller._config.ENTRY})",
+                f"Entry (current: {self._controller._config.ENTRY})",
                 f"Exit (current: {self._controller._config.EXIT})",
                 "Output File (current: "
                 f"{self._controller._config.OUTPUT_FILE})",
                 f"Perfect (current: {self._controller._config.PERFECT})",
-                f"Seed (current:  {self._controller._generator.seed})",
+                f"Seed (current: {self._controller._generator.seed})",
                 f"Algorithm (current: {self._controller._config.ALGORITHM})",
-                "Go  Back",
-            ]
-        ):
-            center = 40
+                "Go  Back"
+        ]
+        max_len = len(max(options, key=lambda option: len(option)))
+        max_len += 10 if max_len % 2 == 0 else 11
+        print("╭" + "─" * max_len + "╮")
+        print("│" +
+              f"{Fore.RED}Settings{Style.RESET_ALL}".center(max_len + 9) + "│")
+        print("├" + "─" * max_len + "┤")
+        for i, option in enumerate(options):
+            center = max_len
             print("│", end="")
             if i == self.index:
                 if len(option) % 2 == 1:
                     option += " "
-                center = 49
+                center = max_len + 9
                 option = Back.RED + option + Style.RESET_ALL
             print(option.center(center), end="")
             print("│")
-        print("╰" + "─" * 40 + "╯")
+        print("╰" + "─" * max_len + "╯")
 
     def _ask_for_value(self, value: str) -> None:
         print("╭" + "─" * 30 + "╮")

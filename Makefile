@@ -15,6 +15,7 @@ install:
 run:
 	make install
 	. .venv/bin/activate; python3 a_maze_ing.py config.txt
+	clear
 
 clean:
 	rm -rf */__pycache__
