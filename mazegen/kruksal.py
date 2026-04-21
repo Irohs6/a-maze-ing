@@ -7,6 +7,19 @@ class Kruksal(Algorithm):
     REVERSE: dict[str, str] = {'N': 'S', 'S': 'N', 'E': 'W', 'W': 'E'}
     # Maximum number of global attempts before giving up
 
+    def _get_eligible_walls(self) -> list[tuple[int, int, str]]:
+        self._eligible_walls = []
+        directions = ["N", "E", "S", "W"]
+        for y in range(self.height):
+            for x in range(self.width):
+                for direction in directions:
+                    if (
+                        not self.maze._is_border_wall(x, y, direction)
+                        and not self._is_42_wall(x, y, direction)
+                    ):
+                        self._eligible_walls.append((x, y, direction))
+        return self._eligible_walls
+
     def _find_in_union(
         self, coordinates: tuple[int, int], neighbor: tuple[int, int]
     ) -> list[int] | bool:
