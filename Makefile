@@ -33,6 +33,7 @@ fclean:
 	make clean
 	rm -rf .venv
 	rm -rf poetry.lock
+	rm -rf dist
 
 lint:
 	make install

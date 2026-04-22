@@ -121,7 +121,7 @@ class Algorithm(ABC):
 
             self.maze.remove_wall(x, y, wall_direction)
             if not self._no_open_area_around(x, y):
-                # Removing this wall created a forbidden 3x3 
+                # Removing this wall created a forbidden 3x3
                 # open area: restore it
                 self.maze.add_wall(x, y, wall_direction)
 

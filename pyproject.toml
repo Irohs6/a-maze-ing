@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.poetry]
 package-mode = false
-name = "A-Maze-Ing"
+name = "a-maze-ing"
 version = "1.0.0"
 description = "A reusable maze generator library"
 readme = "README.md"
@@ -51,3 +51,10 @@ check_untyped_defs = true
 [tool.flake8]
 max-line-length = 80
 exclude = [".venv", "__pycache__", ".mypy_cache", "build", "dist"]
+
+[project]
+name = "mazegen"
+version = "1.0.0"
+
+[tool.setuptools]
+packages = ["model", "mazegen"]
