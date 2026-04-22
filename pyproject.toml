@@ -55,8 +55,8 @@ exclude = [".venv", "__pycache__", ".mypy_cache", "build", "dist"]
 [project]
 name = "mazegen"
 version = "1.0.0"
+requires-python = ">=3.10"
 dependencies = [
-    "python>=3.10",
     "colorama>=0.4",
     "click>=8.1",
     "pydantic>=2.0",
