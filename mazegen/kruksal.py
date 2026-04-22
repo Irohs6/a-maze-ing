@@ -48,10 +48,6 @@ class Kruksal(Algorithm):
                 self._union[indexes[1]])
             self._union.pop(indexes[1])
 
-    def _cell_wall_count(self, x: int, y: int) -> int:
-        """Return the number of walls surrounding cell (x, y) (0–4)."""
-        return self.maze.grid[y][x].bit_count()
-
     def generate(self) -> list[tuple[int, int, str]]:
         """Generates the maze using a randomized version
         of Kruskal's algorithm."""

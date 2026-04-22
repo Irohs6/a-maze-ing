@@ -17,6 +17,10 @@ run:
 	. .venv/bin/activate; python3 a_maze_ing.py config.txt
 	clear
 
+debug:
+	make install
+	. .venv/bin/activate; python3 -m pdb a_maze_ing.py config.txt
+
 clean:
 	rm -rf */__pycache__
 	rm -rf __pycache__

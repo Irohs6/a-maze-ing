@@ -65,6 +65,10 @@ class Algorithm(ABC):
         else:
             return True
 
+    def _cell_wall_count(self, x: int, y: int) -> int:
+        """Return the number of walls surrounding cell (x, y) (0–4)."""
+        return self.maze.grid[y][x].bit_count()
+
     def _get_breakable_walls(self) -> list[str]:
         eligible_walls: list[str] = []
         for y in range(self.height):
@@ -82,8 +86,9 @@ class Algorithm(ABC):
         return eligible_walls
 
     def _no_open_area_around(self, original_x: int, original_y: int) -> bool:
-        """Returns True if there is no fully open 3x3 block (without internal walls)
-        in the 9x9 area centered on (original_x, original_y).
+        """Returns True if there is no fully open 3x3 block (without internal
+        walls) in the 9x9 area centered on (original_x, original_y).
+        Returns False if at least one forbidden 3x3 open block is found.
         Uses MazeValidator._is_3x3_open for detection.
         """
 
@@ -97,8 +102,8 @@ class Algorithm(ABC):
                 if 0 <= top_left_x <= self.width - 3 and \
                    0 <= top_left_y <= self.height - 3:
                     if validator._is_3x3_open(top_left_x, top_left_y):
-                        return True
-        return False
+                        return False
+        return True
 
     def second_loop(self) -> None:
         """For imperfect mazes, break an additional 30% of the walls
@@ -115,7 +120,9 @@ class Algorithm(ABC):
             len_to_break -= 1
 
             self.maze.remove_wall(x, y, wall_direction)
-            if self._no_open_area_around(x, y):
+            if not self._no_open_area_around(x, y):
+                # Removing this wall created a forbidden 3x3 
+                # open area: restore it
                 self.maze.add_wall(x, y, wall_direction)
 
             else:
