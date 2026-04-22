@@ -173,3 +173,127 @@ def test_encode_hex_format(maze_3x3: Maze) -> None:
     assert len(non_empty) == 3
     for line in non_empty:
         assert len(line) == 3
+
+
+# ── add_wall ──────────────────────────────────────────────────────────
+
+
+def test_add_wall_east_is_symmetric(maze_5x5: Maze) -> None:
+    """add_wall(E) doit aussi remettre le mur Ouest du voisin."""
+    maze_5x5.remove_wall(1, 1, 'E')
+    maze_5x5.add_wall(1, 1, 'E')
+    assert maze_5x5.has_wall(1, 1, 'E') is True
+    assert maze_5x5.has_wall(2, 1, 'W') is True
+
+
+def test_add_wall_south_is_symmetric(maze_5x5: Maze) -> None:
+    maze_5x5.remove_wall(2, 2, 'S')
+    maze_5x5.add_wall(2, 2, 'S')
+    assert maze_5x5.has_wall(2, 2, 'S') is True
+    assert maze_5x5.has_wall(2, 3, 'N') is True
+
+
+def test_add_wall_north_is_symmetric(maze_5x5: Maze) -> None:
+    maze_5x5.remove_wall(2, 2, 'N')
+    maze_5x5.add_wall(2, 2, 'N')
+    assert maze_5x5.has_wall(2, 2, 'N') is True
+    assert maze_5x5.has_wall(2, 1, 'S') is True
+
+
+def test_add_wall_west_is_symmetric(maze_5x5: Maze) -> None:
+    maze_5x5.remove_wall(2, 2, 'W')
+    maze_5x5.add_wall(2, 2, 'W')
+    assert maze_5x5.has_wall(2, 2, 'W') is True
+    assert maze_5x5.has_wall(1, 2, 'E') is True
+
+
+def test_add_wall_invalid_direction_raises(maze_5x5: Maze) -> None:
+    with pytest.raises(ValueError):
+        maze_5x5.add_wall(1, 1, 'X')
+
+
+def test_add_wall_at_border_raises(maze_5x5: Maze) -> None:
+    """add_wall sur une bordure lève ValueError
+    (condition de garde non remplie)."""
+    with pytest.raises(ValueError):
+        maze_5x5.add_wall(0, 0, 'N')  # y=0, condition y>0 fausse
+
+
+# ── count_walls ───────────────────────────────────────────────────────
+
+
+def test_count_walls_full_maze(maze_3x3: Maze) -> None:
+    """Labyrinthe plein : 3×3 × 4 murs = 36."""
+    assert maze_3x3.count_walls() == 36
+
+
+def test_count_walls_full_5x5(maze_5x5: Maze) -> None:
+    assert maze_5x5.count_walls() == 5 * 5 * 4
+
+
+def test_count_walls_decreases_by_two_after_remove(maze_5x5: Maze) -> None:
+    """remove_wall retire 2 murs (symétrique) → count diminue de 2."""
+    before = maze_5x5.count_walls()
+    maze_5x5.remove_wall(1, 1, 'E')
+    assert maze_5x5.count_walls() == before - 2
+
+
+def test_count_walls_zero_cell() -> None:
+    maze = Maze(1, 1)
+    maze.grid[0][0] = 0
+    assert maze.count_walls() == 0
+
+
+# ── place_42_center ───────────────────────────────────────────────────
+
+
+def test_place_42_center_empty_for_small_maze() -> None:
+    """Maze 4×4 trop petit → forty_two_cells vide."""
+    maze = Maze(4, 4)
+    assert maze.forty_two_cells == set()
+
+
+def test_place_42_center_populates_for_large_maze() -> None:
+    """Maze 11×11 (≥ pw+4, ph+4) → forty_two_cells non vide."""
+    maze = Maze(11, 11)
+    assert len(maze.forty_two_cells) > 0
+
+
+def test_place_42_center_cells_have_value_15() -> None:
+    """Toutes les cellules du motif doivent valoir 15."""
+    maze = Maze(11, 11)
+    for (x, y) in maze.forty_two_cells:
+        assert maze.grid[y][x] == 15
+
+
+def test_place_42_center_is_horizontally_centered() -> None:
+    """Le motif est centré : start_x == (width - pattern_width) // 2."""
+    maze = Maze(11, 11)
+    pw = len(maze.PATTERN_42[0])
+    expected_start_x = (11 - pw) // 2
+    xs = {x for (x, _) in maze.forty_two_cells}
+    assert min(xs) == expected_start_x
+
+
+def test_place_42_center_is_vertically_centered() -> None:
+    maze = Maze(11, 11)
+    ph = len(maze.PATTERN_42)
+    expected_start_y = (11 - ph) // 2
+    ys = {y for (_, y) in maze.forty_two_cells}
+    assert min(ys) == expected_start_y
+
+
+def test_place_42_center_minimum_size() -> None:
+    """pw+4 colonnes et ph+4 lignes = taille minimale pour le motif."""
+    ph = len(Maze.PATTERN_42)
+    pw = len(Maze.PATTERN_42[0])
+    maze = Maze(pw + 4, ph + 4)
+    assert len(maze.forty_two_cells) > 0
+
+
+def test_place_42_center_just_below_minimum_empty() -> None:
+    """Un pixel en dessous du minimum → aucune cellule 42."""
+    ph = len(Maze.PATTERN_42)
+    pw = len(Maze.PATTERN_42[0])
+    maze = Maze(pw + 3, ph + 4)  # une colonne de moins
+    assert maze.forty_two_cells == set()

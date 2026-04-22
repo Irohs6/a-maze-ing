@@ -20,7 +20,6 @@ class Algorithm(ABC):
         self.forty_two_cells = maze.forty_two_cells
         self.is_perfect = is_perfect
         self.tracks: list[Any] = []
-        self._boundaries: set[tuple[int, int]] = self._get_maze_boundaries()
         self._union = [
             {(x, y)}
             for x in range(self.width)
@@ -41,20 +40,6 @@ class Algorithm(ABC):
 
         nx, ny = self.maze._DIRECTIONS[direction]
         return (x + nx, y + ny)
-
-    def _get_maze_boundaries(self) -> set[tuple[int, int]]:
-        """Return a set of coordinates representing the maze boundaries."""
-
-        boundaries: set[tuple[int, int]] = set()
-
-        for x in range(self.width):
-            boundaries.add((x, 0))
-            boundaries.add((x, self.height - 1))
-
-        for y in range(self.height):
-            boundaries.add((0, y))
-            boundaries.add((self.width - 1, y))
-        return boundaries
 
     def _is_42_wall(self, x: int, y: int, wall_direction: str) -> bool:
         if (
@@ -106,12 +91,12 @@ class Algorithm(ABC):
         return True
 
     def second_loop(self) -> None:
-        """For imperfect mazes, break an additional 30% of the walls
+        """For imperfect mazes, break an additional 15% of the walls
             that are not part of the 42 shape or borders.
             Log the number of walls actually opened."""
 
         _eligible_walls = self._get_breakable_walls()
-        len_to_break = int(len(_eligible_walls) * 0.3)
+        len_to_break = int(len(_eligible_walls) * 0.15)
         random.shuffle(_eligible_walls)
         while len_to_break > 0:
             if not _eligible_walls:

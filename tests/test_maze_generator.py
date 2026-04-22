@@ -27,7 +27,8 @@ def gen_backtracker() -> MazeGenerator:
 
 @pytest.fixture
 def gen_kruskal() -> MazeGenerator:
-    return MazeGenerator(width=11, height=11, seed=1, perfect=False)
+    return MazeGenerator(width=11, height=11, seed=1, perfect=False,
+                         algorithm='kruksal')
 
 
 # ── Initialisation ────────────────────────────────────────────────────
@@ -180,11 +181,12 @@ def test_perfect_false_generates_valid_maze() -> None:
 # ── Paramètres invalides ──────────────────────────────────────────────
 
 
-def test_unsupported_perfect_value_raises() -> None:
-    gen = MazeGenerator(width=5, height=5, perfect=None)  # type: ignore
-    with pytest.raises(ValueError) as excinfo:
+def test_unknown_algorithm_raises() -> None:
+    """Un nom d'algorithme inconnu lève ValueError à generate()."""
+    gen = MazeGenerator(width=5, height=5, perfect=True,
+                        algorithm='unknown_algo')
+    with pytest.raises(ValueError):
         gen.generate()
-    assert 'Unsupported algorithm' in str(excinfo.value)
 
 
 # ── Petits labyrinthes (sans motif 42) ────────────────────────────────
@@ -235,3 +237,74 @@ def test_reset_allows_regeneration() -> None:
     gen.generate()
     second_grid = gen.get_maze().grid
     assert first_grid != second_grid
+
+
+def test_reset_preserves_42_cells_in_maze() -> None:
+    """Après reset(), maze.forty_two_cells n'est pas vidé (toujours défini
+    sur l'objet Maze qui est réutilisé). La prochaine
+    génération les retrouve."""
+    gen = MazeGenerator(width=11, height=11, seed=1, perfect=True)
+    gen.generate()
+    cells_before = frozenset(gen.get_maze().forty_two_cells)
+    gen.reset()
+    gen.generate()
+    cells_after = frozenset(gen.get_maze().forty_two_cells)
+    assert cells_before == cells_after
+
+
+# ── Algorithme Kruskal explicite ──────────────────────────────────────
+
+
+def test_kruskal_explicit_generates_valid_maze() -> None:
+    """algorithm='kruksal' + perfect=True génère un labyrinthe valide."""
+    gen = MazeGenerator(width=11, height=11, seed=3, perfect=True,
+                        algorithm='kruksal')
+    gen.generate()
+    assert MazeValidator(gen.get_maze()).validate() is True
+
+
+def test_kruskal_imperfect_generates_valid_maze() -> None:
+    """algorithm='kruksal' + perfect=False (second_loop) reste valide."""
+    gen = MazeGenerator(width=11, height=11, seed=3, perfect=False,
+                        algorithm='kruksal')
+    gen.generate()
+    assert MazeValidator(gen.get_maze()).validate() is True
+
+
+def test_kruskal_imperfect_has_cycle() -> None:
+    """Un labyrinthe Kruskal imparfait contient au moins un cycle."""
+    from model.cycle_cheker import Cycle_Checker
+    gen = MazeGenerator(width=11, height=11, seed=3, perfect=False,
+                        algorithm='kruksal')
+    gen.generate()
+    assert Cycle_Checker(gen.get_maze()).has_cycle() is True
+
+
+# ── Algorithme Backtracker imparfait (second_loop) ────────────────────
+
+
+def test_backtracker_imperfect_generates_valid_maze() -> None:
+    """Backtracker + perfect=False déclenche second_loop sans erreur."""
+    gen = MazeGenerator(width=11, height=11, seed=5, perfect=False,
+                        algorithm='backtracker')
+    gen.generate()
+    assert MazeValidator(gen.get_maze()).validate() is True
+
+
+def test_backtracker_imperfect_has_cycle() -> None:
+    """Un labyrinthe Backtracker imparfait contient au moins un cycle."""
+    from model.cycle_cheker import Cycle_Checker
+    gen = MazeGenerator(width=11, height=11, seed=5, perfect=False,
+                        algorithm='backtracker')
+    gen.generate()
+    assert Cycle_Checker(gen.get_maze()).has_cycle() is True
+
+
+# ── get_solution() ────────────────────────────────────────────────────
+
+
+def test_get_solution_not_implemented() -> None:
+    """get_solution() n'est pas encore implémentée — solution_path vaut None."""
+    gen = MazeGenerator(width=11, height=11, seed=1, perfect=True)
+    gen.generate()
+    assert gen.solution_path is None

@@ -21,6 +21,7 @@ ENTRY=0,0
 EXIT=9,4
 OUTPUT_FILE=maze_output.txt
 PERFECT=True
+ALGORITHM=backtracker
 """
 
 
@@ -50,6 +51,7 @@ ENTRY=0,0
 EXIT=9,4
 OUTPUT_FILE=maze.txt
 PERFECT=True
+ALGORITHM=backtracker
 """
     config = ConfigFile.parse(make_config(tmp_path, content))
     assert config.WIDTH == 10
