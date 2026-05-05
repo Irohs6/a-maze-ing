@@ -23,7 +23,7 @@ class ConfigFile(BaseModel):
         "OUTPUT_FILE",
         "PERFECT",
     ]
-    OPTIONAL_KEYS: ClassVar[list[str]] = ["SEED", "PLAYABLE"]
+    OPTIONAL_KEYS: ClassVar[list[str]] = ["SEED"]
 
     WIDTH: int = Field(ge=4)
     HEIGHT: int = Field(ge=4)
@@ -32,7 +32,6 @@ class ConfigFile(BaseModel):
     OUTPUT_FILE: str
     PERFECT: bool
     SEED: int | None = None
-    PLAYABLE: bool = False
 
     ALGORITHM: str = Field(..., pattern="^(?i)(backtracker|kruksal)$")
 

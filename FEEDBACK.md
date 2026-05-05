@@ -174,7 +174,6 @@ Le sujet précise : "The shortest valid path from entry to exit, using the four 
 | Vue graphique MLX | Non implémentée (mentionnée dans README comme "en cours") |
 | Vue ncurses (`curse_view.py`) | Non implémentée (mentionnée dans README) |
 | Build du paquet `.whl` (distribution) | Aucune règle `make package` / `make build` |
-| Mode `PLAYABLE` | Configuré (ConfigFile) mais jamais utilisé dans le controller/view |
 
 ---
 
