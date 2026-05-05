@@ -17,6 +17,7 @@ from view.ansi_utils import (
     wall_row_s,
     wall_col_e,
     wall_col_w,
+    move_to,
     raw_stdin,
     read_key_or_timeout,
 )
@@ -97,22 +98,22 @@ def _build_cell_buf(
 
     if direction == "N":
         wr = wall_row_n(cell_y, cell_width)
-        buf.append(f"\033[{wr};{ic}H{' ' * ww_inner}")
+        buf.append(f"{move_to(wr, ic)}{' ' * ww_inner}")
     elif direction == "S":
         wr = wall_row_s(cell_y, cell_width)
-        buf.append(f"\033[{wr};{ic}H{' ' * ww_inner}")
+        buf.append(f"{move_to(wr, ic)}{' ' * ww_inner}")
     elif direction == "E":
         wc = wall_col_e(cell_x, cell_width)
         for r in range(ch):
-            buf.append(f"\033[{ir + r};{wc}H{' ' * ww}")
+            buf.append(f"{move_to(ir + r, wc)}{' ' * ww}")
     elif direction == "W":
         wc = wall_col_w(cell_x, cell_width)
         for r in range(ch):
-            buf.append(f"\033[{ir + r};{wc}H{' ' * ww}")
+            buf.append(f"{move_to(ir + r, wc)}{' ' * ww}")
 
-    buf.append(f"\033[{cr};{cc}H{Fore.GREEN}\u25cf{Style.RESET_ALL}")
+    buf.append(f"{move_to(cr, cc)}{Fore.GREEN}\u25cf{Style.RESET_ALL}")
 
-    restore = f"\033[{cr};{cc}H "
+    restore = f"{move_to(cr, cc)} "
 
     return buf, restore
 
@@ -146,7 +147,7 @@ def _erase_corners(
             ):
                 row = wall_row_s(cy, cell_width)
                 col = wall_col_e(cx, cell_width)
-                buf.append(f"\033[{row};{col}H{' ' * ww}")
+                buf.append(f"{move_to(row, col)}{' ' * ww}")
     if buf:
         sys.stdout.write("".join(buf))
         sys.stdout.flush()
@@ -255,12 +256,12 @@ def _animate(
             lbl = _SPEED_LEVELS[speed_idx][1]
             if paused:
                 return (
-                    f"\033[{end_row};1H\033[2K"
+                    f"{move_to(end_row, 1)}\033[2K"
                     f"⏸  [SPACE] ▶  [N] STEP  "
                     f"[+/-] SPEED: {lbl}"
                 )
             return (
-                f"\033[{end_row};1H\033[2K"
+                f"{move_to(end_row, 1)}\033[2K"
                 f"▶  [SPACE] ⏸  [+/-] SPEED: {lbl}"
             )
 
@@ -314,7 +315,7 @@ def _animate(
 
         # Clear the status bar, restore cursor visibility
         sys.stdout.write(
-            f"{pending_restore}" f"\033[{end_row};1H\033[2K" f"\033[?25h"
+            f"{pending_restore}{move_to(end_row, 1)}\033[2K\033[?25h"
         )
         sys.stdout.flush()
         return
@@ -342,7 +343,7 @@ def _animate(
             buf_replay.extend(cell_buf)
 
     # End of loop: restore + reposition
-    end_seq = f"{pending_restore}\033[{end_row};1H\033[?25h"
+    end_seq = f"{pending_restore}{move_to(end_row, 1)}\033[?25h"
     if flush_per_cell:
         sys.stdout.write(end_seq)
         sys.stdout.flush()
@@ -369,7 +370,7 @@ def _erase_solution(
         ir = inner_row(sol_y, cell_width)
         ic = inner_col(sol_x, cell_width)
 
-        buf.append(f"\033[{ir};{ic}H{' '}")
+        buf.append(f"{move_to(ir, ic)} ")
 
     sys.stdout.write("".join(buf))
     sys.stdout.flush()
@@ -406,26 +407,26 @@ def _draw_final(
             arrow = _DIRECTION_ARROWS.get(direction[-1], " ")
 
             buf.append(
-                f"\033[{ir};{ic}H"
+                f"{move_to(ir, ic)}"
                 f"{Fore.WHITE + Style.BRIGHT}{arrow}{Style.RESET_ALL}"
             )
 
     # Entry marker (green S)
     ex, ey = entry
     buf.append(
-        f"\033[{inner_row(ey, cell_width)};{inner_col(ex, cell_width)}H"
+        f"{move_to(inner_row(ey, cell_width), inner_col(ex, cell_width))}"
         "🚪"
     )
 
     # Exit marker (red E)
     xx, xy = exit_pos
     buf.append(
-        f"\033[{inner_row(xy, cell_width)};{inner_col(xx, cell_width)}H"
+        f"{move_to(inner_row(xy, cell_width), inner_col(xx, cell_width))}"
         "🚀"
     )
 
     buf.append(
-        f"\033[{end_row};1H\033[2K"
+        f"{move_to(end_row, 1)}\033[2K"
         f"{Fore.CYAN}[S] HIDE/PRINT SOLUTION  "
         f"[Q] EXIT{Style.RESET_ALL}"
     )
@@ -434,10 +435,9 @@ def _draw_final(
     else:
         perfect = f"{Fore.RED}Imperfect maze{Style.RESET_ALL}"
     # Perfect/imperfect message on the next line
-    if perfect:
-        buf.append(
-            f"\033[{end_row + 1};1H\033[2K{perfect}"
-        )
+    buf.append(
+        f"{move_to(end_row + 1, 1)}\033[2K{perfect}"
+    )
 
     sys.stdout.write("".join(buf))
     sys.stdout.flush()

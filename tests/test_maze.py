@@ -219,31 +219,6 @@ def test_add_wall_at_border_raises(maze_5x5: Maze) -> None:
         maze_5x5.add_wall(0, 0, 'N')  # y=0, condition y>0 fausse
 
 
-# ── count_walls ───────────────────────────────────────────────────────
-
-
-def test_count_walls_full_maze(maze_3x3: Maze) -> None:
-    """Labyrinthe plein : 3×3 × 4 murs = 36."""
-    assert maze_3x3.count_walls() == 36
-
-
-def test_count_walls_full_5x5(maze_5x5: Maze) -> None:
-    assert maze_5x5.count_walls() == 5 * 5 * 4
-
-
-def test_count_walls_decreases_by_two_after_remove(maze_5x5: Maze) -> None:
-    """remove_wall retire 2 murs (symétrique) → count diminue de 2."""
-    before = maze_5x5.count_walls()
-    maze_5x5.remove_wall(1, 1, 'E')
-    assert maze_5x5.count_walls() == before - 2
-
-
-def test_count_walls_zero_cell() -> None:
-    maze = Maze(1, 1)
-    maze.grid[0][0] = 0
-    assert maze.count_walls() == 0
-
-
 # ── place_42_center ───────────────────────────────────────────────────
 
 

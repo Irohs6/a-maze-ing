@@ -104,6 +104,3 @@ BACKENDS: list[TerminalBackend] = [
     TerminalBackend("alacritty",      (),                  _alacritty),
     TerminalBackend("kitty",          (),                  _kitty),
 ]
-
-# Lookup O(1) par nom de binaire
-BACKEND_BY_NAME: dict[str, TerminalBackend] = {b.name: b for b in BACKENDS}

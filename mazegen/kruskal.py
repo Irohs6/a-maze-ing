@@ -3,7 +3,7 @@ import random
 from .algorithm import Algorithm
 
 
-class Kruksal(Algorithm):
+class Kruskal(Algorithm):
     REVERSE: dict[str, str] = {'N': 'S', 'S': 'N', 'E': 'W', 'W': 'E'}
     # Maximum number of global attempts before giving up
 

@@ -3,11 +3,9 @@
 benchmark/run_benchmark_pathfinder.py — Benchmark de PathFinder (A-Maze-ing).
 
 Mesure pour chaque taille de labyrinthe :
-  - Temps de recherche moyen / min / max (1 plus court chemin)
-  - Temps de recherche avec chemins alternatifs (n_extra=2)
+  - Temps de recherche moyen / min / max (plus court chemin)
   - Longueur moyenne du chemin solution
-  - Nombre de cellules visitées par le BFS
-  - Comportement parfait vs imparfait (nb de chemins retournés)
+  - Comportement parfait vs imparfait
 
 Usage :
   python3 benchmark/run_benchmark_pathfinder.py
@@ -86,28 +84,15 @@ def bench_one(width: int, height: int, seed: int, perfect: bool) -> dict:
     exit_pos = (width - 1, height - 1)
     pf = PathFinder(maze, entry=entry, exit=exit_pos)
 
-    # --- Mesure : 1 plus court chemin uniquement ---
+    # --- Mesure : plus court chemin via find() ---
     t0 = time.perf_counter()
-    paths_short = pf.find_k_shortest_paths(k=1, n_extra=0)
+    paths = pf.find()
     time_shortest = time.perf_counter() - t0
 
-    path_len = None
-    bfs_visited = None
-    if paths_short:
-        # Longueur du chemin = nombre de cellules dans le dict de connexions
-        path_len = len(paths_short[0])
-
-    # Compter les cellules visitées par BFS (via distances)
-    dist, _ = pf._compute_distance_and_predecessors()
-    bfs_visited = len(dist)
-
-    # --- Mesure : 1 plus court + 2 alternatifs ---
-    t0 = time.perf_counter()
-    paths_extra = pf.find_k_shortest_paths(k=1, n_extra=2)
-    time_with_extra = time.perf_counter() - t0
-
-    n_paths = len(paths_extra)
-    has_alternative = n_paths > 1
+    path_len = len(paths[0]) if paths else None
+    n_paths = len(paths)
+    # find() retourne au plus 1 chemin — pas de chemins alternatifs
+    has_alternative = False
 
     return {
         "width": width,
@@ -117,9 +102,9 @@ def bench_one(width: int, height: int, seed: int, perfect: bool) -> dict:
         "perfect": perfect,
         "gen_ok": True,
         "time_shortest_s": round(time_shortest, 7),
-        "time_with_extra_s": round(time_with_extra, 7),
+        "time_with_extra_s": round(time_shortest, 7),
         "path_len": path_len,
-        "bfs_visited": bfs_visited,
+        "bfs_visited": None,
         "n_paths_returned": n_paths,
         "has_alternative": has_alternative,
         "error": "",
@@ -222,8 +207,7 @@ def export_markdown(
         "# Benchmark PathFinder — A-Maze-ing",
         "",
         f"> Généré le {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}  ",
-        f"> Seeds par taille : **{n_seeds}** | Taille max : **{
-            max_size}×{max_size}**  ",
+        f"> Seeds par taille : **{n_seeds}** | Taille max : **{max_size}×{max_size}**  ",
         f"> Durée totale du benchmark : **{total_elapsed:.2f}s**",
         "",
         "## Résultats par taille",

@@ -28,7 +28,7 @@ def gen_backtracker() -> MazeGenerator:
 @pytest.fixture
 def gen_kruskal() -> MazeGenerator:
     return MazeGenerator(width=11, height=11, seed=1, perfect=False,
-                         algorithm='kruksal')
+                         algorithm='kruskal')
 
 
 # ── Initialisation ────────────────────────────────────────────────────
@@ -226,7 +226,6 @@ def test_reset_clears_track_and_maze() -> None:
     assert len(gen.tracks) > 0
     gen.reset()
     assert gen.tracks == []
-    assert gen.solution_path is None
 
 
 def test_reset_allows_regeneration() -> None:
@@ -256,28 +255,28 @@ def test_reset_preserves_42_cells_in_maze() -> None:
 
 
 def test_kruskal_explicit_generates_valid_maze() -> None:
-    """algorithm='kruksal' + perfect=True génère un labyrinthe valide."""
+    """algorithm='kruskal' + perfect=True génère un labyrinthe valide."""
     gen = MazeGenerator(width=11, height=11, seed=3, perfect=True,
-                        algorithm='kruksal')
+                        algorithm='kruskal')
     gen.generate()
     assert MazeValidator(gen.get_maze()).validate() is True
 
 
 def test_kruskal_imperfect_generates_valid_maze() -> None:
-    """algorithm='kruksal' + perfect=False (second_loop) reste valide."""
+    """algorithm='kruskal' + perfect=False (second_loop) reste valide."""
     gen = MazeGenerator(width=11, height=11, seed=3, perfect=False,
-                        algorithm='kruksal')
+                        algorithm='kruskal')
     gen.generate()
     assert MazeValidator(gen.get_maze()).validate() is True
 
 
 def test_kruskal_imperfect_has_cycle() -> None:
     """Un labyrinthe Kruskal imparfait contient au moins un cycle."""
-    from model.cycle_cheker import Cycle_Checker
+    from model.cycle_checker import CycleChecker
     gen = MazeGenerator(width=11, height=11, seed=3, perfect=False,
-                        algorithm='kruksal')
+                        algorithm='kruskal')
     gen.generate()
-    assert Cycle_Checker(gen.get_maze()).has_cycle() is True
+    assert CycleChecker(gen.get_maze()).has_cycle() is True
 
 
 # ── Algorithme Backtracker imparfait (second_loop) ────────────────────
@@ -293,18 +292,8 @@ def test_backtracker_imperfect_generates_valid_maze() -> None:
 
 def test_backtracker_imperfect_has_cycle() -> None:
     """Un labyrinthe Backtracker imparfait contient au moins un cycle."""
-    from model.cycle_cheker import Cycle_Checker
+    from model.cycle_checker import CycleChecker
     gen = MazeGenerator(width=11, height=11, seed=5, perfect=False,
                         algorithm='backtracker')
     gen.generate()
-    assert Cycle_Checker(gen.get_maze()).has_cycle() is True
-
-
-# ── get_solution() ────────────────────────────────────────────────────
-
-
-def test_get_solution_not_implemented() -> None:
-    """get_solution() n'est pas encore implémentée — solution_path vaut None."""
-    gen = MazeGenerator(width=11, height=11, seed=1, perfect=True)
-    gen.generate()
-    assert gen.solution_path is None
+    assert CycleChecker(gen.get_maze()).has_cycle() is True

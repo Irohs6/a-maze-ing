@@ -13,7 +13,6 @@ if __package__ in {None, ""}:
 
 from colorama import init, Fore, Style
 from model.maze import Maze
-from view.ansi_utils import read_key
 from view.terminal_launcher import _spawn_solution_window
 from view.terminal_renderer import (
     _draw_grid, _animate, _draw_final, _erase_corners
@@ -42,20 +41,11 @@ class TerminalView:
         entry: tuple[int, int] = (0, 0),
         exit: tuple[int, int] = (0, 0),
         forty_two_cells: set[tuple[int, int]] | None = None,
-        path_connections: dict[tuple[int, int], list[str]] | None = None,
     ) -> None:
         self.maze = maze
         self.entry = entry
         self.exit_pos = exit
         self.forty_two: set[tuple[int, int]] = set(forty_two_cells or [])
-        self.path_connections: dict[tuple[int, int], list[str]] = (
-            path_connections or {}
-        )
-
-    @staticmethod
-    def _read_key() -> str:
-        """Reads a key without waiting for Enter (raw mode)."""
-        return read_key()
 
     def show_solution(
         self,

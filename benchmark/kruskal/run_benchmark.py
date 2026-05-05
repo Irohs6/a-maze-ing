@@ -33,7 +33,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from mazegen.kruksal import Kruksal
+from mazegen.kruskal import Kruskal
 from model.maze import Maze
 from model.maze_validator import MazeValidator
 
@@ -68,7 +68,7 @@ TIMEOUT_SECONDS = 5.0  # abandon si génération > N secondes
 # Instrumented Kruskal (compte les itérations de _second_loop)
 # =============================================================================
 
-class InstrumentedKruksal(Kruksal):
+class InstrumentedKruskal(Kruskal):
     """Kruskal avec compteurs d'instrumentation."""
 
     def __init__(self, maze: Maze, is_perfect: bool = False) -> None:
@@ -97,7 +97,7 @@ def bench_one(width: int, height: int, seed: int, timeout: float
     Retourne un dict avec les métriques.
     """
     maze = Maze(width, height)
-    algo = InstrumentedKruksal(maze)
+    algo = InstrumentedKruskal(maze)
 
     t_start = time.perf_counter()
     success = False

@@ -1,7 +1,7 @@
 from model.maze import Maze
 
 
-class Cycle_Checker:
+class CycleChecker:
     def __init__(self, maze: Maze) -> None:
         self.maze = maze
 

@@ -33,7 +33,7 @@ class ConfigFile(BaseModel):
     PERFECT: bool
     SEED: int | None = None
 
-    ALGORITHM: str = Field(..., pattern="^(?i)(backtracker|kruksal)$")
+    ALGORITHM: str = Field(..., pattern="^(?i)(backtracker|kruskal)$")
 
     @field_validator("ALGORITHM")
     @classmethod
@@ -113,12 +113,6 @@ class ConfigFile(BaseModel):
             raise ValueError(
                 f"Empty value for key '{key}' in line: '{line.strip()}'"
             )
-        if key == "VIEW":
-            value = value.lower()
-            if value not in ("terminal", "curse"):
-                raise ValueError(
-                    "VIEW must be 'terminal' or 'curse'," f" got '{value}'"
-                )
         config[key] = value
 
     @staticmethod

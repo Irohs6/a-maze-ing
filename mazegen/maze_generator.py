@@ -6,9 +6,8 @@
 #   - __init__(width, height, seed, perfect, algorithm) : initialise
 #   - generate() : génère le labyrinthe et le stocke en interne
 #   - get_maze() : retourne la grille de cellules
-#   - get_solution() : retourne le chemin solution (liste de directions)
 #   - reset(seed) : réinitialise et régénère avec une nouvelle graine
-# La logique est déléguée aux classes Backtracker et Kruksal
+# La logique est déléguée aux classes Backtracker et Kruskal
 # qui héritent toutes deux de Algorithm (classe abstraite).
 
 import random
@@ -18,12 +17,12 @@ from model.maze_validator import MazeValidator
 from .algorithm import Algorithm
 
 from .backtracker import Backtracker
-from .kruksal import Kruksal
+from .kruskal import Kruskal
 
 # Mapping algorithm name to class
 ALGO_MAP = {
     "backtracker": Backtracker,
-    "kruksal": Kruksal,
+    "kruskal": Kruskal,
 }
 
 
@@ -39,7 +38,6 @@ class MazeGenerator:
         algorithm='backtracker')
         generator.generate()
         maze_grid = generator.get_maze()
-        solution_path = generator.get_solution()
     """
 
     def __init__(
@@ -59,7 +57,6 @@ class MazeGenerator:
             random.seed(seed)
         self.perfect = perfect
         self.maze = Maze(self.width, self.height)
-        self.solution_path: list[Any] | None = None
         self.tracks: list[Any] = []
         self.forty_two_cells: set[tuple[int, int]] = set()
 
@@ -101,6 +98,5 @@ class MazeGenerator:
             for j in range(len(self.maze.grid[i])):
                 self.maze.grid[i][j] = 15
 
-        self.solution_path = None
         self.tracks = []
         self.forty_two_cells = set()
