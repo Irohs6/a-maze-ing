@@ -44,6 +44,8 @@ class MazeGenerator:
         self,
         width: int,
         height: int,
+        entry: tuple[int, int],
+        exit: tuple[int, int],
         perfect: bool,
         seed: int | None = None,
         algorithm: str = 'backtracker',
@@ -52,11 +54,13 @@ class MazeGenerator:
         self.algorithm = algorithm
         self.width = width
         self.height = height
+        self.entry = entry
+        self.exit = exit
         self.seed = seed
         if seed is not None:
             random.seed(seed)
         self.perfect = perfect
-        self.maze = Maze(self.width, self.height)
+        self.maze = Maze(self.width, self.height, self.entry, self.exit)
         self.tracks: list[Any] = []
         self.forty_two_cells: set[tuple[int, int]] = set()
 

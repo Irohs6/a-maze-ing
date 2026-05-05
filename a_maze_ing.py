@@ -24,7 +24,7 @@ def main() -> None:
         print(error)
         sys.exit(3)
     except (ValueError, KeyError) as error:
-        print(f"Error in configuration file: {error}")
+        print(f"Error: {error}")
         sys.exit(4)
     except KeyboardInterrupt:
         print(Fore.BLUE + "Bye-bye" + Style.RESET_ALL, end="")

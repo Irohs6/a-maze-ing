@@ -35,15 +35,16 @@ class Maze:
         'W': (-1, 0),
     }
 
-    def __init__(self, width: int, height: int) -> None:
+    def __init__(self, width: int, height: int, entry: tuple[int, int], exit: tuple[int, int]) -> None:
         """Initialize an empty maze with given dimensions."""
         self.width: int = width
         self.height: int = height
-
+        self.entry = entry
+        self.exit = exit
         FULL_WALL = 1 | 2 | 4 | 8  # = 15
         self.grid = [[FULL_WALL for _ in range(width)] for _ in range(height)]
         self.forty_two_cells: set[tuple[int, int]] = set()
-        self.forty_two_cells = self.place_42_center()
+        self.place_42_center()
 
     def set_wall(self, x: int, y: int, direction: str) -> None:
         """Set a wall in the specified direction for the cell at (x, y)."""
@@ -172,5 +173,9 @@ class Maze:
                     y = start_y + dy
                     self.grid[y][x] = 15
                     self.forty_two_cells.add((x, y))
-
+        if (self.entry in self.forty_two_cells
+           or self.exit in self.forty_two_cells):
+            raise ValueError(f"ERROR: Entry {self.entry} or Exit "
+                             f"{self.exit} is located in the 42 pattern,"
+                             " please change them.")
         return self.forty_two_cells

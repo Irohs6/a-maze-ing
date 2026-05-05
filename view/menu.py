@@ -77,6 +77,13 @@ class Menu:
             print("│")
         print("╰" + "─" * 30 + "╯")
 
+    def _press_enter_continue(self):
+        print("\nPress Enter to continue...")
+        while True:
+            self._get_key()
+            if self.input == "\r":
+                break
+
     def _print_settings_menu(self) -> None:
         options = [
                 f"Width (current: {self._controller._config.WIDTH})",
@@ -178,16 +185,19 @@ class Menu:
         except ValidationError as error:
             self._controller._config = deepcopy(self.copy_config)
             print(error)
-            print("\nPress Enter to continue...")
-            while True:
-                self._get_key()
-                if self.input == "\r":
-                    break
+            self._press_enter_continue()
         except click.exceptions.Abort:
             pass
         else:
-            self.copy_config = deepcopy(self._controller._config)
-            self._update_objects()
+            try:
+                self._update_objects()
+            except ValueError as error:
+                self._controller._config = deepcopy(self.copy_config)
+                self._update_objects()
+                print(error)
+                self._press_enter_continue()
+            else:
+                self.copy_config = deepcopy(self._controller._config)
 
     def _settings_menu(self) -> None:
         try:
@@ -237,11 +247,7 @@ class Menu:
                 print(Fore.RED +
                       "Error: You don't have the permission to write in the "
                       "output file" + Style.RESET_ALL)
-            print("Press Enter to continue...")
-            while True:
-                self._get_key()
-                if self.input == "\r":
-                    break
+            self._press_enter_continue()
             self._controller._generator.reset(seed=time.time_ns())
             print("\033c", end="")
         elif self.index == 1:
