@@ -20,25 +20,29 @@ class Maze:
     Provides methods to access and modify cell walls and encode the
     maze for output. Validation is handled by MazeValidator.
     """
+
     PATTERN_42: list[list[int]] = [
         [15, 0, 15, 0, 15, 15, 15],
         [15, 0, 15, 0, 0, 0, 15],
         [15, 15, 15, 0, 15, 15, 15],
         [0, 0, 15, 0, 15, 0, 0],
         [0, 0, 15, 0, 15, 15, 15],
-        ]
+    ]
 
     _DIRECTIONS: dict[str, tuple[int, int]] = {
-        'N': (0, -1),
-        'E': (1, 0),
-        'S': (0, 1),
-        'W': (-1, 0),
+        "N": (0, -1),
+        "E": (1, 0),
+        "S": (0, 1),
+        "W": (-1, 0),
     }
 
-    def __init__(self, width: int, height: int,
-                 entry: tuple[int, int] = (0, 0),
-                 exit: tuple[int, int] | None = None) -> None:
-
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        entry: tuple[int, int] = (0, 0),
+        exit: tuple[int, int] | None = None,
+    ) -> None:
         """Initialize an empty maze with given dimensions."""
 
         self.width: int = width
@@ -52,42 +56,42 @@ class Maze:
 
     def set_wall(self, x: int, y: int, direction: str) -> None:
         """Set a wall in the specified direction for the cell at (x, y)."""
-        if direction == 'N':
+        if direction == "N":
             self.grid[y][x] |= 1
-        elif direction == 'E':
+        elif direction == "E":
             self.grid[y][x] |= 2
-        elif direction == 'S':
+        elif direction == "S":
             self.grid[y][x] |= 4
-        elif direction == 'W':
+        elif direction == "W":
             self.grid[y][x] |= 8
         else:
             raise ValueError(f"Invalid direction: {direction}")
 
     def has_wall(self, x: int, y: int, direction: str) -> bool:
         """Check if there is a wall in the given direction for cell (x, y)."""
-        if direction == 'N':
+        if direction == "N":
             return (self.grid[y][x] & 1) != 0
-        elif direction == 'E':
+        elif direction == "E":
             return (self.grid[y][x] & 2) != 0
-        elif direction == 'S':
+        elif direction == "S":
             return (self.grid[y][x] & 4) != 0
-        elif direction == 'W':
+        elif direction == "W":
             return (self.grid[y][x] & 8) != 0
         else:
             raise ValueError(f"Invalid direction: {direction}")
 
     def remove_wall(self, x: int, y: int, direction: str) -> None:
         """Remove a wall in the specified direction for the cell at (x, y)."""
-        if direction == 'E' and x < self.width - 1:
+        if direction == "E" and x < self.width - 1:
             self.grid[y][x] &= ~2
             self.grid[y][x + 1] &= ~8
-        elif direction == 'W' and x > 0:
+        elif direction == "W" and x > 0:
             self.grid[y][x] &= ~8
             self.grid[y][x - 1] &= ~2
-        elif direction == 'N' and y > 0:
+        elif direction == "N" and y > 0:
             self.grid[y][x] &= ~1
             self.grid[y - 1][x] &= ~4
-        elif direction == 'S' and y < self.height - 1:
+        elif direction == "S" and y < self.height - 1:
             self.grid[y][x] &= ~4
             self.grid[y + 1][x] &= ~1
         else:
@@ -95,39 +99,39 @@ class Maze:
 
     def add_wall(self, x: int, y: int, direction: str) -> None:
         """Add a wall in the specified direction for the cell at (x, y)."""
-        if direction == 'N' and y > 0:
+        if direction == "N" and y > 0:
             self.grid[y][x] |= 1
             self.grid[y - 1][x] |= 4
-        elif direction == 'S' and y < self.height - 1:
+        elif direction == "S" and y < self.height - 1:
             self.grid[y][x] |= 4
             self.grid[y + 1][x] |= 1
-        elif direction == 'E' and x < self.width - 1:
+        elif direction == "E" and x < self.width - 1:
             self.grid[y][x] |= 2
             self.grid[y][x + 1] |= 8
-        elif direction == 'W' and x > 0:
+        elif direction == "W" and x > 0:
             self.grid[y][x] |= 8
             self.grid[y][x - 1] |= 2
         else:
             raise ValueError(f"Invalid direction: {direction}")
 
-#          +------------+ +------------+ +------------+
-#          |    N(1)    | |    N(1)    | |    N(1)    |
-#          | W   y=0  E | | W   y=0  E | | W   y=0  E |
-#          |(8)  x=0 (2)| |(8)  x=1 (2)| |(8)  x=2 (2)|
-#          |   S(4)     | |   S(4)     | |   S(4)     |
-#          +------------+ +------------+ +------------+
-#          +------------+ +------------+ +------------+
-#          |    N(1)    | |    N(1)    | |    N(1)    |
-#          | W   y=1  E | | W   y=1  E | | W   y=1  E |
-#          |(8)  x=0 (2)| |(8)  x=1 (2)| |(8)  x=2 (2)|
-#          |   S(4)     | |   S(4)     | |   S(4)     |
-#          +------------+ +------------+ +------------+
-#          +------------+ +------------+ +------------+
-#          |    N(1)    | |    N(1)    | |    N(1)    |
-#          | W   y=2  E | | W   y=2  E | | W   y=2  E |
-#          |(8)  x=0 (2)| |(8)  x=1 (2)| |(8)  x=2 (2)|
-#          |   S(4)     | |   S(4)     | |   S(4)     |
-#          +------------+ +------------+ +------------+
+    #          +------------+ +------------+ +------------+
+    #          |    N(1)    | |    N(1)    | |    N(1)    |
+    #          | W   y=0  E | | W   y=0  E | | W   y=0  E |
+    #          |(8)  x=0 (2)| |(8)  x=1 (2)| |(8)  x=2 (2)|
+    #          |   S(4)     | |   S(4)     | |   S(4)     |
+    #          +------------+ +------------+ +------------+
+    #          +------------+ +------------+ +------------+
+    #          |    N(1)    | |    N(1)    | |    N(1)    |
+    #          | W   y=1  E | | W   y=1  E | | W   y=1  E |
+    #          |(8)  x=0 (2)| |(8)  x=1 (2)| |(8)  x=2 (2)|
+    #          |   S(4)     | |   S(4)     | |   S(4)     |
+    #          +------------+ +------------+ +------------+
+    #          +------------+ +------------+ +------------+
+    #          |    N(1)    | |    N(1)    | |    N(1)    |
+    #          | W   y=2  E | | W   y=2  E | | W   y=2  E |
+    #          |(8)  x=0 (2)| |(8)  x=1 (2)| |(8)  x=2 (2)|
+    #          |   S(4)     | |   S(4)     | |   S(4)     |
+    #          +------------+ +------------+ +------------+
 
     def encode_hex(self) -> str:
         """Encode the maze grid as a hexadecimal string."""
@@ -142,13 +146,13 @@ class Maze:
         """Return True if all outer-border cells
         have walls on their outer edge."""
         # Check top and bottom rows:
-        if y == 0 and wall_direction == 'N':
+        if y == 0 and wall_direction == "N":
             return True
-        elif y == self.height - 1 and wall_direction == 'S':
+        elif y == self.height - 1 and wall_direction == "S":
             return True
-        elif x == 0 and wall_direction == 'W':
+        elif x == 0 and wall_direction == "W":
             return True
-        elif x == self.width - 1 and wall_direction == 'E':
+        elif x == self.width - 1 and wall_direction == "E":
             return True
         return False
 
@@ -177,9 +181,17 @@ class Maze:
                     y = start_y + dy
                     self.grid[y][x] = 15
                     self.forty_two_cells.add((x, y))
-        if (self.entry in self.forty_two_cells
-           or self.exit in self.forty_two_cells):
-            raise ValueError(f"ERROR: Entry {self.entry} or Exit "
-                             f"{self.exit} is located in the 42 pattern,"
-                             " please change them.")
+        if (
+            self.entry in self.forty_two_cells
+            or self.exit in self.forty_two_cells
+        ):
+            invalid_coords = (
+                "Entry " + str(self.entry)
+                if self.entry in self.forty_two_cells
+                else "Exit " + str(self.exit)
+            )
+            raise ValueError(
+                f"ERROR: {invalid_coords} is located in the 42 pattern,"
+                " please change it."
+            )
         return self.forty_two_cells
