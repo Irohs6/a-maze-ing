@@ -2,15 +2,15 @@
 #
 # benchmark/backtracker/run_benchmark_backtracker.py
 #
-# Benchmark de l'algorithme Backtracker (A-Maze-ing).
+# Benchmark of the Backtracker algorithm (A-Maze-ing).
 #
 
-# Mesure pour chaque taille de labyrinthe :
-#   - Temps de génération moyen / min / max
-#   - Taux de succès (sur N seeds)
-#   - Nombre de cellules visitées et de murs ouverts
-#   - Longueur du track (nombre de passages creusés)
-#   - Vérification MazeValidator
+# Measurement for each maze size:
+#   - Average / min / max generation time
+#   - Success rate (over N seeds)
+#   - Number of visited cells and opened walls
+#   - Track length (number of carved passages)
+#   - MazeValidator check
 
 
 import sys
@@ -23,7 +23,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-# --- Chemin vers la racine du projet ---
+# --- Path to the project root ---
 from mazegen.backtracker import Backtracker
 from model.maze import Maze
 from model.maze_validator import MazeValidator
@@ -37,7 +37,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 DEFAULT_SIZES = [
     (5,    5),
-    (11,   9),    # taille minimale avec motif 42
+    (11,   9),    # minimum size with 42 pattern
     (11,  11),
     (21,  21),
     (31,  31),
@@ -54,11 +54,11 @@ DEFAULT_SEEDS_PER_SIZE = 10
 
 
 # =============================================================================
-# Benchmark d'une configuration (w × h, seed)
+# Benchmark of a single configuration (w × h, seed)
 # =============================================================================
 
 def bench_one(width: int, height: int, seed: int) -> dict[str, Any]:
-    """Génère un labyrinthe Backtracker et mesure les métriques."""
+    """Generate a Backtracker maze and measure performance metrics."""
     maze = Maze(width, height, entry=(0, 0), exit=(width - 1, height - 1))
     algo = Backtracker(maze, is_perfect=True)
 
@@ -80,7 +80,7 @@ def bench_one(width: int, height: int, seed: int) -> dict[str, Any]:
         track_len = len(track)
         final_maze = algo.maze
 
-        # Cellules visitées = toutes les cellules non-42 (DFS visite tout)
+        # Visited cells = all non-42 cells (DFS visits everything)
         visited_cells = sum(
             1
             for y in range(height)
@@ -88,13 +88,13 @@ def bench_one(width: int, height: int, seed: int) -> dict[str, Any]:
             if (x, y) not in final_maze.forty_two_cells
         )
 
-        # Murs ouverts : chaque cellule non-42 avec au moins un passage
+        # Open walls: each non-42 cell with at least one passage
         walls_opened = sum(
             bin(~final_maze.grid[y][x] & 0xF).count('1')
             for y in range(height)
             for x in range(width)
             if final_maze.grid[y][x] != 15
-        ) // 2  # chaque mur compté des deux côtés
+        ) // 2  # each wall counted from both sides
 
         validator = MazeValidator(final_maze)
         valid = validator.validate()
@@ -120,7 +120,7 @@ def bench_one(width: int, height: int, seed: int) -> dict[str, Any]:
 
 
 # =============================================================================
-# Agrégation
+# Aggregation
 # =============================================================================
 
 def aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
@@ -154,7 +154,7 @@ def aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 # =============================================================================
-# Affichage terminal
+# Terminal display
 # =============================================================================
 
 HEADER = (
@@ -199,7 +199,7 @@ def fmt_row(w: int, h: int, agg: dict[str, Any]) -> str:
 
 
 # =============================================================================
-# Export CSV + Markdown
+# CSV + Markdown export
 # =============================================================================
 
 def export_csv(all_raw: list[dict[str, Any]], path: Path) -> None:
@@ -222,18 +222,18 @@ def export_markdown(
     lines = [
         "# Benchmark Backtracker — A-Maze-ing",
         "",
-        f"> Généré le {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+        f"> Generated on {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
         (
-            f"> Seeds par taille : **{n_seeds}** | Taille max : "
+            f"> Seeds per size: **{n_seeds}** | Max size: "
             f"**{max_size}×{max_size}**"
         ),
-        f"> Durée totale du benchmark : **{total_elapsed:.2f}s**",
+        f"> Total benchmark duration: **{total_elapsed:.2f}s**",
         "",
-        "## Résultats par taille",
+        "## Results by size",
         "",
-        "| Taille | Runs | Succès | Valides | Moy(s) | Min(s) | Max(s) | "
-        "StdDev | Track moy | Visités |",
-        "|--------|------|--------|---------|--------|--------|--------|"
+        "| Size | Runs | Success | Valid | Mean(s) | Min(s) | Max(s) | "
+        "StdDev | Track avg | Visited |",
+        "|------|------|---------|-------|---------|--------|--------|"
         "--------|-----------|---------|",
     ]
     for w, h, agg in summary_rows:
@@ -264,17 +264,17 @@ def export_markdown(
 
     lines += [
         "",
-        "## Légende",
+        "## Legend",
         "",
-        "- **Track** : nombre de murs supprimés pendant la génération "
-        "(= passages creusés)",
+        "- **Track**: number of walls removed during generation "
+        "(= carved passages)",
         (
-            "- **Visités** : nombre de cellules parcourues par le DFS "
-            "(hors motif 42)"
+            "- **Visited**: number of cells traversed by the DFS "
+            "(excluding 42 pattern)"
         ),
-        "- **Valides** : nombre de labyrinthes ayant passé MazeValidator",
-        "- Le Backtracker génère toujours un labyrinthe **parfait** "
-        "(un seul chemin entre deux points)",
+        "- **Valid**: number of mazes that passed MazeValidator",
+        "- Backtracker always generates a **perfect** maze "
+        "(single path between any two points)",
         "",
     ]
 
@@ -282,9 +282,9 @@ def export_markdown(
             if a['time_mean'] is not None and a['time_mean'] > 1.0]
     if slow:
         slow_str = ", ".join(f"{w}×{h}" for w, h in slow[:3])
-        lines.append(f"> ⚠️ Tailles lentes (>1s en moyenne) : **{slow_str}**")
+        lines.append(f"> ⚠️ Slow sizes (>1s average): **{slow_str}**")
     else:
-        lines.append("> ✅ Toutes les tailles testées sont < 1s en moyenne.")
+        lines.append("> ✅ All tested sizes are < 1s on average.")
 
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
@@ -292,24 +292,24 @@ def export_markdown(
 
 
 # =============================================================================
-# Point d'entrée principal
+# Main entry point
 # =============================================================================
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Benchmark de l'algorithme Backtracker (A-Maze-ing)"
+        description="Benchmark of the Backtracker algorithm (A-Maze-ing)"
     )
     parser.add_argument(
         "--seeds", type=int, default=DEFAULT_SEEDS_PER_SIZE,
-        help=f"Nombre de seeds par taille (défaut: {DEFAULT_SEEDS_PER_SIZE})"
+        help=f"Number of seeds per size (default: {DEFAULT_SEEDS_PER_SIZE})"
     )
     parser.add_argument(
         "--max", type=int, default=501,
-        help="Taille maximale à tester (côté, défaut: 501)"
+        help="Maximum size to test (side length, default: 501)"
     )
     parser.add_argument(
         "--no-csv", action="store_true",
-        help="Ne pas exporter les résultats bruts en CSV"
+        help="Do not export raw results to CSV"
     )
     args = parser.parse_args()
 
@@ -326,8 +326,8 @@ def main() -> None:
     print("\n" + "=" * len(HEADER))
     print("  BENCHMARK BACKTRACKER — A-Maze-ing")
     print(
-        f"  Tailles : {len(sizes)} | Seeds/taille : {args.seeds} | "
-        f"Total runs : {total_runs}"
+        f"  Sizes: {len(sizes)} | Seeds/size: {args.seeds} | "
+        f"Total runs: {total_runs}"
     )
     print("=" * len(HEADER) + "\n")
     print(HEADER)
@@ -352,7 +352,7 @@ def main() -> None:
 
     total_elapsed = time.perf_counter() - benchmark_start
     print(SEP)
-    print(f"\nDurée totale : {total_elapsed:.2f}s | {len(all_raw)} runs")
+    print(f"\nTotal duration: {total_elapsed:.2f}s | {len(all_raw)} runs")
 
     if not args.no_csv:
         csv_path = results_dir / f"benchmark_bt_{timestamp}.csv"
@@ -362,13 +362,13 @@ def main() -> None:
     export_markdown(summary_rows, md_path, args.seeds,
                     max(w for w, h in sizes), total_elapsed)
 
-    # Résumé des tailles lentes
+    # Summary of slow sizes
     slow = [(w, h, a) for w, h, a in summary_rows
             if a['time_mean'] is not None and a['time_mean'] > 1.0]
     if slow:
-        print("\n--- Tailles > 1s ---")
+        print("\n--- Sizes > 1s ---")
         for w, h, a in slow:
-            print(f"  {w:>3}x{h:<3} → moy. {a['time_mean']:.3f}s")
+            print(f"  {w:>3}x{h:<3} → avg. {a['time_mean']:.3f}s")
 
 
 if __name__ == "__main__":

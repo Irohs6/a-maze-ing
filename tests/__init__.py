@@ -1,5 +1,4 @@
-# tests/__init__.py — Initialisation du package de tests.
-# Fichier vide requis pour que Python reconnaisse ce répertoire
-# comme un package.
-# Permet d'organiser les tests en sous-modules et de les lancer via pytest
-# depuis la racine du projet avec la commande "pytest tests/".
+# tests/__init__.py — Initialization of the tests package.
+# Empty file required for Python to recognize this directory as a package.
+# Allows tests to be organized in sub-modules and run via pytest
+# from the project root with the command "pytest tests/".

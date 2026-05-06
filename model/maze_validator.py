@@ -1,13 +1,12 @@
-# model/maze_validator.py — Validation de la structure du labyrinthe.
-# Contient la classe MazeValidator, séparée de Maze pour respecter le SRP.
-# Elle vérifie :
-#   - que les valeurs de chaque cellule sont dans l'intervalle 0–15
-#   - que les bordures extérieures du labyrinthe sont bien fermées par des murs
-#   - la cohérence des murs entre cellules voisines (symétrie N↔S, E↔W)
-#   - l'absence de zones ouvertes 3×3 interdites
-#   - la connectivité complète du labyrinthe (hors cellules isolées du motif
-#  "42")
-#   - la présence du motif "42" (ignoré si le labyrinthe est trop petit)
+# model/maze_validator.py — Validation of the maze structure.
+# Contains the MazeValidator class, separated from Maze to respect SRP.
+# It verifies:
+#   - cell values are within the interval [0, 15]
+#   - outer borders are properly closed with walls
+#   - wall consistency between neighbouring cells (symmetry N↔S, E↔W)
+#   - absence of forbidden 3×3 open areas
+#   - full connectivity of the maze (excluding isolated "42" pattern cells)
+#   - presence of the "42" pattern (ignored if the maze is too small)
 
 # import __future__ for forward compatibility with Python 3.10+
 # (annotations as strings by default)

@@ -1,14 +1,13 @@
-# model/path_finder.py — Algorithme de recherche du chemin le plus court.
-# Contient la classe PathFinder qui opère sur une instance de Maze.
-# Implémente un algorithme BFS (Breadth-First Search) pour trouver
-# le chemin valide le plus court entre l'entrée et la sortie.
-# Fournit des méthodes pour :
-#   - calculer et retourner le chemin sous forme de liste de directions
-#     (N, E, S, W)
-#   - retrouver jusqu'à k plus courts chemins depuis l'entrée vers la sortie
-#   - construire un dictionnaire de connexions par cellule pour l'affichage
-# Le résultat est utilisé à la fois pour l'écriture dans le fichier de sortie
-# et pour l'affichage visuel de la solution.
+# model/path_finder.py — Shortest path search algorithm.
+# Contains the PathFinder class operating on a Maze instance.
+# Implements a BFS (Breadth-First Search) algorithm to find
+# the shortest valid path between entry and exit.
+# Provides methods to:
+#   - compute and return the path as a list of directions (N, E, S, W)
+#   - find up to k shortest paths from entry to exit
+#   - build a per-cell connections dictionary for rendering
+# The result is used both for writing to the output file
+# and for visual display of the solution.
 
 from __future__ import annotations
 

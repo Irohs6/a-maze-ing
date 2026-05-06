@@ -1,14 +1,14 @@
-# mazegen/maze_generator.py — Module réutilisable de génération de labyrinthe.
-# Contient la classe MazeGenerator,
-# conçue pour être importée dans n'importe quel projet.
-# La classe encapsule la logique complète de
-# génération et expose une API claire :
-#   - __init__(width, height, seed, perfect, algorithm) : initialise
-#   - generate() : génère le labyrinthe et le stocke en interne
-#   - get_maze() : retourne la grille de cellules
-#   - reset(seed) : réinitialise et régénère avec une nouvelle graine
-# La logique est déléguée aux classes Backtracker et Kruskal
-# qui héritent toutes deux de Algorithm (classe abstraite).
+# mazegen/maze_generator.py — Reusable maze generation module.
+# Contains the MazeGenerator class,
+# designed to be imported into any project.
+# The class encapsulates the full generation logic
+# and exposes a clean API:
+#   - __init__(width, height, seed, perfect, algorithm): initialise
+#   - generate(): generate the maze and store it internally
+#   - get_maze(): return the cell grid
+#   - reset(seed): reset and regenerate with a new seed
+# Logic is delegated to Backtracker and Kruskal,
+# both of which inherit from Algorithm (abstract base class).
 
 import random
 from typing import Any
@@ -75,7 +75,7 @@ class MazeGenerator:
 
         validator = MazeValidator(self.maze)
         if not validator.validate():
-            # Affiche les erreurs détaillées si disponibles
+            # Print detailed errors if available
             if hasattr(validator, 'errors'):
                 print("Validation errors:", validator.errors)
             else:

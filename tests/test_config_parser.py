@@ -86,7 +86,7 @@ def test_file_not_found() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Clés obligatoires manquantes
+# Missing required keys
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("missing_key", [
@@ -151,7 +151,7 @@ def test_height_too_small(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Coordonnées hors limites — model_validator
+# Coordinates out of bounds - model_validator
 # ---------------------------------------------------------------------------
 
 def test_entry_out_of_bounds(tmp_path: Path) -> None:

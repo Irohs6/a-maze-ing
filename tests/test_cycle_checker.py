@@ -1,7 +1,7 @@
-# tests/test_cycle_checker.py — Tests unitaires de CycleChecker.
-# Vérifie la détection de cycles dans le graphe du labyrinthe.
-# Méthode : edges >= nodes (arbre couvrant = nodes-1 edges, cycle = nodes+)
-# Les cellules du motif "42" (value 15 = isolées) sont exclues du compte.
+# tests/test_cycle_checker.py — Unit tests for CycleChecker.
+# Verifies cycle detection in the maze graph.
+# Method: edges >= nodes (spanning tree = nodes-1 edges, cycle = nodes+)
+# Cells of the "42" pattern (value 15 = isolated) are excluded from the count.
 
 import pytest
 from model.maze import Maze
@@ -63,18 +63,18 @@ def test_perfect_small_maze_has_no_cycle() -> None:
     assert CycleChecker(gen.get_maze()).has_cycle() is False
 
 
-# ── Labyrinthe imparfait (cycles présents) ────────────────────────────
+# ── Imperfect maze (cycles present) ─────────────────────────────────────
 
 
 def test_imperfect_kruskal_has_cycle(imperfect_kruskal_11x11: Maze) -> None:
-    """Kruskal imparfait : second_loop crée des cycles."""
+    """Imperfect Kruskal: second_loop creates cycles."""
     assert CycleChecker(imperfect_kruskal_11x11).has_cycle() is True
 
 
 def test_imperfect_backtracker_has_cycle(
     imperfect_backtracker_11x11: Maze,
 ) -> None:
-    """Backtracker imparfait : second_loop crée des cycles."""
+    """Imperfect Backtracker: second_loop creates cycles."""
     assert CycleChecker(imperfect_backtracker_11x11).has_cycle() is True
 
 
@@ -89,7 +89,7 @@ def test_two_cells_one_connection_no_cycle() -> None:
 
 
 def test_2x2_loop_creates_cycle() -> None:
-    """Boucle 2×2 : 4 connexions E/S, 4 nœuds → edges=4 >= nodes=4 → cycle."""
+    """2x2 loop: 4 E/S connections, 4 nodes -> edges=4 >= nodes=4 -> cycle."""
     maze = Maze(2, 2)
     maze.remove_wall(0, 0, 'E')
     maze.remove_wall(0, 0, 'S')
@@ -99,7 +99,7 @@ def test_2x2_loop_creates_cycle() -> None:
 
 
 def test_linear_chain_no_cycle() -> None:
-    """Chaîne linéaire 4×1 : 3 connexions, 4 nœuds → pas de cycle."""
+    """Linear chain 4x1: 3 connections, 4 nodes -> no cycle."""
     maze = Maze(4, 1)
     maze.remove_wall(0, 0, 'E')
     maze.remove_wall(1, 0, 'E')
@@ -108,7 +108,7 @@ def test_linear_chain_no_cycle() -> None:
 
 
 def test_tree_3x3_no_cycle() -> None:
-    """Arbre couvrant 3×3 : 8 connexions, 9 nœuds → pas de cycle."""
+    """Spanning tree 3x3: 8 connections, 9 nodes -> no cycle."""
     maze = Maze(3, 3)
     # Construction d'un arbre : chemin en serpentin
     maze.remove_wall(0, 0, 'E')
@@ -126,8 +126,8 @@ def test_tree_3x3_no_cycle() -> None:
 
 
 def test_42_cells_excluded_from_node_count() -> None:
-    """Les cellules du motif 42 (value=15) sont exclues du compte de nœuds.
-    Un labyrinthe parfait avec motif 42 doit toujours être sans cycle."""
+    """Cells with the 42 pattern (value=15) are excluded from the node count.
+    A perfect maze with the 42 pattern must always be cycle-free."""
     gen = MazeGenerator(width=11, height=11, seed=7, perfect=True)
     gen.generate()
     maze = gen.get_maze()

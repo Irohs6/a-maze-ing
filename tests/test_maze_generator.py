@@ -1,15 +1,14 @@
-# tests/test_maze_generator.py — Tests unitaires
-# du module réutilisable MazeGenerator.
-# Valide l'API publique exposée par le paquet mazegen :
-#   - instanciation avec différentes combinaisons de paramètres
-#   - génération déterministe : même seed produit toujours le même labyrinthe
-#   - get_maze() retourne une structure 2D cohérente aux bonnes dimensions
-#   - get_solution() retourne un chemin valide reliant l'entrée à la sortie
-#   - mode parfait : vérification qu'un seul chemin existe
-# entre entrée et sortie
-#   - reset() régénère correctement avec une nouvelle graine
-#   - gestion des paramètres invalides (dimensions négatives,
-# seed non entier, etc.)
+# tests/test_maze_generator.py — Unit tests for
+# the reusable MazeGenerator module.
+# Validates the public API exposed by the mazegen package:
+#   - instantiation with various parameter combinations
+#   - deterministic generation: same seed always produces the same maze
+#   - get_maze() returns a coherent 2D structure with correct dimensions
+#   - get_solution() returns a valid path from entry to exit
+#   - perfect mode: verify that only one path exists between entry and exit
+#   - reset() correctly regenerates with a new seed
+#   - handling of invalid parameters (negative dimensions,
+# non-integer seed, etc.)
 
 import pytest
 from model.maze import Maze
@@ -90,7 +89,7 @@ def test_generate_backtracker_maze_is_valid(
 
 def test_generate_backtracker_forty_two_cells_populated(
         gen_backtracker: MazeGenerator) -> None:
-    """Pour un labyrinthe 11x11 (>= min 11x9), le motif doit être placé."""
+    """For an 11x11 maze (>= min 11x9), the pattern must be placed."""
     gen_backtracker.generate()
     assert len(gen_backtracker.forty_two_cells) > 0
 
@@ -128,12 +127,12 @@ def test_generate_kruskal_forty_two_cells_populated(
     assert len(gen_kruskal.forty_two_cells) > 0
 
 
-# ── Déterminisme (seed) ───────────────────────────────────────────────
+# ── Determinism (seed) ───────────────────────────────────────────────────
 
 
 def test_same_seed_same_maze_backtracker() -> None:
-    """Deux générateurs backtracker avec la même seed produisent
-    le même labyrinthe."""
+    """Two backtracker generators with the same seed produce
+    the same maze."""
     gen_a = MazeGenerator(width=11, height=11, seed=42, perfect=True)
     gen_b = MazeGenerator(width=11, height=11, seed=42, perfect=True)
     gen_a.generate()
@@ -161,7 +160,7 @@ def test_different_seeds_different_mazes_backtracker() -> None:
 
 
 def test_perfect_true_generates_valid_maze() -> None:
-    """perfect=True utilise le Backtracker et génère un labyrinthe valide."""
+    """perfect=True uses Backtracker and generates a valid maze."""
     gen = MazeGenerator(width=11, height=11, seed=1, perfect=True)
     gen.generate()
     assert isinstance(gen.get_maze(), Maze)
@@ -170,7 +169,7 @@ def test_perfect_true_generates_valid_maze() -> None:
 
 
 def test_perfect_false_generates_valid_maze() -> None:
-    """perfect=False utilise Kruskal et génère un labyrinthe valide."""
+    """perfect=False uses Kruskal and generates a valid maze."""
     gen = MazeGenerator(width=11, height=11, seed=1, perfect=False)
     gen.generate()
     assert isinstance(gen.get_maze(), Maze)
@@ -178,11 +177,11 @@ def test_perfect_false_generates_valid_maze() -> None:
     assert validator.validate() is True
 
 
-# ── Paramètres invalides ──────────────────────────────────────────────
+# ── Invalid parameters ────────────────────────────────────────────────────
 
 
 def test_unknown_algorithm_raises() -> None:
-    """Un nom d'algorithme inconnu lève ValueError à generate()."""
+    """An unknown algorithm name raises ValueError at generate()."""
     gen = MazeGenerator(width=5, height=5, perfect=True,
                         algorithm='unknown_algo')
     with pytest.raises(ValueError):
@@ -239,9 +238,9 @@ def test_reset_allows_regeneration() -> None:
 
 
 def test_reset_preserves_42_cells_in_maze() -> None:
-    """Après reset(), maze.forty_two_cells n'est pas vidé (toujours défini
-    sur l'objet Maze qui est réutilisé). La prochaine
-    génération les retrouve."""
+    """After reset(), maze.forty_two_cells is not cleared (still set
+    on the reused Maze object). The next
+    generation finds them again."""
     gen = MazeGenerator(width=11, height=11, seed=1, perfect=True)
     gen.generate()
     cells_before = frozenset(gen.get_maze().forty_two_cells)
@@ -255,7 +254,7 @@ def test_reset_preserves_42_cells_in_maze() -> None:
 
 
 def test_kruskal_explicit_generates_valid_maze() -> None:
-    """algorithm='kruskal' + perfect=True génère un labyrinthe valide."""
+    """algorithm='kruskal' + perfect=True generates a valid maze."""
     gen = MazeGenerator(width=11, height=11, seed=3, perfect=True,
                         algorithm='kruskal')
     gen.generate()
@@ -283,7 +282,7 @@ def test_kruskal_imperfect_has_cycle() -> None:
 
 
 def test_backtracker_imperfect_generates_valid_maze() -> None:
-    """Backtracker + perfect=False déclenche second_loop sans erreur."""
+    """Backtracker + perfect=False triggers second_loop without error."""
     gen = MazeGenerator(width=11, height=11, seed=5, perfect=False,
                         algorithm='backtracker')
     gen.generate()

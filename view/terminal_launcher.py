@@ -1,9 +1,9 @@
-# view/terminal_launcher.py — Détection et lancement de l'émulateur de terminal.
+# view/terminal_launcher.py — Terminal emulator detection and launch.
 #
-# Fonctions :
-#   _find_backend()          : détecte le backend installé (priorité XDG)
-#   _open_terminal()         : ouvre une fenêtre aux bonnes dimensions
-#   _spawn_solution_window() : sérialise la config JSON et ouvre la fenêtre
+# Functions:
+#   _find_backend()          : detect the installed backend (XDG priority)
+#   _open_terminal()         : open a window with the correct dimensions
+#   _spawn_solution_window() : serialise JSON config and open the window
 
 import json
 import os

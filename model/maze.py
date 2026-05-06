@@ -1,11 +1,11 @@
-# model/maze.py — Structure de données représentant le labyrinthe.
-# Contient la classe Maze qui stocke la grille de cellules et leurs murs.
-# Chaque cellule est un entier sur 4 bits (Nord, Est, Sud, Ouest).
-# La classe fournit des méthodes pour :
-#   - accéder et modifier les murs d'une cellule donnée
-#   - encoder le labyrinthe en hexadécimal pour la sortie
-# La validation est déléguée à MazeValidator (model/maze_validator.py).
-# Utilise des annotations de type et des docstrings conformes à PEP 257.
+# model/maze.py — Data structure representing the maze.
+# Contains the Maze class, which stores the grid of cells and their walls.
+# Each cell is a 4-bit integer (North, East, South, West).
+# The class provides methods to:
+#   - access and modify the walls of a given cell
+#   - encode the maze in hexadecimal for output
+# Validation is delegated to MazeValidator (model/maze_validator.py).
+# Uses type annotations and PEP 257-compliant docstrings.
 
 
 class Maze:
@@ -153,17 +153,17 @@ class Maze:
         return False
 
     def place_42_center(self) -> set[tuple[int, int]]:
-        """Place le motif '42' au centre du labyrinthe.
+        """Place the '42' pattern at the centre of the maze.
 
-        Retourne le set des cellules occupées par le motif.
-        Retourne un set vide si la taille du labyrinthe est insuffisante
-        (le motif requiert au minimum pw+4 colonnes et ph+4 lignes pour
-        laisser une marge de 2 cellules de chaque côté).
+        Returns the set of cells occupied by the pattern.
+        Returns an empty set if the maze is too small
+        (the pattern requires at least pw+4 columns and ph+4 rows
+        to leave a 2-cell margin on each side).
         """
         ph = len(self.PATTERN_42)
         pw = len(self.PATTERN_42[0])
 
-        # Marge minimale de 2 cellules de chaque côté
+        # Minimum margin of 2 cells on each side
         if self.width < pw + 4 or self.height < ph + 4:
             return set()
 

@@ -1,4 +1,4 @@
-# view/terminal_backends.py — Backends d'émulateurs de terminal.
+# view/terminal_backends.py — Terminal emulator backends.
 #
 # Each TerminalBackend describes:
 #   - name          : binary name (used with shutil.which)
@@ -92,8 +92,8 @@ def _kitty(cols: int, rows: int, child: list[str], zoom: float) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# Registre des backends
-# (ordre = priorité lors de la détection générique, sans bureau détecté)
+# Backend registry
+# (order = priority for generic detection, when no desktop is detected)
 # ---------------------------------------------------------------------------
 
 BACKENDS: list[TerminalBackend] = [

@@ -1,13 +1,12 @@
-# tests/test_maze.py — Tests unitaires de la structure de données Maze.
-# Vérifie le bon fonctionnement de la classe Maze, notamment :
-#   - la création d'un labyrinthe aux dimensions correctes
-#   - l'accès et la modification des murs de chaque cellule
-#   - la détection des incohérences entre cellules voisines
-#   - la détection des zones ouvertes 3x3 interdites
-#   - le placement correct du motif "42" et sa détection
-#   - l'encodage hexadécimal de la grille (correspondance bits/directions)
-#   - les cas limites : labyrinthe 1x1, dimensions
-# minimales, trop petit pour "42"
+# tests/test_maze.py — Unit tests for the Maze data structure.
+# Verifies the correct behaviour of the Maze class, in particular:
+#   - maze creation with correct dimensions
+#   - access and modification of cell walls
+#   - detection of inconsistencies between neighbouring cells
+#   - detection of forbidden 3x3 open areas
+#   - correct placement of the "42" pattern and its detection
+#   - hexadecimal encoding of the grid (bits/directions correspondence)
+#   - edge cases: 1x1 maze, minimum dimensions, too small for "42"
 
 import pytest
 from model.maze import Maze
@@ -37,7 +36,7 @@ def test_init_dimensions(maze_5x5: Maze) -> None:
 
 
 def test_init_all_cells_full_wall(maze_5x5: Maze) -> None:
-    """Toutes les cellules doivent commencer à 15 (4 murs)."""
+    """All cells must start at 15 (4 walls)."""
     for row in maze_5x5.grid:
         for cell in row:
             assert cell == 15
@@ -81,7 +80,7 @@ def test_remove_wall_east_is_symmetric(maze_5x5: Maze) -> None:
     maze_5x5.remove_wall(1, 1, 'E')
     assert maze_5x5.has_wall(1, 1, 'E') is False
     assert maze_5x5.has_wall(2, 1, 'W') is False
-    # Les autres murs ne doivent pas être affectés
+    # Other walls must not be affected
     assert maze_5x5.has_wall(1, 1, 'N') is True
     assert maze_5x5.has_wall(1, 1, 'S') is True
 
@@ -108,7 +107,7 @@ def test_remove_wall_south_is_symmetric(maze_5x5: Maze) -> None:
 
 
 def test_remove_wall_east_at_boundary_raises(maze_5x5: Maze) -> None:
-    """Retirer le mur Est de la dernière colonne doit lever ValueError."""
+    """Removing the East wall of the last column must raise ValueError."""
     with pytest.raises(ValueError):
         maze_5x5.remove_wall(4, 0, 'E')
 
@@ -132,7 +131,7 @@ def test_remove_wall_south_at_boundary_raises(maze_5x5: Maze) -> None:
 
 
 def test_set_wall_restores_after_remove(maze_5x5: Maze) -> None:
-    """set_wall doit remettre le mur après un remove_wall."""
+    """set_wall must restore the wall after a remove_wall."""
     maze_5x5.remove_wall(1, 1, 'E')
     assert maze_5x5.has_wall(1, 1, 'E') is False
     maze_5x5.set_wall(1, 1, 'E')
@@ -148,7 +147,7 @@ def test_set_wall_invalid_direction_raises(maze_5x5: Maze) -> None:
 
 
 def test_encode_hex_initial_all_f(maze_3x3: Maze) -> None:
-    """Labyrinthe plein → toutes les cellules encodées 'F'."""
+    """Full maze -> all cells encoded as 'F'."""
     hex_str = maze_3x3.encode_hex()
     lines = hex_str.strip().split('\n')
     assert len(lines) == 3
@@ -165,10 +164,10 @@ def test_encode_hex_changes_after_remove(maze_3x3: Maze) -> None:
 
 
 def test_encode_hex_format(maze_3x3: Maze) -> None:
-    """encode_hex retourne WIDTH caractères par ligne + \\n."""
+    """encode_hex returns WIDTH characters per line + \\n."""
     hex_str = maze_3x3.encode_hex()
     lines = hex_str.split('\n')
-    # La dernière ligne peut être vide à cause du \n final
+    # The last line may be empty due to the trailing \n
     non_empty = [li for li in lines if li]
     assert len(non_empty) == 3
     for line in non_empty:
@@ -213,7 +212,7 @@ def test_add_wall_invalid_direction_raises(maze_5x5: Maze) -> None:
 
 
 def test_add_wall_at_border_raises(maze_5x5: Maze) -> None:
-    """add_wall sur une bordure lève ValueError
+    """add_wall on a boundary raises ValueError
     (condition de garde non remplie)."""
     with pytest.raises(ValueError):
         maze_5x5.add_wall(0, 0, 'N')  # y=0, condition y>0 fausse
@@ -242,7 +241,7 @@ def test_place_42_center_cells_have_value_15() -> None:
 
 
 def test_place_42_center_is_horizontally_centered() -> None:
-    """Le motif est centré : start_x == (width - pattern_width) // 2."""
+    """The pattern is centered: start_x == (width - pattern_width) // 2."""
     maze = Maze(11, 11)
     pw = len(maze.PATTERN_42[0])
     expected_start_x = (11 - pw) // 2

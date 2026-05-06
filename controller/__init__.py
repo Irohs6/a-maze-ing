@@ -1,6 +1,6 @@
-# controller/__init__.py — Initialisation du package controller.
-# Expose la classe MazeController pour simplifier son import
-# depuis le point d'entrée principal (a_maze_ing.py).
+# controller/__init__.py — Initialization of the controller package.
+# Exposes MazeController to simplify its import
+# from the main entry point (a_maze_ing.py).
 
 from controller.maze_controller import MazeController
 

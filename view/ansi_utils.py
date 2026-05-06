@@ -1,10 +1,10 @@
-# view/ansi_utils.py — Utilitaires ANSI et géométrie de cellule.
+# view/ansi_utils.py — ANSI utilities and cell geometry.
 #
-# Ce module centralise :
-#   - les constantes de rendu (WALL, WALL_WIDTH)
-#   - les calculs de géométrie de cellule (cell_height, grid_cols, grid_rows)
-#   - les conversions coordonnées logiques → positions ANSI (1-based)
-#   - le helper move_to() et la fonction read_key()
+# This module centralises:
+#   - rendering constants (WALL, WALL_WIDTH)
+#   - cell geometry calculations (cell_height, grid_cols, grid_rows)
+#   - logical coordinate → ANSI position conversions (1-based)
+#   - the move_to() helper and the read_key() function
 
 import contextlib
 import select as _select
@@ -13,23 +13,23 @@ import termios
 import tty
 from typing import Iterator
 
-# Représentation d'un mur fermé.
-# U+2588 (FULL BLOCK) × 2 → 2 colonnes terminales, colorable via ANSI Fore.X
+# Representation of a closed wall.
+# U+2588 (FULL BLOCK) x 2 -> 2 terminal columns, colorable via ANSI Fore.X
 WALL = "██"
-WALL_WIDTH = 2  # colonnes terminales occupées par WALL
+WALL_WIDTH = 2  # terminal columns occupied by WALL
 
 
 # ---------------------------------------------------------------------------
-# Géométrie de cellule
+# Cell geometry
 # ---------------------------------------------------------------------------
 
 def cell_height(cell_width: int) -> int:
-    """Hauteur intérieure d'une cellule en lignes terminales."""
+    """Interior height of a cell in terminal rows."""
     return max(1, cell_width // 2)
 
 
 def grid_cols(maze_width: int, cell_width: int) -> int:
-    """Nombre d'unités logiques (colonnes de WALL) de la grille."""
+    """Number of logical units (WALL columns) of the grid."""
     return (cell_width + 1) * maze_width + 1
 
 
@@ -39,26 +39,26 @@ def grid_rows(maze_height: int, cell_width: int) -> int:
 
 
 def terminal_cols(maze_width: int, cell_width: int) -> int:
-    """Colonnes terminales totales nécessaires pour la fenêtre."""
+    """Total terminal columns needed for the window."""
     return grid_cols(maze_width, cell_width) * WALL_WIDTH
 
 
 def terminal_rows(maze_height: int, cell_width: int, extra: int = 2) -> int:
-    """Lignes terminales totales nécessaires, avec `extra` lignes de marge."""
+    """Total terminal rows needed, with `extra` margin rows."""
     return grid_rows(maze_height, cell_width) + extra
 
 
 # ---------------------------------------------------------------------------
-# Coordonnées ANSI (toutes 1-based, unité = colonne/ligne terminale)
+# ANSI coordinates (all 1-based, unit = terminal column/row)
 # ---------------------------------------------------------------------------
 
 def inner_col(cell_x: int, cell_width: int) -> int:
-    """Colonne ANSI du premier char intérieur (gauche) de la cellule."""
+    """ANSI column of the first interior character (left) of the cell."""
     return (cell_x * (cell_width + 1) + 1) * WALL_WIDTH + 1
 
 
 def inner_row(cell_y: int, cell_width: int) -> int:
-    """Ligne ANSI du premier char intérieur (haut) de la cellule."""
+    """ANSI row of the first interior character (top) of the cell."""
     ch = cell_height(cell_width)
     return 1 + cell_y * (ch + 1) + 1
 
@@ -75,13 +75,13 @@ def center_row(cell_y: int, cell_width: int) -> int:
 
 
 def wall_row_n(cell_y: int, cell_width: int) -> int:
-    """Ligne ANSI du mur Nord (rangée horizontale au-dessus de la cellule)."""
+    """ANSI row of the North wall (horizontal row above the cell)."""
     ch = cell_height(cell_width)
     return 1 + cell_y * (ch + 1)
 
 
 def wall_row_s(cell_y: int, cell_width: int) -> int:
-    """Ligne ANSI du mur Sud (rangée horizontale en-dessous de la cellule)."""
+    """ANSI row of the South wall (horizontal row below the cell)."""
     ch = cell_height(cell_width)
     return 1 + (cell_y + 1) * (ch + 1)
 
@@ -97,7 +97,7 @@ def wall_col_w(cell_x: int, cell_width: int) -> int:
 
 
 def move_to(row: int, col: int) -> str:
-    """Séquence ANSI CSI pour positionner le curseur (1-based)."""
+    """ANSI CSI sequence to position the cursor (1-based)."""
     return f"\033[{row};{col}H"
 
 
@@ -106,7 +106,7 @@ def move_to(row: int, col: int) -> str:
 # ---------------------------------------------------------------------------
 
 def read_key() -> str:
-    """Lit une touche sans attendre Entrée (mode raw, POSIX uniquement)."""
+    """Read a key without waiting for Enter (raw mode, POSIX only)."""
     fd = sys.stdin.fileno()
     saved = termios.tcgetattr(fd)
     try:
@@ -118,10 +118,10 @@ def read_key() -> str:
 
 @contextlib.contextmanager
 def raw_stdin() -> Iterator[None]:
-    """Context manager : stdin en mode raw, restauré à la sortie.
+    """Context manager: stdin in raw mode, restored on exit.
 
-    Utile pour les boucles interactives appelant read_key_or_timeout()
-    de manière répétitive (réduit les tcgetattr/tcsetattr).
+    Useful for interactive loops calling read_key_or_timeout()
+    repeatedly (reduces tcgetattr/tcsetattr calls).
     """
     fd = sys.stdin.fileno()
     saved = termios.tcgetattr(fd)
@@ -133,11 +133,11 @@ def raw_stdin() -> Iterator[None]:
 
 
 def read_key_or_timeout(timeout: float | None) -> str | None:
-    """Lit une touche avec délai (stdin doit être en mode raw).
+    """Read a key with timeout (stdin must be in raw mode).
 
-    timeout=None  : bloquant jusqu'à une touche.
-    timeout=0.0   : non bloquant, retourne None immédiatement.
-    Retourne None si le délai expire sans touche.
+    timeout=None  : blocking until a key is pressed.
+    timeout=0.0   : non-blocking, returns None immediately.
+    Returns None if the delay expires without a key.
     """
     ready, _, _ = _select.select([sys.stdin], [], [], timeout)
     return sys.stdin.read(1) if ready else None
