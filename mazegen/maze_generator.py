@@ -44,9 +44,9 @@ class MazeGenerator:
         self,
         width: int,
         height: int,
-        entry: tuple[int, int],
-        exit: tuple[int, int],
-        perfect: bool,
+        entry: tuple[int, int] = (0, 0),
+        exit: tuple[int, int] | None = None,
+        perfect: bool = True,
         seed: int | None = None,
         algorithm: str = 'backtracker',
     ) -> None:
@@ -55,7 +55,7 @@ class MazeGenerator:
         self.width = width
         self.height = height
         self.entry = entry
-        self.exit = exit
+        self.exit = exit if exit is not None else (width - 1, height - 1)
         self.seed = seed
         if seed is not None:
             random.seed(seed)

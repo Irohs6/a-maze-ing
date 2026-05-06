@@ -28,13 +28,14 @@ import argparse
 import statistics
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 # --- Chemin vers la racine du projet (le script est dans benchmark/) ---------
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from mazegen.maze_generator import MazeGenerator
-from model.path_finder import PathFinder
+from mazegen.maze_generator import MazeGenerator  # noqa: E402
+from model.path_finder import PathFinder  # noqa: E402
 
 # =============================================================================
 # Configuration
@@ -60,13 +61,15 @@ DEFAULT_SEEDS_PER_SIZE = 10
 # Benchmark d'une configuration (w × h, seed, perfect)
 # =============================================================================
 
-def bench_one(width: int, height: int, seed: int, perfect: bool) -> dict:
+def bench_one(width: int, height: int, seed: int,
+              perfect: bool) -> dict[str, Any]:
     """Génère un labyrinthe puis mesure PathFinder dessus."""
 
     # --- Génération ---
     try:
-        gen = MazeGenerator(width=width, height=height,
-                            seed=seed, perfect=perfect)
+        gen = MazeGenerator(width=width, height=height, entry=(0, 0),
+                            exit=(width - 1, height - 1), perfect=perfect,
+                            seed=seed)
         gen.generate()
         maze = gen.get_maze()
     except Exception as e:
@@ -115,7 +118,7 @@ def bench_one(width: int, height: int, seed: int, perfect: bool) -> dict:
 # Agrégation
 # =============================================================================
 
-def aggregate(results: list[dict]) -> dict:
+def aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
     ok = [r for r in results if r["gen_ok"] and r[
         "time_shortest_s"] is not None]
     n = len(results)
@@ -126,10 +129,17 @@ def aggregate(results: list[dict]) -> dict:
     visited = [r["bfs_visited"] for r in ok if r["bfs_visited"] is not None]
     alt = [r["has_alternative"] for r in ok]
 
-    def st(lst): return round(statistics.stdev(lst), 7) if len(lst) > 1 else 0.0
-    def mn(lst): return round(min(lst), 7) if lst else None
-    def mx(lst): return round(max(lst), 7) if lst else None
-    def avg(lst): return round(statistics.mean(lst), 4) if lst else None
+    def st(lst: list[float]) -> float:
+        return round(statistics.stdev(lst), 7) if len(lst) > 1 else 0.0
+
+    def mn(lst: list[float]) -> float | None:
+        return round(min(lst), 7) if lst else None
+
+    def mx(lst: list[float]) -> float | None:
+        return round(max(lst), 7) if lst else None
+
+    def avg(lst: list[float]) -> float | None:
+        return round(statistics.mean(lst), 4) if lst else None
 
     return {
         "n_runs":           n,
@@ -146,7 +156,7 @@ def aggregate(results: list[dict]) -> dict:
 
 
 # =============================================================================
-# Affichage terminal
+# Display (terminal + export CSV/MD)
 # =============================================================================
 
 HEADER = (
@@ -157,7 +167,7 @@ HEADER = (
 SEP = "-" * len(HEADER)
 
 
-def fmt_row(w: int, h: int, mode: str, agg: dict) -> str:
+def fmt_row(w: int, h: int, mode: str, agg: dict[str, Any]) -> str:
     size = f"{w}x{h}"
     mean = f"{agg['time_s_mean']:.5f}" if agg[
         'time_s_mean'] is not None else "   FAIL"
@@ -185,7 +195,7 @@ def fmt_row(w: int, h: int, mode: str, agg: dict) -> str:
 # Export CSV + Markdown
 # =============================================================================
 
-def export_csv(all_raw: list[dict], path: Path) -> None:
+def export_csv(all_raw: list[dict[str, Any]], path: Path) -> None:
     if not all_raw:
         return
     fieldnames = list(all_raw[0].keys())
@@ -197,7 +207,7 @@ def export_csv(all_raw: list[dict], path: Path) -> None:
 
 
 def export_markdown(
-    summary_rows: list[tuple],
+    summary_rows: list[tuple[int, int, str, dict[str, Any]]],
     path: Path,
     n_seeds: int,
     max_size: int,
@@ -207,7 +217,8 @@ def export_markdown(
         "# Benchmark PathFinder — A-Maze-ing",
         "",
         f"> Généré le {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}  ",
-        f"> Seeds par taille : **{n_seeds}** | Taille max : **{max_size}×{max_size}**  ",
+        f"> Seeds par taille : **{n_seeds}** | Taille max : "
+        f"**{max_size}×{max_size}**  ",
         f"> Durée totale du benchmark : **{total_elapsed:.2f}s**",
         "",
         "## Résultats par taille",
@@ -322,8 +333,8 @@ def main() -> None:
     print(HEADER)
     print(SEP)
 
-    all_raw: list[dict] = []
-    summary_rows: list[tuple] = []
+    all_raw: list[dict[str, Any]] = []
+    summary_rows: list[tuple[int, int, str, dict[str, Any]]] = []
     benchmark_start = time.perf_counter()
 
     for mode_name, perfect in modes:

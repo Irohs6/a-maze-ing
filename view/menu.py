@@ -33,7 +33,7 @@ class Menu:
         self.copy_config = deepcopy(self._controller._config)
         self.fd = sys.stdin.fileno()
         self.old = termios.tcgetattr(self.fd)
-        self.input = None
+        self.input: str = ""
         self.index = 0
         self.len_menu = [3, 9]
         self.current_menu = 0
@@ -77,7 +77,7 @@ class Menu:
             print("│")
         print("╰" + "─" * 30 + "╯")
 
-    def _press_enter_continue(self):
+    def _press_enter_continue(self) -> None:
         print("\nPress Enter to continue...")
         while True:
             self._get_key()
@@ -85,6 +85,10 @@ class Menu:
                 break
 
     def _print_settings_menu(self) -> None:
+        if self._controller._config is None:
+            raise RuntimeError("Config not initialized")
+        if self._controller._generator is None:
+            raise RuntimeError("Generator not initialized")
         options = [
                 f"Width (current: {self._controller._config.WIDTH})",
                 f"Height (current: {self._controller._config.HEIGHT})",
@@ -121,6 +125,8 @@ class Menu:
         print("╰" + "─" * 30 + "╯")
 
     def _change_setting(self) -> None:
+        if self._controller._config is None:
+            raise RuntimeError("Config not initialized")
         try:
             field = self.SETTINGS_FIELDS[self.index]
             if self.index < 2:
@@ -178,7 +184,7 @@ class Menu:
                 self._ask_for_value(f"Choose {field}")
                 algo = click.prompt(
                     " ", prompt_suffix="",
-                    type=click.Choice(["kruksal", "backtracker"],
+                    type=click.Choice(["kruskal", "backtracker"],
                                       case_sensitive=False)
                 )
                 setattr(self._controller._config, field, algo)
@@ -221,6 +227,14 @@ class Menu:
 
     def _execute(self) -> None:
         if self.index == 0:
+            if self._controller._generator is None:
+                raise RuntimeError("Generator not initialized")
+            if self._controller._finder is None:
+                raise RuntimeError("PathFinder not initialized")
+            if self._controller._cycle_checker is None:
+                raise RuntimeError("CycleChecker not initialized")
+            if self._controller._config is None:
+                raise RuntimeError("Config not initialized")
             self._controller._generator.generate()
             tracks = self._controller._generator.tracks
             paths = self._controller._finder.find()

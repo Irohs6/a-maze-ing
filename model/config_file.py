@@ -33,7 +33,8 @@ class ConfigFile(BaseModel):
     PERFECT: bool
     SEED: int | None = None
 
-    ALGORITHM: str = Field(..., pattern="^(?i)(backtracker|kruskal)$")
+    ALGORITHM: str = Field(default="backtracker",
+                           pattern="^(?i)(backtracker|kruskal)$")
 
     @field_validator("ALGORITHM")
     @classmethod

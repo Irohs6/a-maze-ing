@@ -18,12 +18,12 @@ from model.maze import Maze
 
 @pytest.fixture
 def maze_5x5() -> Maze:
-    return Maze(5, 5)
+    return Maze(5, 5, entry=(0, 0), exit=(4, 4))
 
 
 @pytest.fixture
 def maze_3x3() -> Maze:
-    return Maze(3, 3)
+    return Maze(3, 3, entry=(0, 0), exit=(2, 2))
 
 
 # ── Initialisation ────────────────────────────────────────────────────
@@ -44,14 +44,14 @@ def test_init_all_cells_full_wall(maze_5x5: Maze) -> None:
 
 
 def test_init_1x1() -> None:
-    maze = Maze(1, 1)
+    maze = Maze(1, 1, entry=(0, 0), exit=(0, 0))
     assert maze.width == 1
     assert maze.height == 1
     assert maze.grid[0][0] == 15
 
 
 def test_init_rectangular() -> None:
-    maze = Maze(10, 3)
+    maze = Maze(10, 3, entry=(0, 0), exit=(9, 2))
     assert maze.width == 10
     assert maze.height == 3
     assert len(maze.grid) == 3

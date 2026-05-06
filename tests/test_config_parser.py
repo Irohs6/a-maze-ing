@@ -69,6 +69,7 @@ def test_optional_seed_used_if_present(tmp_path: Path) -> None:
     config = ConfigFile.parse(make_config(tmp_path, content))
     assert config.SEED == 42
 
+
 def test_perfect_false(tmp_path: Path) -> None:
     content = VALID.replace("PERFECT=True", "PERFECT=False")
     config = ConfigFile.parse(make_config(tmp_path, content))

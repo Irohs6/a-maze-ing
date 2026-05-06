@@ -57,8 +57,8 @@ class TerminalView:
         # Displays whether the maze is perfect or imperfect
 
         cell_width = 1
-        solution_cells: list[list[int | list[str]]] = [
-            [x, y, list(dirs)]
+        solution_cells: list[tuple[int, int, list[str]]] = [
+            (x, y, list(dirs))
             for (x, y), dirs in (all_paths[0].items() if all_paths else [])
         ]
         # Attempt to open a new window for smoother

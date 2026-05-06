@@ -28,14 +28,15 @@ import argparse
 import statistics
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 # --- Chemin vers la racine du projet (le script est dans benchmark/) ---------
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from mazegen.kruskal import Kruskal
-from model.maze import Maze
-from model.maze_validator import MazeValidator
+from mazegen.kruskal import Kruskal  # noqa: E402
+from model.maze import Maze  # noqa: E402
+from model.maze_validator import MazeValidator  # noqa: E402
 
 # =============================================================================
 # Configuration
@@ -76,11 +77,11 @@ class InstrumentedKruskal(Kruskal):
         self.second_loop_calls: int = 0
         self.global_attempts: int = 0
 
-    def _second_loop(self, maze, wall_count, pattern_cells, tracks):
+    def second_loop(self) -> None:
         self.second_loop_calls += 1
-        return super()._second_loop(maze, wall_count, pattern_cells, tracks)
+        super().second_loop()
 
-    def generate(self):
+    def generate(self) -> list[tuple[int, int, str]]:
         self.second_loop_calls = 0
         self.global_attempts = 1  # Valeur par défaut, ou adapte selon besoin
         return super().generate()
@@ -91,12 +92,11 @@ class InstrumentedKruskal(Kruskal):
 # =============================================================================
 
 def bench_one(width: int, height: int, seed: int, timeout: float
-              ) -> dict:
+              ) -> dict[str, Any]:
     """
-    Tente de générer un labyrinthe Kruskal (width × height, seed).
-    Retourne un dict avec les métriques.
+    benchmark a single configuration (w × h, seed)
     """
-    maze = Maze(width, height)
+    maze = Maze(width, height, entry=(0, 0), exit=(width - 1, height - 1))
     algo = InstrumentedKruskal(maze)
 
     t_start = time.perf_counter()
@@ -162,7 +162,7 @@ def bench_one(width: int, height: int, seed: int, timeout: float
 # Agrégation des résultats pour une taille
 # =============================================================================
 
-def aggregate(results: list[dict]) -> dict:
+def aggregate(results: list[dict[str, Any]]) -> dict[str, Any]:
     """Calcule les statistiques agrégées pour un ensemble de runs."""
     successes = [r for r in results if r["success"]]
     failures = [r for r in results if not r["success"]]
@@ -199,7 +199,7 @@ HEADER = (
 SEP = "-" * len(HEADER)
 
 
-def fmt_row(w: int, h: int, agg: dict) -> str:
+def fmt_row(w: int, h: int, agg: dict[str, Any]) -> str:
     size = f"{w}x{h}"
     rate = f"{agg['success_rate']:.1f}"
     mean = f"{agg['time_mean']:.4f}" if agg[
@@ -222,7 +222,7 @@ def fmt_row(w: int, h: int, agg: dict) -> str:
 # Export CSV + Markdown
 # =============================================================================
 
-def export_csv(all_raw: list[dict], path: Path) -> None:
+def export_csv(all_raw: list[dict[str, Any]], path: Path) -> None:
     if not all_raw:
         return
     fieldnames = list(all_raw[0].keys())
@@ -233,9 +233,9 @@ def export_csv(all_raw: list[dict], path: Path) -> None:
     print(f"\n[CSV] {path}")
 
 
-def export_markdown(summary_rows: list[tuple], path: Path,
-                    n_seeds: int, max_size: int,
-                    total_elapsed: float) -> None:
+def export_markdown(summary_rows: list[tuple[int, int,
+                    dict[str, Any]]], path: Path, n_seeds: int,
+                    max_size: int, total_elapsed: float) -> None:
     lines = [
         "# Benchmark Kruskal — A-Maze-ing",
         "",
@@ -340,8 +340,8 @@ def main() -> None:
     print(HEADER)
     print(SEP)
 
-    all_raw: list[dict] = []
-    summary_rows: list[tuple] = []
+    all_raw: list[dict[str, Any]] = []
+    summary_rows: list[tuple[int, int, dict[str, Any]]] = []
     benchmark_start = time.perf_counter()
 
     for w, h in sizes:

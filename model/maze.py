@@ -35,12 +35,16 @@ class Maze:
         'W': (-1, 0),
     }
 
-    def __init__(self, width: int, height: int, entry: tuple[int, int], exit: tuple[int, int]) -> None:
+    def __init__(self, width: int, height: int,
+                 entry: tuple[int, int] = (0, 0),
+                 exit: tuple[int, int] | None = None) -> None:
+
         """Initialize an empty maze with given dimensions."""
+
         self.width: int = width
         self.height: int = height
         self.entry = entry
-        self.exit = exit
+        self.exit = exit if exit is not None else (width - 1, height - 1)
         FULL_WALL = 1 | 2 | 4 | 8  # = 15
         self.grid = [[FULL_WALL for _ in range(width)] for _ in range(height)]
         self.forty_two_cells: set[tuple[int, int]] = set()

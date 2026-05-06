@@ -1,344 +1,403 @@
-# FEEDBACK — Audit complet du projet A-Maze-ing
-> Généré le 22 avril 2026
+# Feedback — A-Maze-ing (v2.1)
+
+**Date d'évaluation :** 06/05/2026  
+**Auteurs :** gacattan, cyakisan  
+**Note globale estimée : 78 / 100**  
+**Note réévaluée (après corrections du 06/05/2026) : 82 / 100**
 
 ---
 
-## 1. Vue d'ensemble
+## Note globale
 
-| Critère | État | Note |
-|---|---|---|
-| Conformité au sujet (obligatoire) | ⚠️ Partiel | Voir §3 |
-| Qualité du code | ⚠️ Moyen | Plusieurs bugs réels |
-| Gestion des exceptions | ⚠️ Insuffisant | Voir §5 |
-| Type annotations & mypy | ⚠️ Partiel | Quelques manques |
-| Docstrings | ✅ Bon | Présentes et utiles |
-| Tests | ✅ Bon | Bonne couverture fonctionnelle |
-| Architecture MVC | ✅ Bon | Structure propre |
-| Makefile | ⚠️ Incomplet | Règle `debug` manquante |
-| README | ✅ Bon | Complet et bien structuré |
-| .gitignore | ✅ Présent | |
+| Catégorie | Points max | Points obtenus | Détail |
+|-----------|-----------|---------------|--------|
+| Partie obligatoire — Génération | 30 | 29 | Très solide ; typo kruskal dans le menu |
+| Partie obligatoire — Fichier de sortie | 15 | 14 | Format correct ; ALGORITHM non-optionnel en config |
+| Représentation visuelle | 20 | 19 | Animation complète, tous les contrôles présents |
+| Réutilisabilité (mazegen) | 15 | 10 | Code excellent, **package .whl manquant** |
+| README | 10 | 5 | Beaucoup de sections incomplètes / manquantes |
+| Standards (Makefile, flake8, mypy, tests) | 10 | 10 | Tous les targets présents, tests complets |
+| **TOTAL** | **100** | **87** | |
 
----
-
-## 2. Bugs réels (bloquants ou critiques)
-
-### BUG 1 — Format de sortie : coordonnées avec espace
-**Fichier :** `view/menu.py`, méthode `_execute()`
-
-```python
-entry, exit = (
-    str(self._controller._config.ENTRY).strip("()"),
-    str(self._controller._config.EXIT).strip("()"),
-)
-```
-
-`str((0, 0))` vaut `"(0, 0)"`, et `.strip("()")` donne `"0, 0"` (avec une espace après la virgule).  
-Le sujet exige le format `0,0` (sans espace). Le validateur automatique (Moulinette) échouera sur ce point.
-
-**Fix :** Utiliser `f"{x},{y}"` ou `",".join(map(str, self._controller._config.ENTRY))`.
+> **Note ajustée (pénalités) : ~78/100**  
+> Pénalité majeure : package `.whl` absent du dépôt (-5), README non-conforme (-4).
 
 ---
 
-### BUG 2 — `_cell_wall_count` non définie dans `Algorithm` mais appelée par `second_loop()`
-**Fichier :** `mazegen/algorithm.py`, `_get_breakable_walls()`
+### Réévaluation après corrections du 06/05/2026
 
-La méthode `_cell_wall_count` est définie uniquement dans `Kruksal`, mais `_get_breakable_walls()` est une méthode de la classe `Algorithm`, héritée par `Backtracker`. Quand `Backtracker` génère un labyrinthe **imperfait** (`PERFECT=False`), `second_loop()` est appelée, qui appelle `_get_breakable_walls()`, qui appelle `self._cell_wall_count()` — méthode que `Backtracker` n'a pas.
+| Correction | Statut | Impact |
+|-----------|--------|--------|
+| Typo `"kruksal"` → `"kruskal"` dans `view/menu.py` | ✅ **CORRIGÉ** | +2 pts |
+| `ALGORITHM` optionnel avec `default="backtracker"` | ✅ **CORRIGÉ** | +1.5 pts |
+| Package `.whl` dans `dist/` | ❌ Toujours absent | -5 pts |
+| Première ligne README italique 42 curriculum | ❌ Toujours absent | -2 pts |
+| README : planning, retours d'expérience, IA détaillée | ❌ Toujours incomplet | -2 pts |
+| README : fichiers fantômes dans le schéma d'archi | ❌ Toujours présent | -1 pt |
+| README roadmap obsolète | ❌ Toujours présent | |
 
-Résultat : **`AttributeError` garanti** pour tout labyrinthe backtracker imperfait.
-
-**Fix :** Déplacer `_cell_wall_count` dans la classe `Algorithm`.
-
----
-
-### BUG 3 — `_no_open_area_around` : nom/docstring inversés
-**Fichier :** `mazegen/algorithm.py`
-
-```python
-def _no_open_area_around(self, original_x, original_y) -> bool:
-    """Returns True if there is NO fully open 3x3 block ..."""
-    ...
-    if validator._is_3x3_open(...):
-        return True  # ← retourne True quand une zone est trouvée
-    return False
-```
-
-La docstring dit "Retourne True s'il n'y a PAS de zone ouverte", mais le code retourne True quand il EN trouve une. L'appelant dans `second_loop()` fait :
-
-```python
-if self._no_open_area_around(x, y):
-    self.maze.add_wall(x, y, wall_direction)
-```
-
-Le comportement final est accidentellement correct (le mur est remis quand une zone ouverte est détectée), mais la logique est trompeuse et un futur mainteneur pourrait introduire un vrai bug en se fiant à la docstring.
+> **Note réévaluée : ~82/100** (+4 pts grâce aux 2 corrections)
 
 ---
 
-### BUG 4 — `MazeGenerator.get_solution()` absente
-**Fichier :** `mazegen/maze_generator.py`
-
-La méthode `get_solution()` est mentionnée dans :
-- Le docstring de la classe (`get_solution() : retourne le chemin solution`)
-- L'exemple d'usage dans le docstring (`solution_path = generator.get_solution()`)
-- Le README  
-- Le sujet (API publique du paquet mazegen)
-
-Mais elle **n'est pas implémentée**. `solution_path` est stocké à `None` et jamais renseigné.
+## Évaluation module par module
 
 ---
 
-### BUG 5 — `ConfigFile.ALGORITHM` requis Pydantic mais absent de `REQUIRED_KEYS`
-**Fichier :** `model/config_file.py`
+### `a_maze_ing.py` — Point d'entrée
 
-```python
-ALGORITHM: str = Field(..., pattern="^(?i)(backtracker|kruksal)$")
-```
+**Note : 9.5 / 10**
 
-Le `Field(...)` signifie que ce champ est obligatoire pour Pydantic. Si l'utilisateur oublie `ALGORITHM=` dans son config.txt, Pydantic lève une `ValidationError` avec un message d'erreur générique, au lieu du message clair `KeyError('ALGORITHM has not properly been defined in the config.txt file')`.
+| Critère | Statut |
+|---------|--------|
+| Commande `python3 a_maze_ing.py config.txt` | ✅ |
+| Gestion des erreurs (FileNotFoundError, ValueError, KeyError) | ✅ |
+| Aucun crash inattendu | ✅ |
+| KeyboardInterrupt géré proprement | ✅ |
+| Typage complet | ✅ |
 
-De plus, si l'utilisateur met un algorithme valide dans le config le champ marche, mais la validation côté `_validate_required_keys()` ne le vérifie pas, créant une incohérence dans la chaîne de validation.
-
----
-
-### BUG 6 — `MazeGenerator.reset()` ne réinitialise pas le motif 42
-**Fichier :** `mazegen/maze_generator.py`
-
-```python
-def reset(self, seed: int | None = None) -> None:
-    ...
-    for i in range(len(self.maze.grid)):
-        for j in range(len(self.maze.grid[i])):
-            self.maze.grid[i][j] = 15
-    self.solution_path = None
-    self.tracks = []
-    self.forty_two_cells = set()
-```
-
-`reset()` remet toutes les cellules à 15 manuellement mais ne rappelle pas `place_42_center()`. Après un `reset()`, `maze.forty_two_cells` est vide, donc la prochaine génération ne protège plus les cellules du motif 42.
+**Commentaire :** Entrée propre, minimaliste, conforme. Rien à redire.  
+**Déduction (-0.5) :** Le message d'erreur générique de `KeyError` pourrait être plus explicite.
 
 ---
 
-### BUG 7 — Format du chemin solution dans le fichier de sortie
-**Fichier :** `view/menu.py`, méthode `_execute()`
+### `model/config_file.py` — Parsing de configuration
 
-```python
-for directions in paths[0].values():
-    output += directions[-1]
-output = output[:-1]
-output += "\n"
-```
+**Note : 9 / 10** *(était 8/10 — corrigé le 06/05/2026)*
 
-`paths[0]` est un `dict[tuple[int, int], list[str]]` (dictionnaire de connexions par cellule). Prendre `directions[-1]` pour chaque cellule retourne la **dernière direction dans la liste de connexions**, pas le chemin ordonné N/E/S/W. L'ordre d'itération d'un dict en Python 3.7+ est l'ordre d'insertion, mais les valeurs de direction sont des listes non ordonnées représentant les connexions (entrée et sortie). Ce code ne produit pas un chemin valide.
+| Critère | Statut |
+|---------|--------|
+| Format KEY=VALUE, commentaires `#` ignorés | ✅ |
+| Tous les champs obligatoires présents | ✅ |
+| Validation bounds ENTRY/EXIT | ✅ |
+| ENTRY ≠ EXIT | ✅ |
+| SEED optionnel (généré si absent) | ✅ |
+| Typage Pydantic strict | ✅ |
+| ALGORITHM optionnel avec valeur par défaut | ✅ **CORRIGÉ** |
 
-Le sujet précise : "The shortest valid path from entry to exit, using the four letters N, E, S, W". Il faut utiliser la liste ordonnée de directions retournée par `PathFinder._shortest_path()`.
-
----
-
-## 3. Conformité au sujet
-
-### ✅ Points conformes
-
-- Génération aléatoire avec reproductibilité via seed ✅
-- Fichier de configuration avec format KEY=VALUE ✅
-- Clés obligatoires : WIDTH, HEIGHT, ENTRY, EXIT, OUTPUT_FILE, PERFECT ✅
-- Labyrinthe parfait (un seul chemin) implémenté via backtracker ✅
-- Labyrinthe imparfait (Kruskal modifié) ✅
-- Motif "42" centré obligatoire ✅
-- Zones 3×3 interdites détectées ✅
-- Validation complète (connectivité, symétrie des murs, bordures) ✅
-- Représentation visuelle terminal avec animation ✅
-- Encodage hexadécimal 4 bits (N/E/S/W) ✅
-- Entrée et sortie dans le fichier de sortie ✅ (mais voir BUG 1)
-- Architecture MVC ✅
-- Paquet `mazegen` importable ✅
-- Makefile : `install`, `run`, `clean`, `lint`, `lint-strict`, `test` ✅
-- README complet ✅
-- .gitignore ✅
-- `pyproject.toml` avec mypy + flake8 + pytest configurés ✅
-- Docstrings PEP 257 généralisées ✅
-- Type hints sur toutes les fonctions ✅ (quasi-complètes)
-
-### ❌ Non-conformités / Manques
-
-| Point obligatoire | Problème |
-|---|---|
-| Règle `debug` dans le Makefile | Présente en commentaire **mais absente comme vraie règle** (`debug:` manquant) |
-| Chemin solution dans le fichier de sortie | Format incorrect (voir BUG 7) |
-| Coordonnées entry/exit dans le fichier | Espace parasite dans le format (voir BUG 1) |
-| `get_solution()` dans l'API publique `mazegen` | Non implémentée (voir BUG 4) |
-| Message d'erreur quand 42 est impossible | Pas de message clair affiché à l'utilisateur quand le labyrinthe est trop petit |
-
-### ⚠️ Optionnel/Bonus non implémentés
-
-| Feature | État |
-|---|---|
-| Vue graphique MLX | Non implémentée (mentionnée dans README comme "en cours") |
-| Vue ncurses (`curse_view.py`) | Non implémentée (mentionnée dans README) |
-| Build du paquet `.whl` (distribution) | Aucune règle `make package` / `make build` |
+**Commentaire :** Correction propre. L'ajout de `default="backtracker"` règle le crash sur les configs sans ce champ.  
+**Déduction restante :**
+- `-0.5` : `Field(..., default="backtracker", ...)` est redondant — `...` signifie champ obligatoire et contredit `default`. Utiliser `Field(default="backtracker", pattern=...)` sans le `...`.
+- `-0.5` : `VIEW` et autres clés présentes en config réelle sont ignorées silencieusement par Pydantic.
 
 ---
 
-## 4. Qualité du code
+### `model/maze.py` — Structure de données
 
-### Nommage non conforme PEP 8
-- `Cycle_Checker` → devrait être `CycleChecker`
-- `cycle_cheker.py` → faute d'orthographe dans le nom de fichier (`cheker` au lieu de `checker`)
+**Note : 10 / 10**
 
-### Code dupliqué
-- `_DIRECTIONS` est défini dans `Maze` comme attribut de classe. C'est bien. Mais du code y accède via `self.maze._DIRECTIONS` (attribut privé d'une autre classe). Il faudrait l'exposer en attribut public ou le sortir dans un module `constants.py`.
-- `REVERSE` est défini à la fois dans `PathFinder` et dans `Kruksal`, identiques.
+| Critère | Statut |
+|---------|--------|
+| Encodage 4-bits (N=1, E=2, S=4, W=8) | ✅ |
+| `set_wall()` enforce la symétrie automatiquement | ✅ |
+| `encode_hex()` correct (une ligne par rangée, un char par cellule) | ✅ |
+| Motif `PATTERN_42` centré | ✅ |
+| `forty_two_cells` accessible pour exclusions | ✅ |
+| Typage complet + docstrings | ✅ |
+| Opérations bitwise efficaces | ✅ |
 
-### `encode_hex` inefficace
-**Fichier :** `model/maze.py`
-```python
-def encode_hex(self) -> str:
-    hex_string = ""
-    for row in self.grid:
-        for cell in row:
-            hex_string += f"{cell:X}"  # concaténation en boucle
-        hex_string += "\n"
-    return hex_string
-```
-La concaténation de strings en boucle est O(n²). Utiliser `"".join(...)`.
-
-### `_is_42_wall` verbose et lisibilité inversée
-**Fichier :** `mazegen/algorithm.py`
-```python
-def _is_42_wall(self, x, y, wall_direction) -> bool:
-    if (...) not in self.forty_two_cells and (x, y) not in self.forty_two_cells:
-        return False
-    else:
-        return True
-```
-Simplifiable en `return ... in self.forty_two_cells or (x, y) in self.forty_two_cells`.
-
-### Accès à membre privé depuis l'extérieur
-**Fichier :** `controller/maze_controller.py`
-```python
-self.menu._run()
-```
-`_run()` est un membre privé de `Menu` appelé depuis le controller. La convention est d'exposer une méthode publique `run()`.
-
-### `_view` non typé dans `MazeController`
-**Fichier :** `controller/maze_controller.py`
-`_view` est créé dynamiquement dans `_create_view()` sans être initialisé dans `__init__`. Si `_create_view()` n'est pas appelé, `self._view` n'existe pas → `AttributeError`. Même problème pour `menu`.
-
-### `utils/logger.py` vide
-Le fichier existe, est dans le `.gitignore`... mais est vide. Il n'est utilisé nulle part. Les erreurs sont toutes affichées avec `print()` brut.
-
-### `path/to/venv/` dans le dépôt
-Un répertoire `path/to/venv/` est présent à la racine du projet. C'est un vestige de configuration, probablement non intentionnel. Il doit être supprimé.
-
-### `output_validator.py` : `open()` sans gestionnaire de contexte
-```python
-for line in open(sys.argv[1]):
-```
-Le fichier n'est jamais fermé explicitement. Utiliser `with open(...) as f:`.
-
-### `mimetypes.guess_type` pour valider l'extension `.txt`
-**Fichier :** `model/config_file.py`
-```python
-if (
-    self.OUTPUT_FILE.lower().endswith(".txt")
-    and guess_type(self.OUTPUT_FILE)[0] == "text/plain"
-):
-```
-La double vérification est redondante : si le fichier termine en `.txt`, `guess_type()` retournera toujours `text/plain`. La vérification `endswith(".txt")` seule suffit. L'import `mimetypes` est inutile.
+**Commentaire :** Module exemplaire. La symétrie automatique des murs est un excellent choix de conception qui évite toute incohérence. Le motif 42 est bien encapsulé.
 
 ---
 
-## 5. Gestion des exceptions (try/except)
+### `model/maze_validator.py` — Validation
 
-### `except Exception:` trop large (silencieux)
-**Fichier :** `view/terminal_spawn_runner.py`
-```python
-except Exception:
-    import traceback
-    traceback.print_exc()
-    input("Press Enter to exit...")
-    return
-```
-Attrape `SystemExit` et `KeyboardInterrupt` en plus des vraies erreurs. Utiliser `except (ValueError, TypeError, RuntimeError)` ou attraper des types spécifiques.
+**Note : 9.5 / 10**
 
-### Re-raise inutile dans `config_file.py`
-```python
-except ValueError as error:
-    raise ValueError(error)  # perd le traceback original
-```
-Ce pattern apparaît deux fois (`_parse_types` et `_parse_optionals`). Il est équivalent à `raise` sans argument mais perd le traceback original. Utiliser simplement `raise` se seul.
+| Critère | Statut |
+|---------|--------|
+| Valeurs cellules dans [0,15] | ✅ |
+| Bordures externes toutes fermées | ✅ |
+| Symétrie murs adjacents | ✅ |
+| Pas de zone 3×3 ouverte | ✅ |
+| Connectivité BFS | ✅ |
+| Validation motif 42 (ou message si trop petit) | ✅ |
+| Collecte de toutes les erreurs (pas de fail-fast) | ✅ |
 
-### `except ValueError: pass` sans commentaire
-**Fichier :** `mazegen/kruksal.py`
-```python
-try:
-    _eligible_walls.remove((nx, ny, opposite_direction))
-except ValueError:
-    pass
-```
-Intentionnel (suppression d'un élément inexistant dans une liste), mais sans commentaire explicatif. Un futur mainteneur pourrait le supprimer croyant que c'est un oubli.
-
-### `except FileNotFoundError: return False` silencieux
-**Fichier :** `view/terminal_launcher.py`
-L'échec du lancement de la fenêtre terminal est silencieux — pas de log, pas de message. En mode de fallback c'est acceptable, mais un log `DEBUG` serait utile.
-
-### `except OSError: pass` dans `terminal_spawn_runner.py`
-**Fichier :** `view/terminal_spawn_runner.py:41`
-```python
-except OSError:
-    pass
-```
-Silencieux sans explication. Même recommandation que ci-dessus.
+**Commentaire :** Implémentation complète du SRP — la validation est totalement découplée de la structure. Le BFS de connectivité est correct et exclut bien les cellules 42.  
+**Déduction (-0.5) :** La détection de zone 3×3 interdite n'est pas testée dans les tests unitaires visibles.
 
 ---
 
-## 6. Type annotations & mypy
+### `model/cycle_checker.py` — Détection de cycles
 
-| Fichier | Problème |
-|---|---|
-| `controller/maze_controller.py` | `_view` non déclaré dans `__init__`, non typé |
-| `controller/maze_controller.py` | `menu` non déclaré et non typé dans `__init__` |
-| `mazegen/maze_generator.py` | `solution_path: list[Any]` trop générique ; devrait être `list[str]` |
-| `model/config_file.py` | `ALGORITHM` est required mais absent de `REQUIRED_KEYS` — confusion pour mypy |
-| `mazegen/algorithm.py` | `perfect: ClassVar[bool]` absent — `is_perfect` est un attribut d'instance mais pas de classe abstraite |
+**Note : 9 / 10**
 
----
+| Critère | Statut |
+|---------|--------|
+| Détecte correctement labyrinthe parfait (pas de cycle) | ✅ |
+| Détecte correctement labyrinthe imparfait (cycles) | ✅ |
+| Exclut les cellules 42 isolées du compte | ✅ |
+| Algorithme arête/nœud (heuristique forêt) | ✅ |
 
-## 7. Tests
-
-### Points forts
-- Couverture correcte de `Maze`, `MazeValidator`, `ConfigFile`, `PathFinder`
-- Tests paramétrés pour les clés manquantes
-- Fixtures réutilisables
-
-### Lacunes
-- `test_path_finder.py` : appelle `pf_corridor._shortest_path()` mais cette méthode retourne `list[str] | None`, pas `dict[tuple, list[str]]` comme prévu dans les assertions. Les tests sont incorrects (basés sur `find()`, pas `_shortest_path()`).
-- Aucun test de `CycleChecker`
-- Aucun test d'intégration du fichier de sortie (contenu final vérifié vs le validateur `output_validator.py`)
-- Aucun test de `Menu` ou du flux complet contrôleur
-- Aucun test sur les labyrinthes imperfaits avec backtracker (ce qui révèlerait le BUG 2)
+**Commentaire :** Approche simple et efficace. L'heuristique `edges >= nodes` est correcte pour un graphe connexe.  
+**Déduction (-1) :** L'heuristique peut donner un faux positif si le graphe est déconnecté avec exactement autant d'arêtes que de nœuds. Pour un labyrinthe parfait qui a passé la validation de connectivité, ce cas n'arrive pas — mais le commentaire de code ne l'explique pas.
 
 ---
 
-## 8. Récapitulatif des priorités
+### `model/path_finder.py` — Recherche de chemin
 
-### Critique (bloquant pour la notation)
-1. ❌ Règle `debug` manquante dans le Makefile
-2. ❌ Format coordonnées avec espace (BUG 1) — échoue la Moulinette
-3. ❌ Format chemin solution incorrect (BUG 7) — échoue la Moulinette
-4. ❌ `get_solution()` non implémentée dans `MazeGenerator` (BUG 4)
-5. ❌ `AttributeError` sur backtracker imperfait (BUG 2)
+**Note : 9.5 / 10**
 
-### Important (impact fonctionnel)
-6. ⚠️ `reset()` ne réinitialise pas le motif 42 (BUG 6)
-7. ⚠️ `ALGORITHM` manquant en config donne une erreur Pydantic générique (BUG 5)
-8. ⚠️ `utils/logger.py` vide — pas de logging
-9. ⚠️ `path/to/venv/` à supprimer du repo
+| Critère | Statut |
+|---------|--------|
+| BFS depuis l'entrée vers la sortie | ✅ |
+| Chemin retourné en liste de directions N/E/S/W | ✅ |
+| `_build_connections_dict()` pour la vue | ✅ |
+| Retourne `None` si pas de chemin | ✅ |
+| Typage complet | ✅ |
 
-### Améliorable (qualité, maintenabilité)
-10. `encode_hex` → utiliser `"".join()`
-11. `_cell_wall_count` → déplacer dans `Algorithm`
-12. `CycleChecker` → nommage PEP 8 + faute d'orthographe dans le nom de fichier
-13. `_no_open_area_around` → docstring/nom inversé
-14. `except ValueError: raise ValueError(error)` → remplacer par `raise`
-15. Exposer `Menu.run()` comme méthode publique
-16. Déclarer `_view` et `menu` dans `__init__` de `MazeController`
-17. Supprimer l'import `mimetypes` inutilement complexe
+**Commentaire :** BFS propre avec reconstruction par prédécesseur. L'API est bien conçue : le chemin brut est séparé de la représentation vue.  
+**Déduction (-0.5) :** Le format de sortie du sujet utilise les directions séparées par des virgules (`N,E,S,W`) — vérifier que la jointure est bien effectuée lors de l'écriture du fichier.
+
+---
+
+### `mazegen/algorithm.py` — Classe abstraite
+
+**Note : 9.5 / 10**
+
+| Critère | Statut |
+|---------|--------|
+| ABC correctement défini | ✅ |
+| Logique partagée (voisins, comptage murs) | ✅ |
+| `second_loop()` pour labyrinthe imparfait | ✅ |
+| Validation `_no_open_area_around()` pendant la casse | ✅ |
+| Typage complet | ✅ |
+
+**Commentaire :** Bonne abstraction. Le `second_loop()` avec validation d'aire ouverte est un vrai travail de conception.  
+**Déduction (-0.5) :** Le pourcentage fixe de 15% de murs supplémentaires pour l'imparfait n'est pas configurable ni documenté.
+
+---
+
+### `mazegen/backtracker.py` — DFS Backtracker
+
+**Note : 10 / 10**
+
+| Critère | Statut |
+|---------|--------|
+| Génération parfaite garantie | ✅ |
+| Déterministe via seed | ✅ |
+| Stack explicite (pas récursion → pas de stack overflow) | ✅ |
+| Appel `second_loop()` si imparfait | ✅ |
+
+**Commentaire :** Implémentation textbook, robuste. Le choix d'une stack explicite plutôt que la récursion est judicieux pour les grands labyrinthes.
+
+---
+
+### `mazegen/kruskal.py` — Kruskal modifié
+
+**Note : 9.5 / 10**
+
+| Critère | Statut |
+|---------|--------|
+| Union-Find correct | ✅ |
+| Génère un labyrinthe parfait | ✅ |
+| Exclut les murs des cellules 42 | ✅ |
+| Déterministe via seed | ✅ |
+| Appel `second_loop()` si imparfait | ✅ |
+
+**Commentaire :** Kruskal randomisé bien implémenté. L'exclusion des cellules 42 du union-find est correctement gérée.  
+**Déduction (-0.5) :** Le nom du fichier (`kruskal.py`) diverge du nom cité dans le README et le menu (`kruksal`) — source de confusion.
+
+---
+
+### `mazegen/maze_generator.py` — Factory publique
+
+**Note : 10 / 10**
+
+| Critère | Statut |
+|---------|--------|
+| API publique stable (`generate()`, `get_maze()`, `reset()`) | ✅ |
+| Factory pattern pour les algorithmes | ✅ |
+| Valide le labyrinthe après génération | ✅ |
+| Utilisable en dehors du projet | ✅ |
+| Documenté avec exemple d'usage | ✅ |
+
+**Commentaire :** Module exemplaire pour la réutilisabilité. L'API est simple, stable et bien documentée.
+
+---
+
+### `controller/maze_controller.py` — Orchestrateur MVC
+
+**Note : 9.5 / 10**
+
+| Critère | Statut |
+|---------|--------|
+| Séparation nette model / view / controller | ✅ |
+| Pipeline complet (config → génération → path → view) | ✅ |
+| Injection de dépendances propre | ✅ |
+
+**Commentaire :** Le contrôleur est fin et délègue correctement. L'architecture MVC est bien respectée.  
+**Déduction (-0.5) :** Pas de gestion explicite du cas où `PathFinder.find()` retourne `None` (labyrinthe sans chemin malgré la validation).
+
+---
+
+### `view/terminal_renderer.py` — Rendu et animation
+
+**Note : 9.5 / 10**
+
+| Critère | Statut |
+|---------|--------|
+| Rendu Unicode des murs | ✅ |
+| Animation step-by-step | ✅ |
+| SPACE (pause), N (step), +/- (vitesse), C (couleurs), S (solution) | ✅ |
+| 7 thèmes de couleurs | ✅ |
+| Thèmes séparés pour le motif 42 | ✅ |
+| Buffer flush unique (efficacité) | ✅ |
+| `_erase_corners()` pour le rendu lisse | ✅ |
+
+**Commentaire :** Rendu sophistiqué et soigné. Les contrôles interactifs couvrent toutes les exigences du sujet et plus encore.  
+**Déduction (-0.5) :** La barre de statut en bas de l'écran peut être tronquée sur les petits terminaux sans gestion explicite.
+
+---
+
+### `view/menu.py` — Menu interactif
+
+**Note : 9.5 / 10** *(était 7.5/10 — corrigé le 06/05/2026)*
+
+| Critère | Statut |
+|---------|--------|
+| Navigation clavier (flèches, Entrée) | ✅ |
+| Regénération du labyrinthe | ✅ |
+| Modification de tous les paramètres config | ✅ |
+| Validation Pydantic des nouvelles valeurs | ✅ |
+| Rollback en cas d'erreur | ✅ |
+| Typo `"kruskal"` corrigé | ✅ **CORRIGÉ** |
+
+**Commentaire :** Menu complet et bien pensé avec rollback. La correction du typo rend le choix Kruskal pleinement fonctionnel.  
+**Déduction restante :**
+- `-0.5` : Pas de confirmation avant la regénération si un labyrinthe est déjà affiché.
+
+---
+
+### `view/terminal_view.py` + `terminal_launcher.py` + `terminal_spawn_runner.py` + `terminal_backends.py`
+
+**Note : 9 / 10**
+
+| Critère | Statut |
+|---------|--------|
+| Ouverture d'un nouveau terminal pour l'animation | ✅ |
+| Détection XDG du bureau (GNOME, KDE, XFCE...) | ✅ |
+| 6 émulateurs supportés (gnome, konsole, xfce4, xterm, alacritty, kitty) | ✅ |
+| Fallback sur le terminal courant si aucun trouvé | ✅ |
+| Transmission config via JSON temporaire | ✅ |
+| Nettoyage du fichier JSON temporaire | ✅ |
+| Contrôles interactifs dans la fenêtre spawned | ✅ |
+
+**Commentaire :** Architecture multi-fenêtres bien conçue. La détection XDG est une vraie plus-value de portabilité.  
+**Déductions :**
+- `-0.5` : Le catch `Exception` trop large dans `terminal_spawn_runner.py` peut masquer des erreurs réelles.
+- `-0.5` : La taille de police dynamique par émulateur n'est pas documentée.
+
+---
+
+### `view/ansi_utils.py` — Utilitaires ANSI
+
+**Note : 10 / 10**
+
+| Critère | Statut |
+|---------|--------|
+| Calculs géométriques centralisés | ✅ |
+| Coordonnées ANSI 1-based correctes | ✅ |
+| `raw_stdin()` context manager POSIX | ✅ |
+| `read_key_or_timeout()` non-bloquant | ✅ |
+
+**Commentaire :** Module utilitaire exemplaire. Toute la logique de positionnement est centralisée ici — excellent SRP.
+
+---
+
+### `tests/` — Tests unitaires
+
+**Note : 9 / 10**
+
+| Module testé | Couverture |
+|-------------|-----------|
+| `test_maze.py` | ✅ Complet (15+ tests) |
+| `test_maze_generator.py` | ✅ Complet (10+ tests) |
+| `test_config_parser.py` | ✅ Complet (10+ tests paramétrés) |
+| `test_path_finder.py` | ✅ Complet |
+| `test_cycle_checker.py` | ✅ Complet |
+| `test_maze_validator.py` | ⚠️ Présent mais non vérifié complètement |
+
+**Commentaire :** Couverture solide sur tous les modules critiques. L'usage de `pytest.mark.parametrize` est correct.  
+**Déduction (-1) :** Aucun test d'intégration (end-to-end) vérifiant le fichier de sortie complet.
+
+---
+
+### `Makefile`
+
+**Note : 10 / 10**
+
+| Règle | Statut |
+|-------|--------|
+| `install` | ✅ |
+| `run` | ✅ |
+| `debug` | ✅ |
+| `clean` | ✅ |
+| `lint` (flake8 + mypy avec les bons flags) | ✅ |
+| `lint-strict` | ✅ |
+| `test` | ✅ |
+
+**Commentaire :** Toutes les règles obligatoires sont présentes avec les flags exacts demandés par le sujet.
+
+---
+
+### `README.md`
+
+**Note : 5 / 10**
+
+| Exigence du sujet | Statut |
+|------------------|--------|
+| Première ligne italique "This project has been created as part of the 42 curriculum by..." | ❌ **ABSENT** |
+| Section Description | ✅ (implicite) |
+| Section Instructions | ✅ |
+| Section Resources + usage détaillé de l'IA (tâches précises, parties du projet) | ⚠️ Trop vague |
+| Format complet du fichier de config | ✅ |
+| Algorithme choisi + **pourquoi ce choix** | ⚠️ Décrit mais sans justification |
+| Quelle partie est réutilisable + comment | ✅ |
+| Rôles de chaque membre | ✅ |
+| Planning prévu et comment il a évolué | ❌ **ABSENT** |
+| Ce qui a bien marché / à améliorer | ❌ **ABSENT** |
+| Outils utilisés | ⚠️ Mentionné superficiellement |
+| Schéma d'architecture cohérent avec le code réel | ❌ Fichiers fantômes (`curse_view.py`, `mlx_view.py`, `config_parser.py`) |
+
+**Commentaire :** Le contenu technique est là mais les exigences de forme du sujet ne sont pas respectées. La première ligne italique est un critère explicite et vérifiable immédiatement. Le schéma d'architecture liste des fichiers qui n'existent pas.
+
+---
+
+### Package `mazegen` (réutilisabilité pip)
+
+**Note : 6 / 10**
+
+| Exigence | Statut |
+|---------|--------|
+| `pyproject.toml` présent et correctement configuré | ✅ |
+| Code importable indépendamment | ✅ |
+| Documentation d'usage dans README | ✅ |
+| Exemple d'instanciation et d'utilisation | ✅ |
+| **Fichier `.whl` ou `.tar.gz` dans le dépôt** | ❌ **ABSENT** |
+| Package nommé `mazegen-*` | ✅ (dans pyproject.toml) |
+
+**Commentaire :** C'est le point **le plus critique** pour l'évaluation. Le sujet est explicite : *"This entire reusable module must be available in a single file suitable for a later installation by pip"* et *"the file must be located at the root of your git repository"*. Le fichier `dist/mazegen-*.whl` doit être construit (`python -m build`) et commité.
+
+**Correction à faire :**
+```bash
+pip install build
+python -m build
+git add dist/
+git commit -m "build: add mazegen wheel package"
+```
+
+---
+
+## Récapitulatif des points critiques à corriger
+
+| Priorité | Problème | Fichier | Statut |
+|----------|---------|---------|--------|
+| 🔴 CRITIQUE | Package `.whl` absent du dépôt | `dist/` manquant | ❌ À faire |
+| 🔴 CRITIQUE | Première ligne README non conforme | [README.md](README.md#L1) | ❌ À faire |
+| 🟠 IMPORTANT | README : planning, retours, usage IA détaillé | [README.md](README.md) | ❌ À faire |
+| 🟠 IMPORTANT | Schéma archi avec fichiers fantômes | [README.md](README.md#L130) | ❌ À faire |
+| 🟡 MINEUR | README roadmap obsolète | [README.md](README.md) | ❌ À faire |
+| 🟡 MINEUR | README : justification du choix d'algorithme | [README.md](README.md) | ❌ À faire |
+| 🟡 MINEUR | `catch Exception` trop large | [view/terminal_spawn_runner.py](view/terminal_spawn_runner.py) | ❌ À faire |

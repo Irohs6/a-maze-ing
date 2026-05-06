@@ -10,6 +10,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parents[1]))
@@ -32,10 +33,10 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _load_config(path: str) -> dict[str, any]:
+def _load_config(path: str) -> dict[str, Any]:
     """Reads the JSON config file and then deletes the file."""
     with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+        data: dict[str, Any] = json.load(f)
     try:
         os.unlink(path)
     except OSError:
@@ -44,7 +45,7 @@ def _load_config(path: str) -> dict[str, any]:
 
 
 def _run_render(
-    cfg: dict,
+    cfg: dict[str, Any],
     wall_color: str,
     forty_two_color: str,
     perfect: bool,
@@ -59,8 +60,8 @@ def _run_render(
     forty_two_cells: set[tuple[int, int]] = {
         (int(x), int(y)) for x, y in cfg["forty_two"]
     }
-    entry = tuple(cfg["entry"])
-    exit_pos = tuple(cfg["exit"])
+    entry: tuple[int, int] = (int(cfg["entry"][0]), int(cfg["entry"][1]))
+    exit_pos: tuple[int, int] = (int(cfg["exit"][0]), int(cfg["exit"][1]))
     w, h, cw = cfg["width"], cfg["height"], cfg["cell_width"]
 
     _draw_grid(w, h, cw, wall_color=wall_color,
@@ -80,9 +81,10 @@ def _show_hint(end_row: int) -> None:
     sys.stdout.flush()
 
 
-def _run_interaction(cfg: dict[str, any], initial_theme_idx: int,
-                     solution_cells: list[tuple[int, int, set[str]]],
-                     entry: tuple, exit_pos: tuple,) -> None:
+def _run_interaction(cfg: dict[str, Any], initial_theme_idx: int,
+                     solution_cells: list[tuple[int, int, list[str]]],
+                     entry: tuple[int, int], exit_pos: tuple[int, int],
+                     ) -> None:
     """Keyboard interaction loop.
 
     [C] cycles the color theme and reruns the rendering without delay.
@@ -138,11 +140,11 @@ def main() -> None:
             input("Press Enter to exit...")
             return
 
-        solution_cells = [
-            (int(x), int(y), dirs) for x, y, dirs in cfg["solution"]
+        solution_cells: list[tuple[int, int, list[str]]] = [
+            (int(x), int(y), list(dirs)) for x, y, dirs in cfg["solution"]
         ]
-        entry = tuple(cfg["entry"])
-        exit_pos = tuple(cfg["exit"])
+        entry: tuple[int, int] = (int(cfg["entry"][0]), int(cfg["entry"][1]))
+        exit_pos: tuple[int, int] = (int(cfg["exit"][0]), int(cfg["exit"][1]))
 
         theme_idx = 0
         _run_render(cfg, COLOR_THEMES[theme_idx], COLOR_THEMES_42[theme_idx],

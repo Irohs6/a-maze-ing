@@ -78,7 +78,7 @@ def _spawn_solution_window(
     zoom: float = 0.28,
     entry: tuple[int, int] = (0, 0),
     exit_pos: tuple[int, int] = (0, 0),
-    solution_cells: list[tuple[int, int]] | None = None,
+    solution_cells: list[tuple[int, int, list[str]]] | None = None,
     forty_two_cells: list[tuple[int, int]] | None = None,
     maze_grid: list[list[int]] | None = None,
 ) -> bool:

@@ -1,6 +1,6 @@
-# A-Maze-Ing — Générateur de labyrinthes en Python
+*This project has been created as part of the 42 curriculum by gacattan, cyakisan.*
 
-*Voici la voie*
+# A-Maze-Ing — Générateur de labyrinthes en Python
 
 > Générateur de labyrinthes configurable, animé en temps réel dans le terminal,
 > avec motif **42** intégré et encodage hexadécimal du fichier de sortie.
@@ -14,7 +14,7 @@
 - Génération par **DFS Recursive Backtracker** (parfait, reproductible via seed)
 - Génération par **Kruskal modifié** (imperfect, avec validation de connectivité)
 - Animation temps réel : les murs se creusent sous vos yeux (curseur ●)
-- Rendu Unicode propre dans le terminal ou via `ncurses`
+- Rendu Unicode propre dans le terminal (fenêtre dédiée automatiquement ouverte)
 - Motif **42** visible au centre du labyrinthe (cellules entièrement isolées)
 - Encodage hexadécimal du labyrinthe dans un fichier de sortie
 - Validation complète : bordures fermées, symétrie des murs, connectivité BFS, zones 3×3 interdites
@@ -72,8 +72,7 @@ Le fichier `config.txt` contient des paires `CLE=VALEUR`. Les lignes commençant
 | `OUTPUT_FILE` | ✅ | Fichier de sortie hexadécimal | `OUTPUT_FILE=maze.txt` |
 | `PERFECT` | ✅ | Chemin unique entrée→sortie | `PERFECT=True` |
 | `SEED` | — | Graine pour la reproductibilité | `SEED=42` |
-| `ALGORITHM` | — | Algorithme (`backtracker` ou `kruksal`) | `ALGORITHM=backtracker` |
-| `VIEW` | — | Mode d'affichage (`terminal` ou `curse`) | `VIEW=terminal` |
+| `ALGORITHM` | — | Algorithme (`backtracker` ou `kruskal`) | `ALGORITHM=backtracker` |
 
 Exemple de fichier `config.txt` :
 
@@ -86,7 +85,6 @@ OUTPUT_FILE=maze.txt
 PERFECT=True
 SEED=42
 ALGORITHM=backtracker
-VIEW=terminal
 ```
 
 ---
@@ -98,7 +96,7 @@ F9AB...    ← grille hexadécimale, une ligne par rangée
 
 0,0        ← coordonnées d'entrée (x,y)
 19,14      ← coordonnées de sortie (x,y)
-E,S,E,...  ← chemin solution (N/E/S/O)
+E,S,E,...  ← chemin solution (N/E/S/W)
 ```
 
 Encodage des murs par cellule :
@@ -116,38 +114,47 @@ Cellule entièrement fermée = `F` (15). Cellule ouverte vers l'est et le sud = 
 
 ## Architecture
 
+Le projet suit une architecture **MVC** stricte.
+
 ```
 a-maze-ing/
 │
-├── a_maze_ing.py              # Point d'entrée — parse args, instancie MazeController
+├── a_maze_ing.py                  # Point d'entrée — parse args, instancie MazeController
 │
 ├── controller/
-│   └── maze_controller.py     # Orchestrateur MVC
+│   └── maze_controller.py         # Orchestrateur MVC
 │
-├── mazegen/
-│   ├── algorithm.py           # Classe abstraite Algorithm (ABC)
-│   ├── backtracker.py         # Algorithme DFS Backtracker
-│   ├── kruksal.py             # Algorithme Kruskal modifié
-│   └── maze_generator.py      # Factory + API publique du paquet mazegen
+├── mazegen/                       # Paquet réutilisable (installable via pip)
+│   ├── algorithm.py               # Classe abstraite Algorithm (ABC)
+│   ├── backtracker.py             # Algorithme DFS Backtracker
+│   ├── kruskal.py                 # Algorithme Kruskal modifié
+│   └── maze_generator.py          # Factory + API publique
 │
 ├── model/
-│   ├── maze.py                # Structure de données (grille 4-bits)
-│   ├── maze_validator.py      # Validation (SRP séparé de Maze)
-│   ├── config_parser.py       # Parsing du fichier config
-│   └── path_finder.py         # Recherche du chemin (BFS) — en cours
+│   ├── maze.py                    # Structure de données (grille 4-bits)
+│   ├── maze_validator.py          # Validation structurelle (SRP)
+│   ├── config_file.py             # Parsing et validation du fichier config (Pydantic)
+│   ├── cycle_checker.py           # Détection de cycles (parfait vs imparfait)
+│   └── path_finder.py             # Recherche du chemin le plus court (BFS)
 │
 ├── view/
-│   ├── terminal_view.py       # Animation + rendu Unicode terminal
-│   ├── curse_view.py          # Rendu ncurses
-│   └── mlx_view.py            # Rendu MLX graphique (bonus — en cours)
+│   ├── terminal_view.py           # Facade : ouvre une fenêtre dédiée ou fallback
+│   ├── terminal_renderer.py       # Rendu ANSI/Unicode + animation
+│   ├── terminal_launcher.py       # Détection et lancement d'un émulateur terminal
+│   ├── terminal_spawn_runner.py   # Runner autonome dans la fenêtre spawned
+│   ├── terminal_backends.py       # Configurations des émulateurs (gnome, konsole…)
+│   ├── ansi_utils.py              # Calculs géométriques et utilitaires ANSI
+│   └── menu.py                    # Menu interactif (navigation clavier)
 │
 ├── tests/
 │   ├── test_maze.py
 │   ├── test_maze_generator.py
 │   ├── test_config_parser.py
+│   ├── test_cycle_checker.py
+│   ├── test_maze_validator.py
 │   └── test_path_finder.py
 │
-├── config.txt                 # Configuration par défaut
+├── config.txt                     # Configuration par défaut
 ├── Makefile
 ├── pyproject.toml
 └── requirements.txt
@@ -157,12 +164,24 @@ a-maze-ing/
 
 ```
 Algorithm (ABC)
-├── Backtracker   — DFS récursif, trace list[str]
-└── Kruksal       — Kruskal aléatoire, trace list[tuple], retry + validation
+├── Backtracker   — DFS récursif avec stack explicite
+└── Kruskal       — Kruskal randomisé avec Union-Find
 ```
 
 `MazeGenerator` agit comme factory : il instancie la bonne sous-classe selon le paramètre `algorithm`
-et expose une API stable (`generate()`, `get_maze()`, `get_solution()`, `reset()`).
+et expose une API stable (`generate()`, `get_maze()`, `reset()`).
+
+### Choix des algorithmes
+
+**Backtracker (DFS)** a été choisi comme algorithme principal car :
+- Il garantit un labyrinthe parfait (un seul chemin entre deux points) naturellement.
+- Son implémentation avec une stack explicite est simple, lisible et évite les stack overflows sur les grands labyrinthes.
+- Il produit des labyrinthes avec de longs couloirs sinueux, visuellement intéressants.
+
+**Kruskal modifié** a été ajouté en complément car :
+- Il repose sur un Union-Find, une structure de données classique en algorithmique.
+- Il génère des labyrinthes avec un aspect plus uniforme et aléatoire (pas de biais de direction).
+- Son inclusion permet de satisfaire l'exigence de bonus « multiple algorithmes ».
 
 ---
 
@@ -197,7 +216,9 @@ Les tests couvrent :
 - `test_maze.py` — structure Maze, murs, encodage hex
 - `test_maze_generator.py` — génération, déterminisme, API publique
 - `test_config_parser.py` — parsing, validation, erreurs
-- `test_path_finder.py` — BFS, connectivité (en cours)
+- `test_path_finder.py` — BFS, reconstruction du chemin
+- `test_cycle_checker.py` — détection de cycles (parfait / imparfait)
+- `test_maze_validator.py` — validation structurelle complète
 
 ---
 
@@ -206,25 +227,65 @@ Les tests couvrent :
 - [Théorie des labyrinthes — Wikipedia](https://fr.wikipedia.org/wiki/G%C3%A9n%C3%A9ration_de_labyrinthe)
 - [Recursive Backtracker — jamisbuck.org](https://weblog.jamisbuck.org/2010/12/27/maze-generation-recursive-backtracker)
 - [Kruskal's algorithm — Wikipedia](https://en.wikipedia.org/wiki/Kruskal%27s_algorithm)
-- Outils IA utilisés : GitHub Copilot (génération assistée, revue de code, refactoring)
+- [Union-Find / Disjoint Set — Wikipedia](https://en.wikipedia.org/wiki/Disjoint-set_data_structure)
+- [Pydantic v2 Documentation](https://docs.pydantic.dev/latest/)
+- [ANSI escape codes — Wikipedia](https://en.wikipedia.org/wiki/ANSI_escape_code)
+
+### Usage de l'IA (GitHub Copilot)
+
+| Tâche | Utilisation |
+|-------|-------------|
+| Structure initiale MVC | Suggestions d'organisation des modules, revue de la séparation des responsabilités |
+| `MazeValidator` | Aide à la rédaction des cas de validation (symétrie des murs, connectivité BFS) |
+| `ansi_utils.py` | Assistance sur les calculs de coordonnées ANSI (positionnement curseur 1-based) |
+| `terminal_backends.py` | Génération des commandes de lancement pour chaque émulateur terminal |
+| Docstrings | Aide à la rédaction des docstrings PEP 257 sur les classes et fonctions |
+| Tests unitaires | Suggestions de cas de test paramétrés (pytest.mark.parametrize) |
+| Refactoring | Revue du code pour respect flake8/mypy, suggestions de type hints manquants |
+
+Tout le code généré a été relu, testé et compris avant intégration. Aucune section critique (algorithmes, validation, rendu) n'a été copiée-collée sans compréhension et adaptation.
 
 ---
 
 ## Gestion d'équipe
 
+### Rôles
+
 | Login | Contributions principales |
 |-------|--------------------------|
-| gacattan | Architecture MVC, modèle Maze, ConfigParser, MazeValidator, refactoring Algorithm, tests |
-| cyakisan | Algorithmes de génération (Backtracker, Kruksal), vues (TerminalView, CursesView), animation |
+| gacattan | Architecture MVC, modèle `Maze`, `MazeValidator`, `CycleChecker`, algorithme `Backtracker`, vues `TerminalView`, `TerminalRenderer`, animation ANSI, détection multi-terminal, `PathFinder`, tests unitaires |
+| cyakisan | `ConfigFile` (Pydantic), algorithme `Kruskal`, refactoring `Algorithm`, vue `Menu`, `Makefile`, `pyproject.toml`, tests unitaires |
 
----
+### Planning
 
-## Roadmap
+**Planning initial prévu :**
+- Semaine 1 : structure du projet, modèle `Maze`, parsing config
+- Semaine 2 : algorithmes de génération (Backtracker), validation
+- Semaine 3 : rendu terminal, animation, menu interactif
+- Semaine 4 : fichier de sortie, PathFinder, tests, packaging
 
-- [ ] Finaliser `PathFinder` (BFS — chemin solution dans le fichier de sortie)
-- [ ] Corriger le format du fichier de sortie (coordonnées + chemin)
-- [ ] Compléter le `Makefile`
-- [ ] Créer `AbstractView` pour découpler les vues du contrôleur
-- [ ] Implémenter `MlxView` (affichage graphique — bonus)
-- [ ] Builder le paquet `.whl` (`python -m build`)
-- [ ] Compléter `tests/test_path_finder.py`
+**Comment il a évolué :**
+- La validation du labyrinthe (zones 3×3, symétrie des murs) s'est révélée plus complexe que prévu et a empiété sur la semaine 3.
+- Le rendu multi-terminal (détection XDG, spawn d'une fenêtre dédiée) n'était pas prévu initialement et a été ajouté en semaine 3 pour améliorer l'expérience utilisateur.
+- Le packaging `mazegen` a été traité en parallèle plutôt qu'en fin de projet, ce qui a facilité les tests d'intégration.
+
+### Bilan
+
+**Ce qui a bien marché :**
+- L'architecture MVC dès le départ a évité les couplages forts entre les composants.
+- L'usage de Pydantic pour la config a rendu la validation robuste avec peu de code.
+- Les tests unitaires écrits tôt ont permis de détecter rapidement les régressions lors du refactoring.
+- La séparation `Algorithm (ABC)` / sous-classes a rendu l'ajout de Kruskal trivial.
+
+**Ce qui pourrait être amélioré :**
+- Mettre en place une CI (GitHub Actions) pour lancer `lint` et `test` automatiquement à chaque push.
+- Documenter le format de sortie plus tôt pour éviter les allers-retours.
+
+### Outils utilisés
+
+- **VS Code** avec l'extension Python et Pylance
+- **GitHub** pour le versioning et la collaboration
+- **GitHub Copilot** pour l'assistance au code (voir section Ressources)
+- **Poetry** pour la gestion des dépendances
+- **pytest + pytest-cov** pour les tests
+- **mypy + flake8** pour la qualité du code

@@ -23,6 +23,8 @@ class MazeController:
 
     def _create_gen(self) -> None:
         """Instantiate the maze generator based on the configuration."""
+        if self._config is None:
+            raise RuntimeError("Config not initialized")
         self._generator = MazeGenerator(
             width=self._config.WIDTH,
             height=self._config.HEIGHT,
@@ -35,6 +37,10 @@ class MazeController:
 
     def _create_pathfinder(self) -> None:
         """Instantiate the pathfinder based on the generated maze and config."""
+        if self._generator is None:
+            raise RuntimeError("Generator not initialized")
+        if self._config is None:
+            raise RuntimeError("Config not initialized")
         maze = self._generator.get_maze()
         entry = self._config.ENTRY
         exit_pos = self._config.EXIT
@@ -42,11 +48,17 @@ class MazeController:
 
     def _create_cycles_checker(self) -> None:
         """Instantiate the cycle checker based on the generated maze."""
+        if self._generator is None:
+            raise RuntimeError("Generator not initialized")
         maze = self._generator.get_maze()
         self._cycle_checker = CycleChecker(maze)
 
     def _create_view(self) -> None:
         """Instantiate the view based on the generated maze and config."""
+        if self._generator is None:
+            raise RuntimeError("Generator not initialized")
+        if self._config is None:
+            raise RuntimeError("Config not initialized")
         maze = self._generator.get_maze()
         entry = self._config.ENTRY
         exit_pos = self._config.EXIT

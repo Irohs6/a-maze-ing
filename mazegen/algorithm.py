@@ -54,8 +54,8 @@ class Algorithm(ABC):
         """Return the number of walls surrounding cell (x, y) (0–4)."""
         return self.maze.grid[y][x].bit_count()
 
-    def _get_breakable_walls(self) -> list[str]:
-        eligible_walls: list[str] = []
+    def _get_breakable_walls(self) -> list[tuple[int, int, str]]:
+        eligible_walls: list[tuple[int, int, str]] = []
         for y in range(self.height):
             for x in range(self.width):
                 for direction in ["N", "E", "S", "W"]:
