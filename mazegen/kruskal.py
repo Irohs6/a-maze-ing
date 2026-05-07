@@ -22,31 +22,25 @@ class Kruskal(Algorithm):
 
     def _find_in_union(
         self, coordinates: tuple[int, int], neighbor: tuple[int, int]
-    ) -> list[int] | bool:
+    ) -> bool:
         """Return the indexes of the sets in the union list that
             contain the given coordinates and neighbor."""
 
-        indexes: list[int] = []
+        if self._indexes[coordinates] == self._indexes[neighbor]:
+            return False
+        else:
+            return True
 
-        for index, set in enumerate(self._union):
-
-            if coordinates in set and neighbor in set:
-
-                return False
-
-            elif coordinates in set or neighbor in set:
-
-                indexes.append(index)
-
-        return indexes
-
-    def _concatenate_in_union(self, indexes: list[int]) -> None:
+    def _concatenate_in_union(self, coordinates, neighbor) -> None:
         """Merge the two sets at the given indexes in the union list."""
 
-        if len(indexes) == 2:
-            self._union[indexes[0]] = self._union[indexes[0]].union(
-                self._union[indexes[1]])
-            self._union.pop(indexes[1])
+        joining = (joiner for joiner in self._union[self._indexes[neighbor]])
+        self._union[self._indexes[coordinates]] = (
+            self._union[self._indexes[coordinates]].union(
+                self._union[self._indexes[neighbor]]))
+        self._union.pop(self._indexes[neighbor])
+        for index in joining:
+            self._indexes[index] = self._indexes[coordinates]
 
     def generate(self) -> list[tuple[int, int, str]]:
         """Generates the maze using a randomized version
@@ -59,10 +53,10 @@ class Kruskal(Algorithm):
                 break
             x, y, wall_direction = _eligible_walls.pop()
             neighbor = self._get_direction_neighbor(x, y, wall_direction)
-            indexes: list[int] | bool = self._find_in_union((x, y), neighbor)
-            if isinstance(indexes, list):
+            not_connected: bool = self._find_in_union((x, y), neighbor)
+            if not_connected:
                 self.maze.remove_wall(x, y, wall_direction)
-                self._concatenate_in_union(indexes)
+                self._concatenate_in_union((x, y), neighbor)
                 self.tracks.append((x, y, wall_direction))
                 nx, ny = neighbor
                 opposite_direction = self.REVERSE[wall_direction]
