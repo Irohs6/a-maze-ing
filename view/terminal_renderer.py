@@ -1,5 +1,6 @@
 import sys
 import time
+from typing import NamedTuple
 
 from colorama import Fore, Style
 
@@ -27,27 +28,23 @@ from view.ansi_utils import (
 _BOX_PATH = " ╴╷┐╶─┌┬╵┘│┤└┴├┼"
 
 # Color themes (wall, 42).  Press C to cycle.
-# wall  → Fore.X on ██ (foreground)
+# wall      → Fore.X on ██ (foreground)
+# forty_two → Fore.X + BRIGHT on spaces — always visually distinct
 
-# 42    → Back.X on spaces (background) — always visually distinct
-COLOR_THEMES: list[str] = [
-    Fore.BLUE,
-    Fore.RED,
-    Fore.GREEN,
-    Fore.MAGENTA,
-    Fore.CYAN,
-    Fore.YELLOW,
-    Fore.LIGHTBLUE_EX
-]
 
-COLOR_THEMES_42: list[str] = [
-    Fore.YELLOW + Style.BRIGHT,
-    Fore.GREEN + Style.BRIGHT,
-    Fore.CYAN + Style.BRIGHT,
-    Fore.BLUE + Style.BRIGHT,
-    Fore.MAGENTA + Style.BRIGHT,
-    Fore.RED + Style.BRIGHT,
-    Fore.CYAN + Style.BRIGHT
+class ColorTheme(NamedTuple):
+    wall: str
+    forty_two: str
+
+
+COLOR_THEMES: list[ColorTheme] = [
+    ColorTheme(Fore.BLUE, Fore.YELLOW + Style.BRIGHT),
+    ColorTheme(Fore.RED, Fore.GREEN + Style.BRIGHT),
+    ColorTheme(Fore.GREEN, Fore.CYAN + Style.BRIGHT),
+    ColorTheme(Fore.MAGENTA, Fore.BLUE + Style.BRIGHT),
+    ColorTheme(Fore.CYAN, Fore.MAGENTA + Style.BRIGHT),
+    ColorTheme(Fore.YELLOW, Fore.RED + Style.BRIGHT),
+    ColorTheme(Fore.LIGHTBLUE_EX, Fore.CYAN + Style.BRIGHT),
 ]
 
 _DIRECTION_ARROWS: dict[str, str] = {
@@ -70,9 +67,6 @@ _SPEED_LEVELS: list[tuple[float, str]] = [
 _DEFAULT_SPEED_IDX: int = 3
 
 assert len(_BOX_PATH) == 16, "_BOX_PATH must index bits 0–15"
-assert len(COLOR_THEMES) == len(COLOR_THEMES_42), (
-    "COLOR_THEMES and COLOR_THEMES_42 must have the same length"
-)
 
 
 def _build_cell_buf(
@@ -80,11 +74,11 @@ def _build_cell_buf(
     cell_y: int,
     direction: str,
     cell_width: int,
-    pending_restore: str,
-) -> tuple[list[str], str]:
-    """Builds the ANSI buffer for a single animation step.
+) -> list[str]:
+    """Builds the ANSI buffer for a single animation step (wall erase + cursor).
 
-    Returns (cell_buf, new_pending_restore).
+    The caller is responsible for erasing the previous cursor position
+    before writing this buffer.
     """
     ch = cell_height(cell_width)
     ww = WALL_WIDTH
@@ -94,7 +88,7 @@ def _build_cell_buf(
     cc = center_col(cell_x, cell_width)
     cr = center_row(cell_y, cell_width)
 
-    buf: list[str] = [pending_restore] if pending_restore else []
+    buf: list[str] = []
 
     if direction == "N":
         wr = wall_row_n(cell_y, cell_width)
@@ -113,9 +107,7 @@ def _build_cell_buf(
 
     buf.append(f"{move_to(cr, cc)}{Fore.GREEN}\u25cf{Style.RESET_ALL}")
 
-    restore = f"{move_to(cr, cc)} "
-
-    return buf, restore
+    return buf
 
 
 def _erase_corners(
@@ -243,7 +235,7 @@ def _animate(
     """
     is_interactive = interactive and delay > 0 and sys.stdin.isatty()
     end_row = grid_rows(maze_height, cell_width) + 1
-    pending_restore = ""
+    prev_cursor: tuple[int, int] | None = None
 
     sys.stdout.write("\033[?25l")  # hide the cursor
     sys.stdout.flush()
@@ -302,20 +294,22 @@ def _animate(
                     sys.stdout.flush()
                     continue
 
-                cell_buf, pending_restore = _build_cell_buf(
-                    cell_x,
-                    cell_y,
-                    direction,
-                    cell_width,
-                    pending_restore,
+                cell_buf = _build_cell_buf(
+                    cell_x, cell_y, direction, cell_width
                 )
-                sys.stdout.write("".join(cell_buf))
+                erase = f"{move_to(*prev_cursor)} " if prev_cursor else ""
+                prev_cursor = (
+                    center_row(cell_y, cell_width),
+                    center_col(cell_x, cell_width),
+                )
+                sys.stdout.write(erase + "".join(cell_buf))
                 sys.stdout.flush()
                 idx += 1
 
         # Clear the status bar, restore cursor visibility
+        erase = f"{move_to(*prev_cursor)} " if prev_cursor else ""
         sys.stdout.write(
-            f"{pending_restore}{move_to(end_row, 1)}\033[2K\033[?25h"
+            f"{erase}{move_to(end_row, 1)}\033[2K\033[?25h"
         )
         sys.stdout.flush()
         return
@@ -328,22 +322,24 @@ def _animate(
         if delay:
             time.sleep(delay)
 
-        cell_buf, pending_restore = _build_cell_buf(
-            cell_x,
-            cell_y,
-            direction,
-            cell_width,
-            pending_restore,
+        cell_buf = _build_cell_buf(cell_x, cell_y, direction, cell_width)
+        erase = f"{move_to(*prev_cursor)} " if prev_cursor else ""
+        prev_cursor = (
+            center_row(cell_y, cell_width),
+            center_col(cell_x, cell_width),
         )
 
         if flush_per_cell:
-            sys.stdout.write("".join(cell_buf))
+            sys.stdout.write(erase + "".join(cell_buf))
             sys.stdout.flush()
         else:
+            if erase:
+                buf_replay.append(erase)
             buf_replay.extend(cell_buf)
 
-    # End of loop: restore + reposition
-    end_seq = f"{pending_restore}{move_to(end_row, 1)}\033[?25h"
+    # End of loop: erase last cursor + reposition
+    erase = f"{move_to(*prev_cursor)} " if prev_cursor else ""
+    end_seq = f"{erase}{move_to(end_row, 1)}\033[?25h"
     if flush_per_cell:
         sys.stdout.write(end_seq)
         sys.stdout.flush()
@@ -384,7 +380,8 @@ def _draw_final(
     exit_pos: tuple[int, int],
     solution_cells: list[tuple[int, int, list[str]]],
     is_perfect: bool,
-    solution_visible: bool = True
+    solution_visible: bool = True,
+    hint: str = "",
 ) -> None:
     """Overlay entry, exit, and solution path on the final grid.
 
@@ -425,11 +422,10 @@ def _draw_final(
         "🚀"
     )
 
-    buf.append(
-        f"{move_to(end_row, 1)}\033[2K"
-        f"{Fore.CYAN}[S] HIDE/PRINT SOLUTION  "
-        f"[Q] EXIT{Style.RESET_ALL}"
+    status = hint if hint else (
+        f"{Fore.CYAN}[S] HIDE/PRINT SOLUTION  [Q] EXIT{Style.RESET_ALL}"
     )
+    buf.append(f"{move_to(end_row, 1)}\033[2K{status}")
     if is_perfect:
         perfect = f"{Fore.GREEN}Perfect maze{Style.RESET_ALL}"
     else:

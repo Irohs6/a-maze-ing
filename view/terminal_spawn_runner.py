@@ -17,7 +17,7 @@ if __package__ in {None, ""}:
 
 from view.terminal_renderer import (
     _draw_grid, _animate, _draw_final, _erase_solution, _erase_corners,
-    COLOR_THEMES, COLOR_THEMES_42
+    COLOR_THEMES,
 )
 from view import ansi_utils
 
@@ -44,19 +44,20 @@ def _load_config(path: str) -> dict[str, Any]:
     return data
 
 
+_RUNNER_HINT = "  [C] COLORS  [S] SOLUTION  [Q/ENTER] EXIT"
+
+
 def _run_render(
     cfg: dict[str, Any],
     wall_color: str,
     forty_two_color: str,
     perfect: bool,
+    solution_cells: list[tuple[int, int, list[str]]],
     delay: float = 0.01,
 ) -> None:
     """Performs the complete rendering: grid + animation + final solution."""
 
     tracks = [(int(x), int(y), d) for x, y, d in cfg["tracks"]]
-    solution_cells = [
-        (int(x), int(y), dirs) for x, y, dirs in cfg["solution"]
-    ]
     forty_two_cells: set[tuple[int, int]] = {
         (int(x), int(y)) for x, y in cfg["forty_two"]
     }
@@ -70,15 +71,7 @@ def _run_render(
              forty_two_cells=forty_two_cells, forty_two_color=forty_two_color)
     _erase_corners(cfg.get("grid", []), w, h, cw)
     _draw_final(w, h, cw, entry, exit_pos, solution_cells, perfect,
-                solution_visible=True)
-
-
-def _show_hint(end_row: int) -> None:
-    sys.stdout.write(
-        f"\033[{end_row};1H\033[2K"
-        "  [C] COLORS  [S] SOLUTION  [Q/ENTER] EXIT"
-    )
-    sys.stdout.flush()
+                solution_visible=True, hint=_RUNNER_HINT)
 
 
 def _run_interaction(cfg: dict[str, Any], initial_theme_idx: int,
@@ -92,36 +85,31 @@ def _run_interaction(cfg: dict[str, Any], initial_theme_idx: int,
     """
     perfect = cfg["is_perfect"]
     theme_idx = initial_theme_idx % len(COLOR_THEMES)
-    theme_idx_42 = initial_theme_idx % len(COLOR_THEMES_42)
     w, h, cw = cfg["width"], cfg["height"], cfg["cell_width"]
-    end_row = ansi_utils.grid_rows(h, cw) + 1
     solution_visible = True
-    _show_hint(end_row)
 
     while True:
         key = ansi_utils.read_key()
         if key.lower() == "c":
             theme_idx = (theme_idx + 1) % len(COLOR_THEMES)
-            theme_idx_42 = (theme_idx_42 + 1) % len(COLOR_THEMES_42)
             _run_render(
                 cfg,
-                COLOR_THEMES[theme_idx],
-                COLOR_THEMES_42[theme_idx_42],
+                COLOR_THEMES[theme_idx].wall,
+                COLOR_THEMES[theme_idx].forty_two,
                 perfect,
+                solution_cells,
                 delay=0.0,
             )
             solution_visible = True
-            _show_hint(end_row)
         elif key in ("s", "S"):
             if solution_visible:
                 _erase_solution(cw, solution_cells, entry, exit_pos)
             else:
                 # Redraw path + entry/exit + info bar
                 _draw_final(w, h, cw, entry, exit_pos, solution_cells, perfect,
-                            solution_visible=True)
+                            solution_visible=True, hint=_RUNNER_HINT)
                 sys.stdout.write("\033[?25l")
                 sys.stdout.flush()
-                _show_hint(end_row)
             solution_visible = not solution_visible
         elif key in ("\r", "\n", "q", "Q", "\x03", "\x1b"):
             break
@@ -147,8 +135,13 @@ def main() -> None:
         exit_pos: tuple[int, int] = (int(cfg["exit"][0]), int(cfg["exit"][1]))
 
         theme_idx = 0
-        _run_render(cfg, COLOR_THEMES[theme_idx], COLOR_THEMES_42[theme_idx],
-                    cfg["is_perfect"])
+        _run_render(
+            cfg,
+            COLOR_THEMES[theme_idx].wall,
+            COLOR_THEMES[theme_idx].forty_two,
+            cfg["is_perfect"],
+            solution_cells,
+        )
         _run_interaction(cfg, theme_idx, solution_cells, entry, exit_pos)
     except Exception:
         import traceback

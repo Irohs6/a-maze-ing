@@ -13,7 +13,7 @@ if __package__ in {None, ""}:
 
 from colorama import init, Fore, Style
 from model.maze import Maze
-from view.terminal_launcher import _spawn_solution_window
+from view.terminal_launcher import MazeRenderConfig, _spawn_solution_window
 from view.terminal_renderer import (
     _draw_grid, _animate, _draw_final, _erase_corners
 )
@@ -23,17 +23,7 @@ init(autoreset=False)
 
 class TerminalView:
 
-    COLOR = {
-        "wall": Fore.WHITE,
-        "42": Fore.LIGHTBLUE_EX + Style.BRIGHT,
-        "path": Fore.GREEN,
-        "cursor": Fore.GREEN + Style.BRIGHT,
-        "entry": Fore.WHITE,
-        "exit": Fore.RED,
-        "info": Fore.GREEN,
-    }
-
-    RESET = Style.RESET_ALL
+    FORTY_TWO_COLOR: str = Fore.LIGHTBLUE_EX + Style.BRIGHT
 
     def __init__(
         self,
@@ -65,27 +55,29 @@ class TerminalView:
         # animation and cleaner rendering
         # without the artifacts of the current terminal.
         if tracks and _spawn_solution_window(
-            self.maze.width,
-            self.maze.height,
-            tracks,
-            cell_width,
-            is_perfect,
-            entry=self.entry,
-            exit_pos=self.exit_pos,
-            solution_cells=solution_cells,
-            forty_two_cells=list(self.forty_two),
-            maze_grid=[list(row) for row in self.maze.grid],
+            MazeRenderConfig(
+                width=self.maze.width,
+                height=self.maze.height,
+                cell_width=cell_width,
+                is_perfect=is_perfect,
+                tracks=tracks,
+                entry=self.entry,
+                exit_pos=self.exit_pos,
+                solution_cells=solution_cells,
+                forty_two_cells=list(self.forty_two),
+                maze_grid=[list(row) for row in self.maze.grid],
+            )
         ):
             return
 
         # Fallback: display in the current terminal
         _draw_grid(self.maze.width, self.maze.height, cell_width,
                    forty_two_cells=self.forty_two,
-                   forty_two_color=self.COLOR["42"])
+                   forty_two_color=self.FORTY_TWO_COLOR)
 
         _animate(tracks or [], self.maze.width, self.maze.height, cell_width,
                  forty_two_cells=self.forty_two,
-                 forty_two_color=self.COLOR["42"])
+                 forty_two_color=self.FORTY_TWO_COLOR)
         _erase_corners(
             [list(row) for row in self.maze.grid],
             self.maze.width, self.maze.height, cell_width

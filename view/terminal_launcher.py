@@ -1,6 +1,7 @@
 # view/terminal_launcher.py — Terminal emulator detection and launch.
 #
-# Functions:
+# Provides:
+#   MazeRenderConfig         : dataclass grouping all render parameters
 #   _find_backend()          : detect the installed backend (XDG priority)
 #   _open_terminal()         : open a window with the correct dimensions
 #   _spawn_solution_window() : serialise JSON config and open the window
@@ -10,9 +11,27 @@ import os
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass, field
 
 from view.terminal_backends import BACKENDS, TerminalBackend
 from view.ansi_utils import terminal_cols, terminal_rows
+
+
+@dataclass
+class MazeRenderConfig:
+    """Groups all parameters needed to render and animate a maze window."""
+    width: int
+    height: int
+    cell_width: int
+    is_perfect: bool
+    tracks: list[tuple[int, int, str]]
+    entry: tuple[int, int]
+    exit_pos: tuple[int, int]
+    solution_cells: list[tuple[int, int, list[str]]] = field(
+        default_factory=list
+    )
+    forty_two_cells: list[tuple[int, int]] = field(default_factory=list)
+    maze_grid: list[list[int]] = field(default_factory=list)
 
 
 def _find_backend() -> TerminalBackend | None:
@@ -69,20 +88,11 @@ def _open_terminal(
 
 
 def _spawn_solution_window(
-    maze_width: int,
-    maze_height: int,
-    tracks: list[tuple[int, int, str]],
-    cell_width: int,
-    is_perfect: bool,
+    cfg: MazeRenderConfig,
     # zoom calibrated for Mono 12pt font; increase if too small
     zoom: float = 0.28,
-    entry: tuple[int, int] = (0, 0),
-    exit_pos: tuple[int, int] = (0, 0),
-    solution_cells: list[tuple[int, int, list[str]]] | None = None,
-    forty_two_cells: list[tuple[int, int]] | None = None,
-    maze_grid: list[list[int]] | None = None,
 ) -> bool:
-    """Serializes the config into a temporary JSON file and opens the terminal.
+    """Serializes cfg into a temporary JSON file and opens the terminal.
 
     The file is passed to the runner via --config <path>.
     The runner is responsible for deleting the file after reading.
@@ -92,16 +102,16 @@ def _spawn_solution_window(
         return False
 
     config = {
-        "width": maze_width,
-        "height": maze_height,
-        "cell_width": cell_width,
-        "is_perfect": is_perfect,
-        "tracks": tracks,
-        "entry": list(entry),
-        "exit": list(exit_pos),
-        "solution": solution_cells or [],
-        "forty_two": [list(c) for c in (forty_two_cells or [])],
-        "grid": maze_grid or [],
+        "width": cfg.width,
+        "height": cfg.height,
+        "cell_width": cfg.cell_width,
+        "is_perfect": cfg.is_perfect,
+        "tracks": cfg.tracks,
+        "entry": list(cfg.entry),
+        "exit": list(cfg.exit_pos),
+        "solution": cfg.solution_cells,
+        "forty_two": [list(c) for c in cfg.forty_two_cells],
+        "grid": cfg.maze_grid,
     }
 
     # delete=False : the file must survive until the runner reads it
@@ -112,8 +122,8 @@ def _spawn_solution_window(
     tmp.flush()
     tmp.close()
 
-    cols = terminal_cols(maze_width, cell_width)
-    rows = terminal_rows(maze_height, cell_width, extra=2)
+    cols = terminal_cols(cfg.width, cfg.cell_width)
+    rows = terminal_rows(cfg.height, cfg.cell_width, extra=2)
     success = _open_terminal(backend, cols, rows, ["--config", tmp.name], zoom)
     if not success:
         try:
