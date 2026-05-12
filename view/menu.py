@@ -225,45 +225,48 @@ class Menu:
             self.index = 1
             self.current_menu = 0
 
+    def _generate_maze(self) -> None:
+        if self._controller._generator is None:
+            raise RuntimeError("Generator not initialized")
+        if self._controller._finder is None:
+            raise RuntimeError("PathFinder not initialized")
+        if self._controller._cycle_checker is None:
+            raise RuntimeError("CycleChecker not initialized")
+        if self._controller._config is None:
+            raise RuntimeError("Config not initialized")
+        self._controller._generator.generate()
+        tracks = self._controller._generator.tracks
+        paths = self._controller._finder.find()
+        is_perfect = not self._controller._cycle_checker.has_cycle()
+        self._controller._view.show_solution(paths, is_perfect, tracks)
+        output = self._controller._generator.maze.encode_hex() + "\n"
+        entry, exit = (
+            str(self._controller._config.ENTRY).strip("()"),
+            str(self._controller._config.EXIT).strip("()"),
+        )
+        output += entry + "\n"
+        output += exit + "\n"
+        for directions in paths[0].values():
+            output += directions[-1]
+        output = output[:-1]
+        output += "\n"
+        print("Maze Output:")
+        print(output, end="")
+        print(is_perfect)
+        try:
+            with open(self._controller._config.OUTPUT_FILE, "w") as file:
+                file.write(output)
+        except PermissionError:
+            print(Fore.RED +
+                    "Error: You don't have the permission to write in the "
+                    "output file" + Style.RESET_ALL)
+        self._press_enter_continue()
+        self._controller._generator.reset(seed=time.time_ns())
+        print("\033c", end="")
+
     def _execute(self) -> None:
         if self.index == 0:
-            if self._controller._generator is None:
-                raise RuntimeError("Generator not initialized")
-            if self._controller._finder is None:
-                raise RuntimeError("PathFinder not initialized")
-            if self._controller._cycle_checker is None:
-                raise RuntimeError("CycleChecker not initialized")
-            if self._controller._config is None:
-                raise RuntimeError("Config not initialized")
-            self._controller._generator.generate()
-            tracks = self._controller._generator.tracks
-            paths = self._controller._finder.find()
-            is_perfect = not self._controller._cycle_checker.has_cycle()
-            self._controller._view.show_solution(paths, is_perfect, tracks)
-            output = self._controller._generator.maze.encode_hex() + "\n"
-            entry, exit = (
-                str(self._controller._config.ENTRY).strip("()"),
-                str(self._controller._config.EXIT).strip("()"),
-            )
-            output += entry + "\n"
-            output += exit + "\n"
-            for directions in paths[0].values():
-                output += directions[-1]
-            output = output[:-1]
-            output += "\n"
-            print("Maze Output:")
-            print(output, end="")
-            print(is_perfect)
-            try:
-                with open(self._controller._config.OUTPUT_FILE, "w") as file:
-                    file.write(output)
-            except PermissionError:
-                print(Fore.RED +
-                      "Error: You don't have the permission to write in the "
-                      "output file" + Style.RESET_ALL)
-            self._press_enter_continue()
-            self._controller._generator.reset(seed=time.time_ns())
-            print("\033c", end="")
+            self._generate_maze()
         elif self.index == 1:
             self.current_menu = 1
             self._settings_menu()
