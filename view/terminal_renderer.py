@@ -41,35 +41,61 @@ class TerminalRenderer:
     _DEFAULT_SPEED_IDX: int = 3
 
     _EMOJI_LIST = [
-        "🧱",
-        "💀",
-        "🪵",
-        "✋"
+        "✋", "🌲", "🌳", "🌵", "🌿", "🌟", "✨",
+        "⬛", "⬜", "🔴",
+        "🔵", "🔥", "💧", "🍄", "🎃", "👹", "👾",
+        "🤖", "👻", "👽", "💩", "💎", "🔮", "🚪",
+        "🌲", "🎄", "🌻", "🌹", "🌷", "🌼", "🌸", "🌺", "🌍", "🌕"
     ]
     _EMOJI_INDEX = 0
+
+    _WALL_FORTY_TWO = "⬛"
 
     def __init__(self, maze: Maze):
         self.maze = maze
 
-    def _print_full(self):
+    def _print_full(self, y):
+        forty_two = False
         for x in range(self.maze.width):
-            sys.stdout.write(self._EMOJI_LIST[self._EMOJI_INDEX] * 2)
-        sys.stdout.write(f"{self._EMOJI_LIST[self._EMOJI_INDEX]}\n")
+            if (x, y) in self.maze.forty_two_cells or (x, y-1) in self.maze.forty_two_cells:
+                sys.stdout.write(self._WALL_FORTY_TWO * 2)
+                forty_two = True
+            else:
+                if forty_two:
+                    sys.stdout.write(self._WALL_FORTY_TWO)
+                    sys.stdout.write(self._EMOJI_LIST[self._EMOJI_INDEX])
+                    forty_two = False
+                else:
+                    sys.stdout.write(self._EMOJI_LIST[self._EMOJI_INDEX])
+                    sys.stdout.write(self._EMOJI_LIST[self._EMOJI_INDEX])
+        end_char = self._WALL_FORTY_TWO if forty_two else self._EMOJI_LIST[self._EMOJI_INDEX]
+        sys.stdout.write(f"{end_char}\n")
 
-    def _print_middle(self):
+    def _print_middle(self, y):
+        forty_two = False
         for x in range(self.maze.width):
-            sys.stdout.write(self._EMOJI_LIST[self._EMOJI_INDEX])
-            sys.stdout.write("  ")
-        sys.stdout.write(f"{self._EMOJI_LIST[self._EMOJI_INDEX]}\n")
+            if (x, y) in self.maze.forty_two_cells:
+                sys.stdout.write(self._WALL_FORTY_TWO * 2)
+                forty_two = True
+            else:
+                if forty_two:
+                    sys.stdout.write(self._WALL_FORTY_TWO)
+                    sys.stdout.write("  ")
+                    forty_two = False
+                else:
+                    sys.stdout.write(self._EMOJI_LIST[self._EMOJI_INDEX])
+                    sys.stdout.write("  ")
+        end_char = self._WALL_FORTY_TWO if forty_two else self._EMOJI_LIST[self._EMOJI_INDEX]
+        sys.stdout.write(f"{end_char}\n")
 
-    def _print_cells_lign(self):
-        self._print_full()
-        self._print_middle()
+    def _print_cells_lign(self, y):
+        self._print_full(y)
+        self._print_middle(y)
 
     def _display_grid(self) -> None:
         for y in range(self.maze.height):
-            self._print_cells_lign()
-        self._print_full()
+            self._print_cells_lign(y)
+        self._print_full(y)
         sys.stdout.flush()
 
     def _get_terminal_coordinates(self, x: int, y: int) -> tuple[int, int]:

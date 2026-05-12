@@ -53,11 +53,14 @@ class TerminalView:
             self.render._animate_grid(tracks)
             while True:
                 self._get_key()
-                if self.input == "c" or "C":
-                    print("\033c")
+                if self.input in ("c", "C"):
+                    print("\033c", end="")
                     self.render._EMOJI_INDEX += 1
-                    if self.render._EMOJI_INDEX == 4:
+                    if self.render._EMOJI_INDEX == len(self.render._EMOJI_LIST):
                         self.render._EMOJI_INDEX = 0
                     self.render._final_grid()
+                elif self.input in ("q", "Q"):
+                    break
+
         finally:
             print("\033[?25h", end="")
