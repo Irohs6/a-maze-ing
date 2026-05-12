@@ -238,7 +238,7 @@ class Menu:
         tracks = self._controller._generator.tracks
         paths = self._controller._finder.find()
         is_perfect = not self._controller._cycle_checker.has_cycle()
-        self._controller._view.show_solution(paths, is_perfect, tracks)
+        self._controller._view.draw_grid(tracks)
         output = self._controller._generator.maze.encode_hex() + "\n"
         entry, exit = (
             str(self._controller._config.ENTRY).strip("()"),
@@ -258,8 +258,8 @@ class Menu:
                 file.write(output)
         except PermissionError:
             print(Fore.RED +
-                    "Error: You don't have the permission to write in the "
-                    "output file" + Style.RESET_ALL)
+                  "Error: You don't have the permission to write in the "
+                  "output file" + Style.RESET_ALL)
         self._press_enter_continue()
         self._controller._generator.reset(seed=time.time_ns())
         print("\033c", end="")

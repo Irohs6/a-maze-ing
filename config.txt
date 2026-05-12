@@ -6,10 +6,10 @@
 # Les lignes commençant par # sont des commentaires ignorés par le parseur.
 # Ce fichier sert d'exemple et est utilisé par défaut lors des tests et démonstrations.
 
-WIDTH=100
-HEIGHT=100
+WIDTH=30
+HEIGHT=30
 ENTRY=0,0
-EXIT=99,99
+EXIT=29,29
 OUTPUT_FILE=maze.txt
 PERFECT=True
 ALGORITHM=Kruskal

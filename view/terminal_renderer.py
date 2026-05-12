@@ -1,439 +1,119 @@
-import sys
 import time
 from typing import NamedTuple
-
 from colorama import Fore, Style
-
-from view.ansi_utils import (
-    WALL,
-    WALL_WIDTH,
-    cell_height,
-    grid_cols,
-    grid_rows,
-    inner_col,
-    inner_row,
-    center_col,
-    center_row,
-    wall_row_n,
-    wall_row_s,
-    wall_col_e,
-    wall_col_w,
-    move_to,
-    raw_stdin,
-    read_key_or_timeout,
-)
-
-# Single-line characters for the solution path.
-# Index = bitmask: W=1, S=2, E=4, N=8
-_BOX_PATH = " ╴╷┐╶─┌┬╵┘│┤└┴├┼"
-
-# Color themes (wall, 42).  Press C to cycle.
-# wall      → Fore.X on ██ (foreground)
-# forty_two → Fore.X + BRIGHT on spaces — always visually distinct
+import sys
+from model.maze import Maze
 
 
-class ColorTheme(NamedTuple):
-    wall: str
-    forty_two: str
+class TerminalRenderer:
 
+    class ColorTheme(NamedTuple):
+        wall: str
+        forty_two: str
 
-COLOR_THEMES: list[ColorTheme] = [
-    ColorTheme(Fore.BLUE, Fore.YELLOW + Style.BRIGHT),
-    ColorTheme(Fore.RED, Fore.GREEN + Style.BRIGHT),
-    ColorTheme(Fore.GREEN, Fore.CYAN + Style.BRIGHT),
-    ColorTheme(Fore.MAGENTA, Fore.BLUE + Style.BRIGHT),
-    ColorTheme(Fore.CYAN, Fore.MAGENTA + Style.BRIGHT),
-    ColorTheme(Fore.YELLOW, Fore.RED + Style.BRIGHT),
-    ColorTheme(Fore.LIGHTBLUE_EX, Fore.CYAN + Style.BRIGHT),
-]
+    COLOR_THEMES: list[ColorTheme] = [
+        ColorTheme(Fore.BLUE, Fore.YELLOW + Style.BRIGHT),
+        ColorTheme(Fore.RED, Fore.GREEN + Style.BRIGHT),
+        ColorTheme(Fore.GREEN, Fore.CYAN + Style.BRIGHT),
+        ColorTheme(Fore.MAGENTA, Fore.BLUE + Style.BRIGHT),
+        ColorTheme(Fore.CYAN, Fore.MAGENTA + Style.BRIGHT),
+        ColorTheme(Fore.YELLOW, Fore.RED + Style.BRIGHT),
+        ColorTheme(Fore.LIGHTBLUE_EX, Fore.CYAN + Style.BRIGHT),
+    ]
 
-_DIRECTION_ARROWS: dict[str, str] = {
-    "N": "⮝",
-    "E": "⮞",
-    "S": "⮟",
-    "W": "⮜"
-}
+    _DIRECTION_ARROWS: dict[str, str] = {
+        "N": "⮝",
+        "E": "⮞",
+        "S": "⮟",
+        "W": "⮜"
+    }
 
-# Animation speed levels: (delay in s, displayed label).
-# [+] → faster (lower index), [-] → slower (higher index)
-_SPEED_LEVELS: list[tuple[float, str]] = [
-    (0.2, "1"),  # very slow
-    (0.05, "2"),
-    (0.01, "3"),
-    (0.001, "4"),  # default speed
-    (0.0003, "5"),
-    (0.0, "6"),  # as fast as possible (no delay, single final flush)
-]
-_DEFAULT_SPEED_IDX: int = 3
+    # Animation speed levels: (delay in s, displayed label).
+    # [+] → faster (lower index), [-] → slower (higher index)
+    _SPEED_LEVELS: list[tuple[float, str]] = [
+        (0.2, "1"),  # very slow
+        (0.05, "2"),
+        (0.01, "3"),
+        (0.001, "4"),  # default speed
+        (0.0003, "5"),
+        (0.0, "6"),  # as fast as possible (no delay, single final flush)
+    ]
+    _DEFAULT_SPEED_IDX: int = 3
 
-assert len(_BOX_PATH) == 16, "_BOX_PATH must index bits 0–15"
+    _EMOJI_LIST = [
+        "🧱",
+        "💀",
+        "🪵",
+        "✋"
+    ]
+    _EMOJI_INDEX = 0
 
+    def __init__(self, maze: Maze):
+        self.maze = maze
 
-def _build_cell_buf(
-    cell_x: int,
-    cell_y: int,
-    direction: str,
-    cell_width: int,
-) -> list[str]:
-    """Builds the ANSI buffer for a single animation step (wall erase + cursor).
+    def _print_full(self):
+        for x in range(self.maze.width):
+            sys.stdout.write(self._EMOJI_LIST[self._EMOJI_INDEX] * 2)
+        sys.stdout.write(f"{self._EMOJI_LIST[self._EMOJI_INDEX]}\n")
 
-    The caller is responsible for erasing the previous cursor position
-    before writing this buffer.
-    """
-    ch = cell_height(cell_width)
-    ww = WALL_WIDTH
-    ww_inner = cell_width * ww
-    ic = inner_col(cell_x, cell_width)
-    ir = inner_row(cell_y, cell_width)
-    cc = center_col(cell_x, cell_width)
-    cr = center_row(cell_y, cell_width)
+    def _print_middle(self):
+        for x in range(self.maze.width):
+            sys.stdout.write(self._EMOJI_LIST[self._EMOJI_INDEX])
+            sys.stdout.write("  ")
+        sys.stdout.write(f"{self._EMOJI_LIST[self._EMOJI_INDEX]}\n")
 
-    buf: list[str] = []
+    def _print_cells_lign(self):
+        self._print_full()
+        self._print_middle()
 
-    if direction == "N":
-        wr = wall_row_n(cell_y, cell_width)
-        buf.append(f"{move_to(wr, ic)}{' ' * ww_inner}")
-    elif direction == "S":
-        wr = wall_row_s(cell_y, cell_width)
-        buf.append(f"{move_to(wr, ic)}{' ' * ww_inner}")
-    elif direction == "E":
-        wc = wall_col_e(cell_x, cell_width)
-        for r in range(ch):
-            buf.append(f"{move_to(ir + r, wc)}{' ' * ww}")
-    elif direction == "W":
-        wc = wall_col_w(cell_x, cell_width)
-        for r in range(ch):
-            buf.append(f"{move_to(ir + r, wc)}{' ' * ww}")
-
-    buf.append(f"{move_to(cr, cc)}{Fore.GREEN}\u25cf{Style.RESET_ALL}")
-
-    return buf
-
-
-def _erase_corners(
-    grid: list[list[int]],
-    maze_width: int,
-    maze_height: int,
-    cell_width: int,
-) -> None:
-    """Erase corner pixels that are surrounded by 4 open wall segments.
-
-    A corner at the SE of cell (cx, cy) is erased when these 4 wall
-    segments are all absent:
-      - South wall of (cx,   cy)   → grid[cy][cx]   & 4
-      - East  wall of (cx,   cy)   → grid[cy][cx]   & 2
-      - East  wall of (cx,   cy+1) → grid[cy+1][cx] & 2
-      - South wall of (cx+1, cy)   → grid[cy][cx+1] & 4
-    """
-    if not grid:
-        return
-    buf: list[str] = []
-    ww = WALL_WIDTH
-    for cy in range(maze_height - 1):
-        for cx in range(maze_width - 1):
-            if (
-                (grid[cy][cx] & 4) == 0       # pas de mur Sud de (cx, cy)
-                and (grid[cy][cx] & 2) == 0    # pas de mur Est de (cx, cy)
-                and (grid[cy + 1][cx] & 2) == 0  # pas de mur Est de (cx, cy+1)
-                and (grid[cy][cx + 1] & 4) == 0  # pas de mur Sud de (cx+1, cy)
-            ):
-                row = wall_row_s(cy, cell_width)
-                col = wall_col_e(cx, cell_width)
-                buf.append(f"{move_to(row, col)}{' ' * ww}")
-    if buf:
-        sys.stdout.write("".join(buf))
+    def _display_grid(self) -> None:
+        for y in range(self.maze.height):
+            self._print_cells_lign()
+        self._print_full()
         sys.stdout.flush()
 
+    def _get_terminal_coordinates(self, x: int, y: int) -> tuple[int, int]:
+        tx, ty = 3, 2
+        tx += x * 4
+        ty += y * 2
+        return (tx, ty)
 
-def _draw_grid(
-    maze_width: int,
-    maze_height: int,
-    cell_width: int,
-    wall_color: str = Fore.WHITE,
-    forty_two_cells: set[tuple[int, int]] | None = None,
-    forty_two_color: str = "",
-) -> None:
-    """Displays the initial maze grid (all walls closed).
+    def _final_grid(self) -> None:
+        directions = ["E", "S"]
+        self._display_grid()
+        for y in range(self.maze.height):
+            for x in range(self.maze.width):
+                tx, ty = self._get_terminal_coordinates(x, y)
+                sys.stdout.write(f"\033[{ty};{tx}f")
+                for direction in directions:
+                    sys.stdout.write(f"\033[{ty};{tx}f")
+                    if not self.maze.has_wall(x, y, direction):
+                        if direction == "E":
+                            sys.stdout.write("   ")
+                        else:
+                            sys.stdout.write(f"\033[{ty + 1};{tx}f")
+                            sys.stdout.write(" ")
+        _, ty = self._get_terminal_coordinates(0, self.maze.height + 1)
+        sys.stdout.write(f"\033[{ty};{1}f")
+        sys.stdout.flush()
 
-    All characters are accumulated in a buffer and then sent in
-    a single write + flush (avoids O(lines) implicit flushes via print).
-    """
-    ch = cell_height(cell_width)
-    total_cols = grid_cols(maze_width, cell_width)
-    total_rows = grid_rows(maze_height, cell_width)
-    ft = forty_two_cells or set()
-
-    def _wall_char(col: int, row: int) -> str:
-        """Returns the colored █ based on adjacent cells."""
-        is_hwall_row = row % (ch + 1) == 0
-        is_vwall_col = col % (cell_width + 1) == 0
-
-        color = wall_color
-        if forty_two_color:
-            ya = (row - 1) // (ch + 1)
-            yb = row // (ch + 1)
-            xl = (col - 1) // (cell_width + 1)
-            xr = col // (cell_width + 1)
-
-            if is_hwall_row:
-                # A horizontal wall can be shared by 1 or 2 cells
-                # (depending on whether it's on a wall column or not).
-                xs = [xl, xr] if is_vwall_col else [xr]
-                for cx in xs:
-                    if 0 <= ya < maze_height and (cx, ya) in ft:
-                        color = forty_two_color
-                        break
-                    if 0 <= yb < maze_height and (cx, yb) in ft:
-                        color = forty_two_color
-                        break
-            elif is_vwall_col:
-                if 0 <= xl < maze_width and (xl, yb) in ft:
-                    color = forty_two_color
-                elif 0 <= xr < maze_width and (xr, yb) in ft:
-                    color = forty_two_color
-
-        return f"{color}{WALL}{Style.RESET_ALL}"
-
-    buf: list[str] = ["\033[2J\033[H"]  # clear screen (clear + home)
-    for row in range(total_rows):
-        is_hwall_row = row % (ch + 1) == 0
-        line: list[str] = []
-        for col in range(total_cols):
-            is_vwall_col = col % (cell_width + 1) == 0
-            if is_hwall_row or is_vwall_col:
-                line.append(_wall_char(col, row))
+    def _animate_grid(self, tracks):
+        self._display_grid()
+        for x, y, direction in tracks:
+            tx, ty = self._get_terminal_coordinates(x, y)
+            sys.stdout.write(f"\033[{ty};{tx}f")
+            if direction == "E":
+                sys.stdout.write("   ")
+            elif direction == "W":
+                sys.stdout.write("\b ")
+            elif direction == "S":
+                sys.stdout.write(f"\033[{ty + 1};{tx}f")
+                sys.stdout.write(" ")
             else:
-                line.append(" " * WALL_WIDTH)
-        buf.append("".join(line) + "\n")
-
-    sys.stdout.write("".join(buf))
-    sys.stdout.flush()
-
-
-def _animate(
-    track: list[tuple[int, int, str]],
-    maze_width: int,
-    maze_height: int,
-    cell_width: int,
-    delay: float = 0.01,
-    forty_two_cells: set[tuple[int, int]] | None = None,
-    forty_two_color: str = "",
-    interactive: bool = True,
-) -> None:
-    """Animates the generation by erasing the █ walls step by step.
-
-    Flush strategy:
-      delay > 0, interactive  : 1 flush per cell; keyboard controls active.
-      delay > 0, passive      : 1 flush per cell, time.sleep(delay).
-      delay = 0 (replay)     : 1 flush total at the end of the loop.
-
-    Controls (interactive mode, stdin is a tty):
-      Space  : pause / play
-      N       : advance one step (if paused)
-      +       : faster speed
-      -       : slower speed
-    """
-    is_interactive = interactive and delay > 0 and sys.stdin.isatty()
-    end_row = grid_rows(maze_height, cell_width) + 1
-    prev_cursor: tuple[int, int] | None = None
-
-    sys.stdout.write("\033[?25l")  # hide the cursor
-    sys.stdout.flush()
-
-    if is_interactive:
-        speed_idx = _DEFAULT_SPEED_IDX
-        paused = False
-
-        def _status() -> str:
-            lbl = _SPEED_LEVELS[speed_idx][1]
-            if paused:
-                return (
-                    f"{move_to(end_row, 1)}\033[2K"
-                    f"⏸  [SPACE] ▶  [N] STEP  "
-                    f"[+/-] SPEED: {lbl}"
-                )
-            return (
-                f"{move_to(end_row, 1)}\033[2K"
-                f"▶  [SPACE] ⏸  [+/-] SPEED: {lbl}"
-            )
-
-        with raw_stdin():
-            sys.stdout.write(_status())
+                sys.stdout.write(f"\033[{ty - 1};{tx}f")
+                sys.stdout.write(" ")
             sys.stdout.flush()
-
-            idx = 0
-            while idx < len(track):
-                cell_x, cell_y, direction = track[idx]
-                d = _SPEED_LEVELS[speed_idx][0]
-                key = read_key_or_timeout(None if paused else d)
-
-                advance = False
-                redraw = False
-                if key == " ":
-                    paused = not paused
-                    redraw = True
-                    advance = not paused
-                elif key in ("+", "="):
-                    speed_idx = (speed_idx + 1) % len(_SPEED_LEVELS)
-                    redraw = True
-                    advance = not paused
-                elif key == "-":
-                    speed_idx = (speed_idx - 1) % len(_SPEED_LEVELS)
-                    redraw = True
-                    advance = not paused
-                elif key in ("n", "N") and paused:
-                    advance = True
-                elif key in ("\x03", "\x1b"):
-                    break
-                elif key is None:
-                    advance = True  # timeout → not normal
-
-                if redraw:
-                    sys.stdout.write(_status())
-                if not advance:
-                    sys.stdout.flush()
-                    continue
-
-                cell_buf = _build_cell_buf(
-                    cell_x, cell_y, direction, cell_width
-                )
-                erase = f"{move_to(*prev_cursor)} " if prev_cursor else ""
-                prev_cursor = (
-                    center_row(cell_y, cell_width),
-                    center_col(cell_x, cell_width),
-                )
-                sys.stdout.write(erase + "".join(cell_buf))
-                sys.stdout.flush()
-                idx += 1
-
-        # Clear the status bar, restore cursor visibility
-        erase = f"{move_to(*prev_cursor)} " if prev_cursor else ""
-        sys.stdout.write(
-            f"{erase}{move_to(end_row, 1)}\033[2K\033[?25h"
-        )
+            time.sleep(0.008)
+        _, ty = self._get_terminal_coordinates(0, self.maze.height + 1)
+        sys.stdout.write(f"\033[{ty};{1}f")
         sys.stdout.flush()
-        return
-
-    # --- Passive mode (delay=0 or stdin not a tty) ---
-    buf_replay: list[str] = []
-    flush_per_cell = delay > 0
-
-    for cell_x, cell_y, direction in track:
-        if delay:
-            time.sleep(delay)
-
-        cell_buf = _build_cell_buf(cell_x, cell_y, direction, cell_width)
-        erase = f"{move_to(*prev_cursor)} " if prev_cursor else ""
-        prev_cursor = (
-            center_row(cell_y, cell_width),
-            center_col(cell_x, cell_width),
-        )
-
-        if flush_per_cell:
-            sys.stdout.write(erase + "".join(cell_buf))
-            sys.stdout.flush()
-        else:
-            if erase:
-                buf_replay.append(erase)
-            buf_replay.extend(cell_buf)
-
-    # End of loop: erase last cursor + reposition
-    erase = f"{move_to(*prev_cursor)} " if prev_cursor else ""
-    end_seq = f"{erase}{move_to(end_row, 1)}\033[?25h"
-    if flush_per_cell:
-        sys.stdout.write(end_seq)
-        sys.stdout.flush()
-    else:
-        buf_replay.append(end_seq)
-        sys.stdout.write("".join(buf_replay))
-        sys.stdout.flush()
-
-
-def _erase_solution(
-    cell_width: int,
-    solution_cells: list[tuple[int, int, list[str]]],
-    entry: tuple[int, int],
-    exit_pos: tuple[int, int],
-) -> None:
-    """Erase the solution path by rewriting a space in the center
-    of each cell. The 42 walls are not touched."""
-    buf: list[str] = []
-
-    for sol_x, sol_y, _ in solution_cells:
-        if (sol_x, sol_y) == entry or (sol_x, sol_y) == exit_pos:
-            continue
-
-        ir = inner_row(sol_y, cell_width)
-        ic = inner_col(sol_x, cell_width)
-
-        buf.append(f"{move_to(ir, ic)} ")
-
-    sys.stdout.write("".join(buf))
-    sys.stdout.flush()
-
-
-def _draw_final(
-    maze_width: int,
-    maze_height: int,
-    cell_width: int,
-    entry: tuple[int, int],
-    exit_pos: tuple[int, int],
-    solution_cells: list[tuple[int, int, list[str]]],
-    is_perfect: bool,
-    solution_visible: bool = True,
-    hint: str = "",
-) -> None:
-    """Overlay entry, exit, and solution path on the final grid.
-
-    To be called after _animate(). Accumulates all writes in a buffer
-    and then performs a single flush. The 42 walls are already colored by
-    _draw_grid.
-    """
-    end_row = grid_rows(maze_height, cell_width) + 1
-    buf: list[str] = []
-    if solution_visible:
-        for sol_x, sol_y, direction in solution_cells:
-            if (sol_x, sol_y) == entry or (sol_x, sol_y) == exit_pos:
-                continue
-            if not direction:
-                continue
-            ir = inner_row(sol_y, cell_width)
-            ic = inner_col(sol_x, cell_width)
-
-            # Determine the main direction to display as an arrow.
-            arrow = _DIRECTION_ARROWS.get(direction[-1], " ")
-
-            buf.append(
-                f"{move_to(ir, ic)}"
-                f"{Fore.WHITE + Style.BRIGHT}{arrow}{Style.RESET_ALL}"
-            )
-
-    # Entry marker (green S)
-    ex, ey = entry
-    buf.append(
-        f"{move_to(inner_row(ey, cell_width), inner_col(ex, cell_width))}"
-        "🚪"
-    )
-
-    # Exit marker (red E)
-    xx, xy = exit_pos
-    buf.append(
-        f"{move_to(inner_row(xy, cell_width), inner_col(xx, cell_width))}"
-        "🚀"
-    )
-
-    status = hint if hint else (
-        f"{Fore.CYAN}[S] HIDE/PRINT SOLUTION  [Q] EXIT{Style.RESET_ALL}"
-    )
-    buf.append(f"{move_to(end_row, 1)}\033[2K{status}")
-    if is_perfect:
-        perfect = f"{Fore.GREEN}Perfect maze{Style.RESET_ALL}"
-    else:
-        perfect = f"{Fore.RED}Imperfect maze{Style.RESET_ALL}"
-    # Perfect/imperfect message on the next line
-    buf.append(
-        f"{move_to(end_row + 1, 1)}\033[2K{perfect}"
-    )
-
-    sys.stdout.write("".join(buf))
-    sys.stdout.flush()

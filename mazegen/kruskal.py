@@ -1,4 +1,3 @@
-import random
 from .algorithm import Algorithm
 
 
@@ -6,8 +5,12 @@ class Kruskal(Algorithm):
     REVERSE: dict[str, str] = {"N": "S", "S": "N", "E": "W", "W": "E"}
     # Maximum number of global attempts before giving up
 
-    def _get_eligible_walls(self) -> list[tuple[int, int, str]]:
-        self._eligible_walls = {}
+    def _get_eligible_walls(
+        self,
+    ) -> dict[tuple[int, int], list[tuple[int, int, str]]]:
+        self._eligible_walls: dict[
+            tuple[int, int], list[tuple[int, int, str]]
+        ] = {}
         directions = ["N", "E", "S", "W"]
         for y in range(self.height):
             for x in range(self.width):
@@ -26,13 +29,15 @@ class Kruskal(Algorithm):
         return potential_chief
 
     def _find_in_union(
-        self, walls
-    ) -> bool:
+        self, walls: list[tuple[int, int, str]]
+    ) -> list[tuple[int, int, str]]:
         """Return the indexes of the sets in the union list that
         contain the given coordinates and neighbor."""
         _to_break = []
         for wall in walls:
-            if self._find_root((wall[0], wall[1])) != self._find_root(self._get_direction_neighbor(*wall)):
+            if self._find_root((wall[0], wall[1])) != self._find_root(
+                self._get_direction_neighbor(*wall)
+            ):
                 _to_break.append(wall)
         return _to_break
 
@@ -41,7 +46,9 @@ class Kruskal(Algorithm):
     ) -> None:
         """Merge the two sets at the given indexes in the union list."""
         neighbor_root = self._find_root(neighbor)
-        self._union[self._find_root(coordinates)].update(self._union[neighbor_root])
+        self._union[self._find_root(coordinates)].update(
+            self._union[neighbor_root]
+        )
         self._union.pop(neighbor_root)
         self._indexes[self._find_root(neighbor)] = self._find_root(coordinates)
 
@@ -62,7 +69,9 @@ class Kruskal(Algorithm):
                     self.tracks.append((x, y, direction))
                     opposite_direction = self.REVERSE[direction]
                     try:
-                        _eligible_walls[(nx, ny)].remove((nx, ny, opposite_direction))
+                        _eligible_walls[(nx, ny)].remove(
+                            (nx, ny, opposite_direction)
+                        )
                     except ValueError:
                         pass
                     _to_break = self._find_in_union(_eligible_walls[(x, y)])

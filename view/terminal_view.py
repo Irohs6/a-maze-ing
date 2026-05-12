@@ -7,16 +7,14 @@
 
 import sys
 from pathlib import Path
-
+import tty
+import termios
 if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from colorama import init, Fore, Style
 from model.maze import Maze
-from view.terminal_launcher import MazeRenderConfig, _spawn_solution_window
-from view.terminal_renderer import (
-    _draw_grid, _animate, _draw_final, _erase_corners
-)
+from .terminal_renderer import TerminalRenderer
 
 init(autoreset=False)
 
@@ -30,72 +28,36 @@ class TerminalView:
         maze: Maze,
         entry: tuple[int, int] = (0, 0),
         exit: tuple[int, int] = (0, 0),
-        forty_two_cells: set[tuple[int, int]] | None = None,
+        forty_two_cells: set[tuple[int, int]] | None = None
     ) -> None:
         self.maze = maze
         self.entry = entry
         self.exit_pos = exit
         self.forty_two: set[tuple[int, int]] = set(forty_two_cells or [])
+        self.render = TerminalRenderer(self.maze)
+        self.fd = sys.stdin.fileno()
+        self.old = termios.tcgetattr(self.fd)
 
-    def show_solution(
-        self,
-        all_paths: list[dict[tuple[int, int], list[str]]],
-        is_perfect: bool,
-        tracks: list[tuple[int, int, str]] | None = None,
-    ) -> None:
-        """Opens a new terminal window and animates the generation."""
-        # Displays whether the maze is perfect or imperfect
+    def _get_key(self) -> None:
+        try:
+            tty.setraw(self.fd)
+            self.input = sys.stdin.read(1)
+            if self.input.startswith("\x1b"):
+                self.input += sys.stdin.read(2)
+        finally:
+            termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old)
 
-        cell_width = 1
-        solution_cells: list[tuple[int, int, list[str]]] = [
-            (x, y, list(dirs))
-            for (x, y), dirs in (all_paths[0].items() if all_paths else [])
-        ]
-        # Attempt to open a new window for smoother
-        # animation and cleaner rendering
-        # without the artifacts of the current terminal.
-        if tracks and _spawn_solution_window(
-            MazeRenderConfig(
-                width=self.maze.width,
-                height=self.maze.height,
-                cell_width=cell_width,
-                is_perfect=is_perfect,
-                tracks=tracks,
-                entry=self.entry,
-                exit_pos=self.exit_pos,
-                solution_cells=solution_cells,
-                forty_two_cells=list(self.forty_two),
-                maze_grid=[list(row) for row in self.maze.grid],
-            )
-        ):
-            return
-
-        # Fallback: display in the current terminal
-        _draw_grid(self.maze.width, self.maze.height, cell_width,
-                   forty_two_cells=self.forty_two,
-                   forty_two_color=self.FORTY_TWO_COLOR)
-
-        _animate(tracks or [], self.maze.width, self.maze.height, cell_width,
-                 forty_two_cells=self.forty_two,
-                 forty_two_color=self.FORTY_TWO_COLOR)
-        _erase_corners(
-            [list(row) for row in self.maze.grid],
-            self.maze.width, self.maze.height, cell_width
-        )
-        solution = (
-            [(x, y, dirs) for (x, y), dirs in all_paths[0].items()]
-            if all_paths
-            else []
-        )
-
-        # Also displays in the final status bar
-        _draw_final(
-            self.maze.width,
-            self.maze.height,
-            cell_width,
-            self.entry,
-            self.exit_pos,
-            solution,
-            is_perfect,
-            solution_visible=True,
-        )
+    def draw_grid(self, tracks):
+        try:
+            print("\033[?25l", end="")
+            self.render._animate_grid(tracks)
+            while True:
+                self._get_key()
+                if self.input == "c" or "C":
+                    print("\033c")
+                    self.render._EMOJI_INDEX += 1
+                    if self.render._EMOJI_INDEX == 4:
+                        self.render._EMOJI_INDEX = 0
+                    self.render._final_grid()
+        finally:
+            print("\033[?25h", end="")

@@ -47,7 +47,6 @@ class Backtracker(Algorithm):
 
             if not neighbors:
                 stack.pop()
-                self.tracks.append((x, y, "backtrack"))
                 continue
 
             else:
