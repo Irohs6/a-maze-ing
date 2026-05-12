@@ -20,19 +20,25 @@ class Algorithm(ABC):
         self.forty_two_cells = maze.forty_two_cells
         self.is_perfect = is_perfect
         self.tracks: list[Any] = []
-        self._union = {
-            (x, y): {(x, y)}
-            for x in range(self.width)
-            for y in range(self.height)
-            if (x, y) not in self.forty_two_cells
-        }
         self._indexes = {
             (x, y): (x, y)
             for x in range(self.width)
             for y in range(self.height)
             if (x, y) not in self.forty_two_cells
         }
-        self._union[(0, 0)] = self.forty_two_cells.union(self._union[(0, 0)])
+        self._cells = [
+            (x, y)
+            for x in range(self.width)
+            for y in range(self.height)
+            if (x, y) not in self.forty_two_cells
+        ]
+        random.shuffle(self._cells)
+        self._union = {
+            (x, y): {(x, y)}
+            for x in range(self.width)
+            for y in range(self.height)
+            if (x, y) not in self.forty_two_cells
+        }
 
     @abstractmethod
     def generate(self) -> list[Any]:
