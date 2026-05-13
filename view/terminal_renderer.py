@@ -3,6 +3,8 @@ from typing import NamedTuple
 from colorama import Fore, Style
 import sys
 from model.maze import Maze
+import tty
+import termios
 
 
 class TerminalRenderer:
@@ -51,13 +53,27 @@ class TerminalRenderer:
 
     _WALL_FORTY_TWO = "⬛"
 
-    def __init__(self, maze: Maze):
+    def __init__(self, maze: Maze, entry, exit_pos):
         self.maze = maze
+        self.entry = entry
+        self.exit_pos = exit_pos
+        self.fd = sys.stdin.fileno()
+        self.old = termios.tcgetattr(self.fd)
+
+    def _get_key(self) -> None:
+        try:
+            tty.setraw(self.fd)
+            self.input = sys.stdin.read(1)
+            if self.input.startswith("\x1b"):
+                self.input += sys.stdin.read(2)
+        finally:
+            termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old)
 
     def _print_full(self, y):
         forty_two = False
         for x in range(self.maze.width):
-            if (x, y) in self.maze.forty_two_cells or (x, y-1) in self.maze.forty_two_cells:
+            if (x, y) in self.maze.forty_two_cells or (
+                    x, y-1) in self.maze.forty_two_cells:
                 sys.stdout.write(self._WALL_FORTY_TWO * 2)
                 forty_two = True
             else:
@@ -68,8 +84,7 @@ class TerminalRenderer:
                 else:
                     sys.stdout.write(self._EMOJI_LIST[self._EMOJI_INDEX])
                     sys.stdout.write(self._EMOJI_LIST[self._EMOJI_INDEX])
-        end_char = self._WALL_FORTY_TWO if forty_two else self._EMOJI_LIST[self._EMOJI_INDEX]
-        sys.stdout.write(f"{end_char}\n")
+        sys.stdout.write(f"{self._EMOJI_LIST[self._EMOJI_INDEX]}\n")
 
     def _print_middle(self, y):
         forty_two = False
@@ -85,8 +100,7 @@ class TerminalRenderer:
                 else:
                     sys.stdout.write(self._EMOJI_LIST[self._EMOJI_INDEX])
                     sys.stdout.write("  ")
-        end_char = self._WALL_FORTY_TWO if forty_two else self._EMOJI_LIST[self._EMOJI_INDEX]
-        sys.stdout.write(f"{end_char}\n")
+        sys.stdout.write(f"{self._EMOJI_LIST[self._EMOJI_INDEX]}\n")
 
     def _print_cells_lign(self, y):
         self._print_full(y)
@@ -139,7 +153,28 @@ class TerminalRenderer:
                 sys.stdout.write(f"\033[{ty - 1};{tx}f")
                 sys.stdout.write(" ")
             sys.stdout.flush()
-            time.sleep(0.008)
+            time.sleep(self._SPEED_LEVELS[self._DEFAULT_SPEED_IDX][0])
+        _, ty = self._get_terminal_coordinates(0, self.maze.height + 1)
+        sys.stdout.write(f"\033[{ty};{1}f")
+        sys.stdout.flush()
+
+    def _animate_solution(self, paths: list[dict[tuple[int, int], list[str]]]):
+        for (x, y), directions in paths[0].items():
+            tx, ty = self._get_terminal_coordinates(x, y)
+            sys.stdout.write(f"\033[{ty};{tx}f")
+            sys.stdout.write(self._DIRECTION_ARROWS[directions[-1]])
+            sys.stdout.flush()
+            time.sleep(self._SPEED_LEVELS[self._DEFAULT_SPEED_IDX][0])
+        _, ty = self._get_terminal_coordinates(0, self.maze.height + 1)
+        sys.stdout.write(f"\033[{ty};{1}f")
+        sys.stdout.flush()
+
+    def _erase_solution(self):
+        for y in range(self.maze.height):
+            for x in range(self.maze.width):
+                tx, ty = self._get_terminal_coordinates(x, y)
+                sys.stdout.write(f"\033[{ty};{tx}f")
+                sys.stdout.write(" ")
         _, ty = self._get_terminal_coordinates(0, self.maze.height + 1)
         sys.stdout.write(f"\033[{ty};{1}f")
         sys.stdout.flush()

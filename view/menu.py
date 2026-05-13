@@ -238,7 +238,7 @@ class Menu:
         tracks = self._controller._generator.tracks
         paths = self._controller._finder.find()
         is_perfect = not self._controller._cycle_checker.has_cycle()
-        self._controller._view.draw_grid(tracks)
+        self._controller._view.draw_grid(tracks, paths)
         output = self._controller._generator.maze.encode_hex() + "\n"
         entry, exit = (
             str(self._controller._config.ENTRY).strip("()"),
