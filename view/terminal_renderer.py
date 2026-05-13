@@ -33,12 +33,11 @@ class TerminalRenderer:
     # Animation speed levels: (delay in s, displayed label).
     # [+] → faster (lower index), [-] → slower (higher index)
     _SPEED_LEVELS: list[tuple[float, str]] = [
-        (0.2, "1"),  # very slow
-        (0.05, "2"),
-        (0.01, "3"),
-        (0.001, "4"),  # default speed
-        (0.0003, "5"),
-        (0.0, "6"),  # as fast as possible (no delay, single final flush)
+        (0.01, "1"),
+        (0.005, "2"),
+        (0.001, "3"),  # default speed
+        (0.0003, "4"),
+        (0.0001, "5"),  # as fast as possible (no delay, single final flush)
     ]
     _DEFAULT_SPEED_IDX: int = 3
 
@@ -169,12 +168,13 @@ class TerminalRenderer:
         sys.stdout.write(f"\033[{ty};{1}f")
         sys.stdout.flush()
 
-    def _erase_solution(self):
-        for y in range(self.maze.height):
-            for x in range(self.maze.width):
-                tx, ty = self._get_terminal_coordinates(x, y)
-                sys.stdout.write(f"\033[{ty};{tx}f")
-                sys.stdout.write(" ")
+    def _erase_solution(self, paths: list[dict[tuple[int, int], list[str]]]):
+        reversed = [key for key in paths[0].keys()][::-1]
+        for x, y in reversed:
+            tx, ty = self._get_terminal_coordinates(x, y)
+            sys.stdout.write(f"\033[{ty};{tx}f")
+            sys.stdout.write(" ")
+            sys.stdout.flush()
+            time.sleep(self._SPEED_LEVELS[self._DEFAULT_SPEED_IDX][0])
         _, ty = self._get_terminal_coordinates(0, self.maze.height + 1)
         sys.stdout.write(f"\033[{ty};{1}f")
-        sys.stdout.flush()

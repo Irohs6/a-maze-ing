@@ -27,6 +27,7 @@ def main() -> None:
         print(f"Error: {error}")
         sys.exit(4)
     except KeyboardInterrupt:
+        print("\033c")
         print(Fore.BLUE + "Bye-bye" + Style.RESET_ALL, end="")
         print("👋")
         sys.exit(0)

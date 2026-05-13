@@ -48,7 +48,7 @@ class TerminalView:
             termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old)
 
     def _display_input(self, speed):
-        print(f"\nCOLOR: C   SHOW/HIDE SOLUTION: S    SPEED LEVEL{speed}: +/-")
+        print(f"\rCOLOR: C   SHOW/HIDE SOLUTION: S   REGENERATE: R   SPEED LEVEL ({speed}): +/-   QUIT: Q", end="")
 
     def draw_grid(self, tracks, paths) -> None:
         solution_visible = False
@@ -78,19 +78,21 @@ class TerminalView:
                             self.render._SPEED_LEVELS):
                         self.render._DEFAULT_SPEED_IDX = 0
                     speed = self.render._DEFAULT_SPEED_IDX + 1
+                    self._display_input(speed)
                 if self.input in ("-"):
                     self.render._DEFAULT_SPEED_IDX -= 1
                     if self.render._DEFAULT_SPEED_IDX == -1:
                         self.render._DEFAULT_SPEED_IDX = len(
                                 self.render._SPEED_LEVELS) - 1
                     speed = self.render._DEFAULT_SPEED_IDX + 1
+                    self._display_input(speed)
                 if self.input in ("s", "S"):
                     # toggle solution animation
                     solution_visible = not solution_visible
                     if solution_visible:
                         self.render._animate_solution(paths)
                     else:
-                        self.render._erase_solution()
+                        self.render._erase_solution(paths)
                 elif self.input in ("q", "Q"):
                     break
 
