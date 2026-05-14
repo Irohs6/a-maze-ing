@@ -1,100 +1,52 @@
-# Feedback — A-Maze-ing
+# Évaluation A-Maze-ing - Feedback global et Analyse de la View
 
-**Date d'évaluation :** 06/05/2026  
-**Auteurs :** gacattan, cyakisan  
-**Note globale : 92 / 100**
+## 🏆 1. Note globale estimée (Projet complet)
 
----
-
-## Résumé exécutif
-
-Projet solide, bien architecturé, livré en état de fonctionnement complet. Les 153 tests
-passent, `make lint-strict` est propre (flake8 + mypy --strict exit 0), la couverture du
-modèle dépasse 94 %. Les deux algorithmes sont implémentés, le motif 42 est en place, les
-benchmarks sont présents avec leurs résultats. Le seul manque significatif est l'absence du
-wheel `dist/mazegen-*.whl` pré-buildé dans le dépôt.
+Le projet s'est très bien amélioré. Tu as corrigé l'erreur la plus grave (l'absence d'écriture dans le fichier `OUTPUT_FILE` a été fixée dans le `menu.py`).
+**Note globale estimée : 39.5 / 42 (environ 94%) + Bonus**
 
 ---
 
-## Détail par critère
+## 📋 2. Notation Indépendante par Catégorie
 
-### Partie obligatoire (70 pts)
-
-| # | Critère | Points | État | Remarques |
-|---|---------|--------|------|-----------|
-| 1 | Makefile — `install`, `run`, `debug`, `clean`, `lint`, `test` | 10 / 10 | ✅ | Tous les targets présents et fonctionnels ; `lint-strict` en bonus |
-| 2 | Config file — parsing et validation | 9 / 10 | ✅ | Pydantic v2, validators, 7 clés supportées. `-1` : `ALGORITHM` n'est pas listée dans `OPTIONAL_KEYS` (inconsistance mineure) |
-| 3 | Structure de labyrinthe + encodage hexadécimal | 10 / 10 | ✅ | Encodage 4-bit correct (N=1, E=2, S=4, W=8), symétrie imposée par `set_wall()` |
-| 4 | Algorithme de génération (Backtracker DFS) | 10 / 10 | ✅ | Stack explicite, SEED reproductible, parfait garanti |
-| 5 | PathFinder | 10 / 10 | ✅ | BFS, reconstruction du chemin, multi-chemins, dict connexions pour rendu |
-| 6 | Visualisation terminal avec animation | 10 / 10 | ✅ | ANSI/Unicode, curseur animé ●, détection auto de 6 émulateurs, fenêtre dédiée |
-| 7 | README — ligne d'attribution 42 + documentation | 5 / 5 | ✅ | Première ligne correcte `by gacattan, cyakisan` |
-| 8 | Architecture MVC | 5 / 5 | ✅ | `model/`, `view/`, `controller/` strictement séparés, `mazegen/` package indépendant |
-
-**Sous-total obligatoire : 69 / 70**
+| Section | Score estimé | Commentaires & Problèmes restants |
+|---------|:---:|:---|
+| **Règles générales** | **5/5** | Parfait. Le formatage, les docstrings et Pydantic sont très solides. |
+| **Makefile** | **6/6** | Impeccable. Toutes les règles (install, run, clean, lint...) fonctionnent au poil. |
+| **Partie obligatoire** | **12/12** | Tu as ajouté la sauvegarde dans `OUTPUT_FILE` ! ✅ La structure est validée et le motif 42 est bien là. |
+| **Représentation visuelle** | **3.5/4** | Interface terminal excellente et colorée, mais le comportement de la touche de reset présente une anomalie (voir la section "Analyse de la View"). |
+| **Réutilisabilité** | **3/4** | **Manque le fichier `.whl` *.whl *.tar.gz* Tu as configuré `pyproject.toml`, mais tu m'as oublié de générer réellement le `.whl` ou `.tar.gz` à la racine (avec `python -m build`). C'est bête de perdre ce point. |
+| **README** | **10/11** | La phrase obligatoire est bien présente au tout début ! Les sections thématiques sont là, mais le sujet impose parfois exactement les noms "Description" et "Instructions". |
 
 ---
 
-### Bonus (30 pts)
+## 🎨 3. Analyse et Jugement de la "Nouvelle View"
 
-| # | Critère | Points | État | Remarques |
-|---|---------|--------|------|-----------|
-| B1 | Second algorithme — Kruskal (Union-Find) | 5 / 5 | ✅ | Implémentation correcte, parfait/imparfait, intégré via `ALGO_MAP` |
-| B2 | Paquet réutilisable `mazegen` pip-installable | 3 / 5 | ⚠️ | Structure correcte (`pyproject.toml [project]`, `__init__.py`, API propre). `-2` : aucun `dist/mazegen-*.whl` dans le dépôt — un correcteur ne peut pas faire `pip install dist/mazegen-*.whl` sans builder lui-même |
-| B3 | Benchmarks (3 scripts + résultats) | 5 / 5 | ✅ | `backtracker`, `kruskal`, `pathfinder` — CSV et Markdown présents |
-| B4 | `make lint-strict` (mypy --strict + flake8) | 5 / 5 | ✅ | Exit 0, aucune erreur dans les 34 fichiers sources |
-| B5 | Motif 42 au centre | 5 / 5 | ✅ | `PATTERN_42` isolé, protégé contre ENTRY/EXIT, validé |
-| B6 | Tests unitaires | 4 / 5 | ✅ | 153 tests, 100 % pass. Modèle : 94–100 % de couverture. `-1` : `view/` à 0 % (inhérent aux tests interactifs, acceptable mais notable) |
+Le nouveau binôme `terminal_view.py` et `terminal_renderer.py` apporte un excellent niveau d'interactivité.
 
-**Sous-total bonus : 27 / 30**
+### 👍 Les points forts :
+1. **Inputs non-bloquants** : L'utilisation de `sys.stdin.read` avec `tty` et `termios` est excellente. Ça évite au joueur d'avoir à appuyer sur `[Entrée]` pour valider ses choix. C'est beaucoup plus fluide !
+2. **Le contrôle de vitesse** : Les contrôles `[+]` et `[-]` pour ralentir/accélérer la construction / l'animation, c'est un excellent ajout d'ergonomie ⚡.
+3. **Le système d'Emojis (`[C]`)** : Bonne idée de cycle ! Au lieu de simples couleurs, changer tout le thème visuel (arbres 🌲, lunes 🌕, gouttes d'eau 💧) donne beaucoup d'identité au labyrinthe.
 
----
-
-## Note finale : 69 + 27 = **96 / 100**
-
-> **Ajustement réaliste à 92/100** — un correcteur humain constatera l'absence du `.whl`
-> dès le premier `ls dist/` et la présence de `output_validator.py` sans tests ni type hints.
-> Ces points sont mineurs mais concrets.
+### ⛔ Les Bugs / Problèmes (à corriger de toute urgence) :
+1. **La touche `[R]` est un Replay, mais affiche "Regenerate" :**
+   Puisque la vraie génération d'un nouveau labyrinthe se fait en quittant la vue et en utilisant le menu principal, l'action de la touche `[R]` est en fait un "replay" de l'animation. C'est tout à fait valide de passer par le menu pour regénérer ! Pense juste à modifier le texte affiché en bas de ton terminal dans `terminal_view.py` de `REGENERATE: R` vers `REPLAY: R` pour éviter de perturber le correcteur.
+2. **Les thèmes de couleurs sont abandonnés !**
+   Dans le renderer, tu as instancié une jolie lise `COLOR_THEMES = [ColorTheme(...)]` (avec `colorama`), mais cette liste est **totalement inutilisée** dans la boucle de rendu. Tout se base désormais uniquement sur `_EMOJI_LIST`.
+3. **Double largeur des Emojis et décalage :**
+   Les Emojis utilisent souvent 2 espaces terminaux en termes de largeur d'affichage. Dans `_print_full()`, tu écris `self._EMOJI_LIST[self._EMOJI_INDEX]` deux fois de suite, ce qui peut prendre 4 caractères colonnes dans certains terminaux et "casser" l'alignement visuel si mal géré en concaténant maladroitement avec des espaces simples.
+4. **Le Pattern "42" statique :**
+   Tu gardes la couleur `_WALL_FORTY_TWO = "⬛"` de manière statique peu importe si l'on appuie sur `[C]`. En mode visibilé classique, le motif 42 pourrait ressortir bien mieux s'il utilisait un inversement visuel ou une autre logique.
 
 ---
 
-## Points forts
+## 🛠️ 4. Améliorations Possibles pour l'Ensemble du Projet (Bilan)
 
-- **mypy --strict à 0 erreur** sur 34 fichiers : exploit notable, peu de projets y parviennent.
-- **153 tests qui passent tous**, couverture modèle ≥ 94 % : filet de sécurité solide.
-- **Validation exhaustive du labyrinthe** (`MazeValidator`) : bordures, symétrie, BFS,
-  connectivité, zones 3×3, pattern 42 — bien au-delà du minimum requis.
-- **Config Pydantic v2** : validation, normalisation, error messages propres.
-- **Architecture claire** : chaque module a une responsabilité unique, les dépendances
-  vont dans un sens (model ← mazegen ← controller → view).
-- **Benchmarks complets** avec résultats commités — montre une démarche sérieuse.
+Pour perfectionner ce projet de bout en bout et aller chercher un 100% ou un **125%** avec la notation des correcteurs :
 
----
-
-## Points à corriger
-
-### Critique
-
-| Fichier | Problème | Correction |
-|---------|----------|------------|
-| `dist/` | Absent — le wheel `mazegen-*.whl` n'est pas buildé/commité | `python -m build && git add dist/ && git commit` |
-
-### Mineur
-
-| Fichier | Problème | Correction |
-|---------|----------|------------|
-| `model/config_file.py` | `ALGORITHM` non listée dans `OPTIONAL_KEYS` | Ajouter `"ALGORITHM"` à la liste |
-| `output_validator.py` | `open()` sans `with`, pas de type hints, `sys.exit(1)` style script brut | Refactorer en fonction ou accepter tel quel comme utilitaire externe |
-| `view/` | 0 % de couverture de tests | Difficile à tester (terminal interactif) — ajouter des tests unitaires sur les fonctions pures (`ansi_utils.py`, `terminal_backends.py`) |
-| `pyproject.toml` | Section `[tool.mypy]` ne reflète pas `--strict` (flags seulement en CLI) | Ajouter `strict = true` dans `[tool.mypy]` pour cohérence |
-
----
-
-## État des vérifications
-
-```
-make lint-strict   → ✅ exit 0  (flake8 OK + mypy --strict : 0 erreur, 34 fichiers)
-make test          → ✅ exit 0  (153 passed, 0 failed, 0.56s)
-make run           → ✅ fonctionnel (config.txt 60×60, Kruskal, SEED=15)
-dist/mazegen-*.whl → ❌ absent
-```
+1. **Générer le package wheel :**
+   Lance simplement la commande de build terminal et commit le résultat à la racine. Sans ça, cette demande rudimentaire échouera : `python -m build` (qui requiert `build` d'installé).
+   Plutôt que de nettoyer le terminal et relancer l'animation avec l'ancien `tracks`, il faut qu'appuyer sur `[R]` invoque `self.maze.generate()` ou notifie le contrôleur/générateur avec un *event* pour générer aléatoirement un autre labyrinthe. 
+4. **BONUS ultime - Le mode `PLAYABLE` :**
+   Tu as fait tout le travail difficile pour le mode "jouable" : tu lis déjà toutes les entrées clavier live via `tty` (avec `get_key()`) et tu as des structures conditionnelles ! Il te suffirait d'ajouter un emoji "Personnage" dans les coordonnées `(Entry_x, Entry_y)`, et si l'utilisateur appuie par ex sur "Haut", tu regardes ton code `self.maze.has_wall(player_x, player_y, "N")`. Si pas de mur, on translate l'emoji et on redraw. Ça te vaudrait entre 0.5 et 1 point de bonus facile dans la notation.

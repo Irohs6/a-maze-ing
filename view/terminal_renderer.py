@@ -5,6 +5,7 @@ import sys
 from model.maze import Maze
 import tty
 import termios
+import select
 
 
 class TerminalRenderer:
@@ -33,24 +34,35 @@ class TerminalRenderer:
     # Animation speed levels: (delay in s, displayed label).
     # [+] → faster (lower index), [-] → slower (higher index)
     _SPEED_LEVELS: list[tuple[float, str]] = [
-        (0.01, "1"),
-        (0.005, "2"),
-        (0.001, "3"),  # default speed
-        (0.0003, "4"),
-        (0.0001, "5"),  # as fast as possible (no delay, single final flush)
+        (0.1, "1"),  # as slow as possible (delay after every frame)
+        (0.01, "2"),
+        (0.005, "3"),
+        (0.001, "4"),  # default speed
+        (0.0003, "5"),
+        (0.0001, "6"),  # as fast as possible (no delay, single final flush)
     ]
-    _DEFAULT_SPEED_IDX: int = 3
+    _DEFAULT_SPEED_IDX: int = 1
 
     _EMOJI_LIST = [
-        "✋", "🌲", "🌳", "🌵", "🌿", "🌟", "✨",
-        "⬛", "⬜", "🔴",
-        "🔵", "🔥", "💧", "🍄", "🎃", "👹", "👾",
-        "🤖", "👻", "👽", "💩", "💎", "🔮", "🚪",
-        "🌲", "🎄", "🌻", "🌹", "🌷", "🌼", "🌸", "🌺", "🌍", "🌕"
+        [
+            "✋", "🌲", "🌳", "🌵", "🌟", "⬛",
+            "⬜", "🔴", "🔵", "🔥", "💧", "🍄", "🌕",
+            "🎃", "👹", "👾", "🤖", "👻", "👽",
+            "💎", "🔮", "🌻", "🌹",
+            "🌷", "🌼", "🌸", "🌺", "🌍"
+        ],
+        [
+            "💎", "🌷", "🍄", "🌼", "🔮", "⬜",
+            "⬛", "🔵", "🔴", "💧", "🔥", "🌳", "🌍",
+            "👻", "👾", "👹", "👽", "🎃", "🤖",
+            "✋", "🌟", "🌸", "🌺",
+            "🌲", "🌵", "🌻", "🌹", "🌕",
+        ]
     ]
     _EMOJI_INDEX = 0
 
-    _WALL_FORTY_TWO = "⬛"
+    _EMOJI_ENTRY = "🚪"
+    _EMOJI_EXIT = "🏁"
 
     def __init__(self, maze: Maze, entry, exit_pos):
         self.maze = maze
@@ -59,12 +71,19 @@ class TerminalRenderer:
         self.fd = sys.stdin.fileno()
         self.old = termios.tcgetattr(self.fd)
 
-    def _get_key(self) -> None:
+    def _get_key_or_timeout(self, timeout: float = 0.0) -> None:
         try:
             tty.setraw(self.fd)
-            self.input = sys.stdin.read(1)
-            if self.input.startswith("\x1b"):
-                self.input += sys.stdin.read(2)
+            # Use select to wait for input up to 'timeout' seconds
+            rlist, _, _ = select.select([sys.stdin], [], [], timeout)
+            if rlist:
+                self.input = sys.stdin.read(1)
+                if self.input.startswith("\x1b"):
+                    self.input += sys.stdin.read(2)
+            else:
+                self.input = None
+        except Exception:
+            self.input = None
         finally:
             termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old)
 
@@ -73,33 +92,33 @@ class TerminalRenderer:
         for x in range(self.maze.width):
             if (x, y) in self.maze.forty_two_cells or (
                     x, y-1) in self.maze.forty_two_cells:
-                sys.stdout.write(self._WALL_FORTY_TWO * 2)
+                sys.stdout.write(self._EMOJI_LIST[1][self._EMOJI_INDEX] * 2)
                 forty_two = True
             else:
                 if forty_two:
-                    sys.stdout.write(self._WALL_FORTY_TWO)
-                    sys.stdout.write(self._EMOJI_LIST[self._EMOJI_INDEX])
+                    sys.stdout.write(self._EMOJI_LIST[1][self._EMOJI_INDEX])
+                    sys.stdout.write(self._EMOJI_LIST[0][self._EMOJI_INDEX])
                     forty_two = False
                 else:
-                    sys.stdout.write(self._EMOJI_LIST[self._EMOJI_INDEX])
-                    sys.stdout.write(self._EMOJI_LIST[self._EMOJI_INDEX])
-        sys.stdout.write(f"{self._EMOJI_LIST[self._EMOJI_INDEX]}\n")
+                    sys.stdout.write(self._EMOJI_LIST[0][self._EMOJI_INDEX])
+                    sys.stdout.write(self._EMOJI_LIST[0][self._EMOJI_INDEX])
+        sys.stdout.write(f"{self._EMOJI_LIST[0][self._EMOJI_INDEX]}\n")
 
     def _print_middle(self, y):
         forty_two = False
         for x in range(self.maze.width):
             if (x, y) in self.maze.forty_two_cells:
-                sys.stdout.write(self._WALL_FORTY_TWO * 2)
+                sys.stdout.write(self._EMOJI_LIST[1][self._EMOJI_INDEX] * 2)
                 forty_two = True
             else:
                 if forty_two:
-                    sys.stdout.write(self._WALL_FORTY_TWO)
+                    sys.stdout.write(self._EMOJI_LIST[1][self._EMOJI_INDEX])
                     sys.stdout.write("  ")
                     forty_two = False
                 else:
-                    sys.stdout.write(self._EMOJI_LIST[self._EMOJI_INDEX])
+                    sys.stdout.write(self._EMOJI_LIST[0][self._EMOJI_INDEX])
                     sys.stdout.write("  ")
-        sys.stdout.write(f"{self._EMOJI_LIST[self._EMOJI_INDEX]}\n")
+        sys.stdout.write(f"{self._EMOJI_LIST[0][self._EMOJI_INDEX]}\n")
 
     def _print_cells_lign(self, y):
         self._print_full(y)
@@ -136,8 +155,17 @@ class TerminalRenderer:
         sys.stdout.write(f"\033[{ty};{1}f")
         sys.stdout.flush()
 
-    def _animate_grid(self, tracks):
+    def _animate_grid(self, tracks, display_input: callable,
+                      speed: int) -> None:
+        def update_menu(current_speed):
+            _, menu_ty = self._get_terminal_coordinates(
+                0, self.maze.height + 1)
+            sys.stdout.write(f"\033[{menu_ty};1f")
+            display_input(current_speed)
+            sys.stdout.flush()
+
         self._display_grid()
+        update_menu(speed)
         for x, y, direction in tracks:
             tx, ty = self._get_terminal_coordinates(x, y)
             sys.stdout.write(f"\033[{ty};{tx}f")
@@ -152,7 +180,27 @@ class TerminalRenderer:
                 sys.stdout.write(f"\033[{ty - 1};{tx}f")
                 sys.stdout.write(" ")
             sys.stdout.flush()
-            time.sleep(self._SPEED_LEVELS[self._DEFAULT_SPEED_IDX][0])
+
+            self._get_key_or_timeout(self._SPEED_LEVELS[
+                self._DEFAULT_SPEED_IDX][0])
+            if self.input:
+                if self.input in ("+"):
+                    self._DEFAULT_SPEED_IDX += 1
+                    if self._DEFAULT_SPEED_IDX == len(
+                            self._SPEED_LEVELS):
+                        self._DEFAULT_SPEED_IDX = 0
+                    speed = self._DEFAULT_SPEED_IDX + 1
+                    update_menu(speed)
+                if self.input in ("-"):
+                    self._DEFAULT_SPEED_IDX -= 1
+                    if self._DEFAULT_SPEED_IDX == -1:
+                        self._DEFAULT_SPEED_IDX = len(
+                                self._SPEED_LEVELS) - 1
+                    speed = self._DEFAULT_SPEED_IDX + 1
+                    update_menu(speed)
+                sys.stdout.write(f"\033[{ty};{tx}f")
+                sys.stdout.flush()
+
         _, ty = self._get_terminal_coordinates(0, self.maze.height + 1)
         sys.stdout.write(f"\033[{ty};{1}f")
         sys.stdout.flush()
@@ -163,7 +211,7 @@ class TerminalRenderer:
             sys.stdout.write(f"\033[{ty};{tx}f")
             sys.stdout.write(self._DIRECTION_ARROWS[directions[-1]])
             sys.stdout.flush()
-            time.sleep(self._SPEED_LEVELS[self._DEFAULT_SPEED_IDX][0])
+            time.sleep(0.05)
         _, ty = self._get_terminal_coordinates(0, self.maze.height + 1)
         sys.stdout.write(f"\033[{ty};{1}f")
         sys.stdout.flush()
@@ -175,6 +223,7 @@ class TerminalRenderer:
             sys.stdout.write(f"\033[{ty};{tx}f")
             sys.stdout.write(" ")
             sys.stdout.flush()
-            time.sleep(self._SPEED_LEVELS[self._DEFAULT_SPEED_IDX][0])
+            time.sleep(0.05)
         _, ty = self._get_terminal_coordinates(0, self.maze.height + 1)
         sys.stdout.write(f"\033[{ty};{1}f")
+        sys.stdout.flush()

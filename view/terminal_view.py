@@ -12,16 +12,11 @@ import termios
 if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from colorama import init, Fore, Style
 from model.maze import Maze
 from .terminal_renderer import TerminalRenderer
 
-init(autoreset=False)
-
 
 class TerminalView:
-
-    FORTY_TWO_COLOR: str = Fore.LIGHTBLUE_EX + Style.BRIGHT
 
     def __init__(
         self,
@@ -48,14 +43,15 @@ class TerminalView:
             termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old)
 
     def _display_input(self, speed):
-        print(f"\rCOLOR: C   SHOW/HIDE SOLUTION: S   REGENERATE: R   SPEED LEVEL ({speed}): +/-   QUIT: Q", end="")
+        print(f"\rCOLOR: C   SHOW/HIDE SOLUTION: S   "
+              f"REPLAY: R   SPEED LEVEL ({speed}): +/-   QUIT: Q", end="")
 
     def draw_grid(self, tracks, paths) -> None:
         solution_visible = False
         speed = self.render._DEFAULT_SPEED_IDX + 1
         try:
             print("\033[?25l", end="")
-            self.render._animate_grid(tracks)
+            self.render._animate_grid(tracks, self._display_input, speed)
             self._display_input(speed)
             while True:
                 self._get_key()
@@ -64,13 +60,13 @@ class TerminalView:
                     print("\033c", end="")
                     self.render._EMOJI_INDEX += 1
                     if self.render._EMOJI_INDEX == len(
-                            self.render._EMOJI_LIST):
+                            self.render._EMOJI_LIST[0]):
                         self.render._EMOJI_INDEX = 0
                     self.render._final_grid()
                     self._display_input(speed)
                 if self.input in ("r", "R"):
                     print("\033c", end="")
-                    self.render._animate_grid(tracks)
+                    self.render._animate_grid(tracks, self._display_input, speed)
                     self._display_input(speed)
                 if self.input in ("+"):
                     self.render._DEFAULT_SPEED_IDX += 1
