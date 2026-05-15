@@ -67,7 +67,7 @@ class TerminalRenderer:
                     self.input += sys.stdin.read(2)
             else:
                 self.input = None
-        except Exception:
+        except (OSError, ValueError):
             self.input = None
 
     def _print_full(self, y):

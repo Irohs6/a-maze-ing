@@ -98,6 +98,11 @@ class ConfigFile(BaseModel):
             raise FileNotFoundError(
                 f"Configuration file '{config_file_path}' not found."
             )
+        except PermissionError:
+            raise PermissionError(
+                f"Configuration file '{config_file_path}' is not readable "
+                "(permission denied)."
+            )
 
     @staticmethod
     def _parse_line(line: str, config: dict[str, Any]) -> None:

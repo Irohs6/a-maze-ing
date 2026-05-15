@@ -252,6 +252,14 @@ class Menu:
         output += f"Seed: {self._controller._generator.seed}" + "\n"
         output += f"Entry: {entry}" + "\n"
         output += f"Exit: {exit}" + "\n"
+        if not paths:
+            print(
+                Fore.RED
+                + "Error: No path found between entry and exit."
+                + Style.RESET_ALL
+            )
+            self._press_enter_continue()
+            return
         output += "Solution: "
         for directions in paths[0].values():
             output += directions[-1]
@@ -264,10 +272,16 @@ class Menu:
             with open(self._controller._config.OUTPUT_FILE, "w") as file:
                 file.write(output)
         except PermissionError:
-            print(
+            raise PermissionError(
                 Fore.RED
                 + "Error: You don't have the permission to write in the "
                 "output file" + Style.RESET_ALL
+            )
+        except OSError as e:
+            raise OSError(
+                Fore.RED
+                + f"Error: Could not write output file: {e}"
+                + Style.RESET_ALL
             )
         self._press_enter_continue()
         self._controller._generator.reset(seed=time.time_ns())

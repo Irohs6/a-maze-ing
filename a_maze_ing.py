@@ -23,14 +23,20 @@ def main() -> None:
         controller.run()
     except FileNotFoundError as error:
         print(error)
+        sys.exit(1)
+    except PermissionError as error:
+        print(f"Error: {error}")
+        sys.exit(2)
+    except OSError as error:
+        print(f"Error: {error}")
         sys.exit(3)
     except ValidationError as errors:
         for error in errors.errors():
             print(f" - {error['loc'][0]}: {error['msg']}")
-        sys.exit(5)
+        sys.exit(4)
     except (ValueError, KeyError) as error:
         print(f"Error: {error}")
-        sys.exit(4)
+        sys.exit(5)
     except KeyboardInterrupt:
         print("\033c")
         print(Fore.BLUE + "Bye-bye" + Style.RESET_ALL, end="")

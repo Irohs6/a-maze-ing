@@ -6,7 +6,7 @@
 # Les lignes commençant par # sont des commentaires ignorés par le parseur.
 # Ce fichier sert d'exemple et est utilisé par défaut lors des tests et démonstrations.
 
-WIDTH=14
+WIDTH=a
 HEIGHT=10
 ENTRY=0,0
 EXIT=4,2
