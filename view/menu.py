@@ -238,21 +238,23 @@ class Menu:
         tracks = self._controller._generator.tracks
         paths = self._controller._finder.find()
         is_perfect = not self._controller._cycle_checker.has_cycle()
-        self._controller._view.draw_grid(tracks, paths)
+        self._controller._view.draw_grid(tracks, paths, is_perfect)
         output = self._controller._generator.maze.encode_hex() + "\n"
         entry, exit = (
             str(self._controller._config.ENTRY).strip("()"),
             str(self._controller._config.EXIT).strip("()"),
         )
-        output += entry + "\n"
-        output += exit + "\n"
+        output += f"Seed: {self._controller._generator.seed}" + '\n'
+        output += f"Entry: {entry}" + "\n"
+        output += f"Exit: {exit}" + "\n"
+        output += "Solution: "
         for directions in paths[0].values():
             output += directions[-1]
         output = output[:-1]
         output += "\n"
+        output += f"Perfect: {is_perfect}" + '\n'
         print("Maze Output:")
         print(output, end="")
-        print(is_perfect)
         try:
             with open(self._controller._config.OUTPUT_FILE, "w") as file:
                 file.write(output)
