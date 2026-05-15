@@ -135,7 +135,8 @@ class TerminalRenderer:
                     sys.stdout.write(f"\033[{ty};{tx}f")
                     if not self.maze.has_wall(x, y, direction):
                         if direction == "E":
-                            sys.stdout.write("   ")
+                            sys.stdout.write("\033[2C")
+                            sys.stdout.write("  ")
                         else:
                             sys.stdout.write(f"\033[{ty + 1};{tx}f")
                             sys.stdout.write(" ")
