@@ -9,12 +9,18 @@
 
 ---
 
+## Description
+
+A-Maze-Ing est un générateur de labyrinthes en Python piloté par un fichier de configuration. Il produit un labyrinthe valide (bordures fermées, murs symétriques, connectivité totale, zones 3×3 interdites) contenant le motif **42** au centre, l'encode en hexadécimal dans un fichier de sortie, et l'affiche avec une animation temps réel dans le terminal. Deux algorithmes de génération sont disponibles : **DFS Recursive Backtracker** (parfait) et **Kruksal modifié** (imparfait). Le code est organisé en architecture **MVC** et le module de génération `mazegen` est livré sous forme de paquet Python installable via `pip`.
+
+---
+
 ## Fonctionnalités
 
 - Génération par **DFS Recursive Backtracker** (parfait, reproductible via seed)
 - Génération par **Kruksal modifié** (imperfect, avec validation de connectivité)
 - Animation temps réel : les murs se creusent sous vos yeux (curseur ●)
-- Rendu Unicode propre dans le terminal (fenêtre dédiée automatiquement ouverte)
+- Rendu Unicode propre dans le terminal
 - Motif **42** visible au centre du labyrinthe (cellules entièrement isolées)
 - Encodage hexadécimal du labyrinthe dans un fichier de sortie
 - Validation complète : bordures fermées, symétrie des murs, connectivité BFS, zones 3×3 interdites
@@ -25,7 +31,8 @@
 ## Prérequis
 
 - Python 3.10+
-- Dépendances listées dans `requirements.txt`
+- [Poetry](https://python-poetry.org/) pour la gestion des dépendances (installé automatiquement par `make install`)
+- Dépendances listées dans `pyproject.toml` (générées dans `requirements.txt`)
 
 ---
 
@@ -138,13 +145,9 @@ a-maze-ing/
 │   └── path_finder.py             # Recherche du chemin le plus court (BFS)
 │
 ├── view/
-│   ├── terminal_view.py           # Facade : ouvre une fenêtre dédiée ou fallback
-│   ├── terminal_renderer.py       # Rendu ANSI/Unicode + animation
-│   ├── terminal_launcher.py       # Détection et lancement d'un émulateur terminal
-│   ├── terminal_spawn_runner.py   # Runner autonome dans la fenêtre spawned
-│   ├── terminal_backends.py       # Configurations des émulateurs (gnome, konsole…)
-│   ├── ansi_utils.py              # Calculs géométriques et utilitaires ANSI
-│   └── menu.py                    # Menu interactif (navigation clavier)
+│   ├── terminal_view.py           # Facade de la vue : gestion des touches et boucle principale
+│   ├── terminal_renderer.py       # Rendu ANSI/Unicode, animation, affichage solution
+│   └── menu.py                    # Menu interactif (navigation clavier, settings)
 │
 ├── tests/
 │   ├── test_maze.py
@@ -153,6 +156,11 @@ a-maze-ing/
 │   ├── test_cycle_checker.py
 │   ├── test_maze_validator.py
 │   └── test_path_finder.py
+│
+├── benchmark/                     # Benchmarks de performance par algorithme
+│   ├── backtracker/
+│   ├── kruskal/
+│   └── pathfinder/
 │
 ├── config.txt                     # Configuration par défaut
 ├── Makefile
@@ -237,11 +245,8 @@ Les tests couvrent :
 |-------|-------------|
 | Structure initiale MVC | Suggestions d'organisation des modules, revue de la séparation des responsabilités |
 | `MazeValidator` | Aide à la rédaction des cas de validation (symétrie des murs, connectivité BFS) |
-| `ansi_utils.py` | Assistance sur les calculs de coordonnées ANSI (positionnement curseur 1-based) |
-| `terminal_backends.py` | Génération des commandes de lancement pour chaque émulateur terminal |
 | Docstrings | Aide à la rédaction des docstrings PEP 257 sur les classes et fonctions |
 | Tests unitaires | Suggestions de cas de test paramétrés (pytest.mark.parametrize) |
-| Refactoring | Revue du code pour respect flake8/mypy, suggestions de type hints manquants |
 
 Tout le code généré a été relu, testé et compris avant intégration. Aucune section critique (algorithmes, validation, rendu) n'a été copiée-collée sans compréhension et adaptation.
 
@@ -253,8 +258,8 @@ Tout le code généré a été relu, testé et compris avant intégration. Aucun
 
 | Login | Contributions principales |
 |-------|--------------------------|
-| gacattan | Architecture MVC, modèle `Maze`, `MazeValidator`, `CycleChecker`, algorithme `Backtracker`, vues `TerminalView`, `TerminalRenderer`, animation ANSI, détection multi-terminal, `PathFinder`, tests unitaires |
-| cyakisan | `ConfigFile` (Pydantic), algorithme `Kruksal`, refactoring `Algorithm`, vue `Menu`, `Makefile`, `pyproject.toml`, tests unitaires |
+| gacattan | Architecture MVC, modèle `Maze`, `MazeValidator`, `CycleChecker`, algorithme `Backtracker`, vues `TerminalView`, `TerminalRenderer`, animation ANSI, `PathFinder`, tests unitaires |
+| cyakisan | `ConfigFile` (Pydantic), algorithme `Kruksal`, refactoring `Algorithm`, vue `Menu`, `TerminalView`, `TerminalRenderer`, animation ANSI, `Makefile`, `pyproject.toml`, tests unitaires |
 
 ### Planning
 
@@ -265,8 +270,6 @@ Tout le code généré a été relu, testé et compris avant intégration. Aucun
 - Semaine 4 : fichier de sortie, PathFinder, tests, packaging
 
 **Comment il a évolué :**
-- La validation du labyrinthe (zones 3×3, symétrie des murs) s'est révélée plus complexe que prévu et a empiété sur la semaine 3.
-- Le rendu multi-terminal (détection XDG, spawn d'une fenêtre dédiée) n'était pas prévu initialement et a été ajouté en semaine 3 pour améliorer l'expérience utilisateur.
 - Le packaging `mazegen` a été traité en parallèle plutôt qu'en fin de projet, ce qui a facilité les tests d'intégration.
 
 ### Bilan
