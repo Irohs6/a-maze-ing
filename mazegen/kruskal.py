@@ -46,11 +46,10 @@ class Kruskal(Algorithm):
     ) -> None:
         """Merge the two sets at the given indexes in the union list."""
         neighbor_root = self._find_root(neighbor)
-        self._union[self._find_root(coordinates)].update(
-            self._union[neighbor_root]
-        )
+        coordinates_root = self._find_root(coordinates)
+        self._union[coordinates_root].update(self._union[neighbor_root])
         self._union.pop(neighbor_root)
-        self._indexes[self._find_root(neighbor)] = self._find_root(coordinates)
+        self._indexes[self._find_root(neighbor)] = coordinates_root
 
     def generate(self) -> list[tuple[int, int, str]]:
         """Generates the maze using a randomized version

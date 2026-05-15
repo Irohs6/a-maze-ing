@@ -68,7 +68,7 @@ class TerminalView:
                 if self.input in ("r", "R"):
                     print("\033c", end="")
                     speed = self.render._animate_grid(tracks, speed)
-                    self._display_input(speed)
+                    self._display_input(speed, is_perfect)
                 if self.input in ("+"):
                     self.render._DEFAULT_SPEED_IDX += 1
                     if self.render._DEFAULT_SPEED_IDX == len(
