@@ -1,6 +1,4 @@
 import time
-from typing import NamedTuple
-from colorama import Fore, Style
 import sys
 from model.maze import Maze
 import tty
@@ -9,20 +7,6 @@ import select
 
 
 class TerminalRenderer:
-
-    class ColorTheme(NamedTuple):
-        wall: str
-        forty_two: str
-
-    COLOR_THEMES: list[ColorTheme] = [
-        ColorTheme(Fore.BLUE, Fore.YELLOW + Style.BRIGHT),
-        ColorTheme(Fore.RED, Fore.GREEN + Style.BRIGHT),
-        ColorTheme(Fore.GREEN, Fore.CYAN + Style.BRIGHT),
-        ColorTheme(Fore.MAGENTA, Fore.BLUE + Style.BRIGHT),
-        ColorTheme(Fore.CYAN, Fore.MAGENTA + Style.BRIGHT),
-        ColorTheme(Fore.YELLOW, Fore.RED + Style.BRIGHT),
-        ColorTheme(Fore.LIGHTBLUE_EX, Fore.CYAN + Style.BRIGHT),
-    ]
 
     _DIRECTION_ARROWS: dict[str, str] = {
         "N": "⮝",
@@ -155,17 +139,16 @@ class TerminalRenderer:
         sys.stdout.write(f"\033[{ty};{1}f")
         sys.stdout.flush()
 
-    def _animate_grid(self, tracks, display_input: callable,
-                      speed: int) -> None:
-        def update_menu(current_speed):
-            _, menu_ty = self._get_terminal_coordinates(
-                0, self.maze.height + 1)
-            sys.stdout.write(f"\033[{menu_ty};1f")
-            display_input(current_speed)
-            sys.stdout.flush()
+    def dispaly_shorcuts(self, speed: int) -> None:
+        _, ty = self._get_terminal_coordinates(
+                        0, self.maze.height + 1)
+        sys.stdout.write(f"\033[{ty};{1}f")
+        sys.stdout.write(f"SPEED LEVEL ({speed}): +/- ")
+
+    def _animate_grid(self, tracks, speed: int) -> None:
 
         self._display_grid()
-        update_menu(speed)
+        self.dispaly_shorcuts(speed)
         for x, y, direction in tracks:
             tx, ty = self._get_terminal_coordinates(x, y)
             sys.stdout.write(f"\033[{ty};{tx}f")
@@ -190,20 +173,22 @@ class TerminalRenderer:
                             self._SPEED_LEVELS):
                         self._DEFAULT_SPEED_IDX = 0
                     speed = self._DEFAULT_SPEED_IDX + 1
-                    update_menu(speed)
+                    self.dispaly_shorcuts(speed)
                 if self.input in ("-"):
                     self._DEFAULT_SPEED_IDX -= 1
                     if self._DEFAULT_SPEED_IDX == -1:
                         self._DEFAULT_SPEED_IDX = len(
                                 self._SPEED_LEVELS) - 1
                     speed = self._DEFAULT_SPEED_IDX + 1
-                    update_menu(speed)
+                    self.dispaly_shorcuts(speed)
                 sys.stdout.write(f"\033[{ty};{tx}f")
                 sys.stdout.flush()
 
         _, ty = self._get_terminal_coordinates(0, self.maze.height + 1)
         sys.stdout.write(f"\033[{ty};{1}f")
         sys.stdout.flush()
+
+        return speed
 
     def _animate_solution(self, paths: list[dict[tuple[int, int], list[str]]]):
         for (x, y), directions in paths[0].items():

@@ -51,7 +51,7 @@ class TerminalView:
         speed = self.render._DEFAULT_SPEED_IDX + 1
         try:
             print("\033[?25l", end="")
-            self.render._animate_grid(tracks, self._display_input, speed)
+            speed = self.render._animate_grid(tracks, speed)
             self._display_input(speed)
             while True:
                 self._get_key()
@@ -66,7 +66,7 @@ class TerminalView:
                     self._display_input(speed)
                 if self.input in ("r", "R"):
                     print("\033c", end="")
-                    self.render._animate_grid(tracks, self._display_input, speed)
+                    speed = self.render._animate_grid(tracks, speed)
                     self._display_input(speed)
                 if self.input in ("+"):
                     self.render._DEFAULT_SPEED_IDX += 1
@@ -90,6 +90,7 @@ class TerminalView:
                     else:
                         self.render._erase_solution(paths)
                 elif self.input in ("q", "Q"):
+                    print("\033c", end="")
                     break
 
         finally:
