@@ -7,7 +7,7 @@
 #   - generate(): generate the maze and store it internally
 #   - get_maze(): return the cell grid
 #   - reset(seed): reset and regenerate with a new seed
-# Logic is delegated to Backtracker and Kruskal,
+# Logic is delegated to Backtracker and Kruksal,
 # both of which inherit from Algorithm (abstract base class).
 
 import random
@@ -17,12 +17,12 @@ from model.maze_validator import MazeValidator
 from .algorithm import Algorithm
 
 from .backtracker import Backtracker
-from .kruskal import Kruskal
+from .kruksal import Kruksal
 
 # Mapping algorithm name to class
 ALGO_MAP = {
     "backtracker": Backtracker,
-    "kruskal": Kruskal,
+    "kruksal": Kruksal,
 }
 
 
@@ -48,7 +48,7 @@ class MazeGenerator:
         exit: tuple[int, int] | None = None,
         perfect: bool = True,
         seed: int | None = None,
-        algorithm: str = 'backtracker',
+        algorithm: str = "backtracker",
     ) -> None:
         """Initialize the maze generator with given parameters."""
         self.algorithm = algorithm
@@ -76,7 +76,7 @@ class MazeGenerator:
         validator = MazeValidator(self.maze)
         if not validator.validate():
             # Print detailed errors if available
-            if hasattr(validator, 'errors'):
+            if hasattr(validator, "errors"):
                 print("Validation errors:", validator.errors)
             else:
                 print("Validation failed, no error details available.")

@@ -12,7 +12,7 @@
 ## Fonctionnalités
 
 - Génération par **DFS Recursive Backtracker** (parfait, reproductible via seed)
-- Génération par **Kruskal modifié** (imperfect, avec validation de connectivité)
+- Génération par **Kruksal modifié** (imperfect, avec validation de connectivité)
 - Animation temps réel : les murs se creusent sous vos yeux (curseur ●)
 - Rendu Unicode propre dans le terminal (fenêtre dédiée automatiquement ouverte)
 - Motif **42** visible au centre du labyrinthe (cellules entièrement isolées)
@@ -72,7 +72,7 @@ Le fichier `config.txt` contient des paires `CLE=VALEUR`. Les lignes commençant
 | `OUTPUT_FILE` | ✅ | Fichier de sortie hexadécimal | `OUTPUT_FILE=maze.txt` |
 | `PERFECT` | ✅ | Chemin unique entrée→sortie | `PERFECT=True` |
 | `SEED` | — | Graine pour la reproductibilité | `SEED=42` |
-| `ALGORITHM` | — | Algorithme (`backtracker` ou `kruskal`) | `ALGORITHM=backtracker` |
+| `ALGORITHM` | — | Algorithme (`backtracker` ou `kruksal`) | `ALGORITHM=backtracker` |
 
 Exemple de fichier `config.txt` :
 
@@ -127,7 +127,7 @@ a-maze-ing/
 ├── mazegen/                       # Paquet réutilisable (installable via pip)
 │   ├── algorithm.py               # Classe abstraite Algorithm (ABC)
 │   ├── backtracker.py             # Algorithme DFS Backtracker
-│   ├── kruskal.py                 # Algorithme Kruskal modifié
+│   ├── kruksal.py                 # Algorithme Kruksal modifié
 │   └── maze_generator.py          # Factory + API publique
 │
 ├── model/
@@ -165,7 +165,7 @@ a-maze-ing/
 ```
 Algorithm (ABC)
 ├── Backtracker   — DFS récursif avec stack explicite
-└── Kruskal       — Kruskal randomisé avec Union-Find
+└── Kruksal       — Kruksal randomisé avec Union-Find
 ```
 
 `MazeGenerator` agit comme factory : il instancie la bonne sous-classe selon le paramètre `algorithm`
@@ -178,7 +178,7 @@ et expose une API stable (`generate()`, `get_maze()`, `reset()`).
 - Son implémentation avec une stack explicite est simple, lisible et évite les stack overflows sur les grands labyrinthes.
 - Il produit des labyrinthes avec de longs couloirs sinueux, visuellement intéressants.
 
-**Kruskal modifié** a été ajouté en complément car :
+**Kruksal modifié** a été ajouté en complément car :
 - Il repose sur un Union-Find, une structure de données classique en algorithmique.
 - Il génère des labyrinthes avec un aspect plus uniforme et aléatoire (pas de biais de direction).
 - Son inclusion permet de satisfaire l'exigence de bonus « multiple algorithmes ».
@@ -226,7 +226,7 @@ Les tests couvrent :
 
 - [Théorie des labyrinthes — Wikipedia](https://fr.wikipedia.org/wiki/G%C3%A9n%C3%A9ration_de_labyrinthe)
 - [Recursive Backtracker — jamisbuck.org](https://weblog.jamisbuck.org/2010/12/27/maze-generation-recursive-backtracker)
-- [Kruskal's algorithm — Wikipedia](https://en.wikipedia.org/wiki/Kruskal%27s_algorithm)
+- [Kruksal's algorithm — Wikipedia](https://en.wikipedia.org/wiki/Kruksal%27s_algorithm)
 - [Union-Find / Disjoint Set — Wikipedia](https://en.wikipedia.org/wiki/Disjoint-set_data_structure)
 - [Pydantic v2 Documentation](https://docs.pydantic.dev/latest/)
 - [ANSI escape codes — Wikipedia](https://en.wikipedia.org/wiki/ANSI_escape_code)
@@ -254,7 +254,7 @@ Tout le code généré a été relu, testé et compris avant intégration. Aucun
 | Login | Contributions principales |
 |-------|--------------------------|
 | gacattan | Architecture MVC, modèle `Maze`, `MazeValidator`, `CycleChecker`, algorithme `Backtracker`, vues `TerminalView`, `TerminalRenderer`, animation ANSI, détection multi-terminal, `PathFinder`, tests unitaires |
-| cyakisan | `ConfigFile` (Pydantic), algorithme `Kruskal`, refactoring `Algorithm`, vue `Menu`, `Makefile`, `pyproject.toml`, tests unitaires |
+| cyakisan | `ConfigFile` (Pydantic), algorithme `Kruksal`, refactoring `Algorithm`, vue `Menu`, `Makefile`, `pyproject.toml`, tests unitaires |
 
 ### Planning
 
@@ -275,7 +275,7 @@ Tout le code généré a été relu, testé et compris avant intégration. Aucun
 - L'architecture MVC dès le départ a évité les couplages forts entre les composants.
 - L'usage de Pydantic pour la config a rendu la validation robuste avec peu de code.
 - Les tests unitaires écrits tôt ont permis de détecter rapidement les régressions lors du refactoring.
-- La séparation `Algorithm (ABC)` / sous-classes a rendu l'ajout de Kruskal trivial.
+- La séparation `Algorithm (ABC)` / sous-classes a rendu l'ajout de Kruksal trivial.
 
 **Ce qui pourrait être amélioré :**
 - Mettre en place une CI (GitHub Actions) pour lancer `lint` et `test` automatiquement à chaque push.

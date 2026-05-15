@@ -1,7 +1,7 @@
 from .algorithm import Algorithm
 
 
-class Kruskal(Algorithm):
+class Kruksal(Algorithm):
     REVERSE: dict[str, str] = {"N": "S", "S": "N", "E": "W", "W": "E"}
     # Maximum number of global attempts before giving up
 
@@ -53,7 +53,7 @@ class Kruskal(Algorithm):
 
     def generate(self) -> list[tuple[int, int, str]]:
         """Generates the maze using a randomized version
-        of Kruskal's algorithm."""
+        of Kruksal's algorithm."""
         _eligible_walls = self._get_eligible_walls()
 
         while len(self._union) > 1:

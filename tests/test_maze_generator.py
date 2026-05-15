@@ -15,7 +15,6 @@ from model.maze import Maze
 from model.maze_validator import MazeValidator
 from mazegen.maze_generator import MazeGenerator
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────
 
 
@@ -25,9 +24,10 @@ def gen_backtracker() -> MazeGenerator:
 
 
 @pytest.fixture
-def gen_kruskal() -> MazeGenerator:
-    return MazeGenerator(width=11, height=11, seed=1, perfect=False,
-                         algorithm='kruskal')
+def gen_kruksal() -> MazeGenerator:
+    return MazeGenerator(
+        width=11, height=11, seed=1, perfect=False, algorithm="kruksal"
+    )
 
 
 # ── Initialisation ────────────────────────────────────────────────────
@@ -59,13 +59,15 @@ def test_init_track_and_cells_empty() -> None:
 
 
 def test_generate_backtracker_returns_maze_instance(
-                        gen_backtracker: MazeGenerator) -> None:
+    gen_backtracker: MazeGenerator,
+) -> None:
     gen_backtracker.generate()
     assert isinstance(gen_backtracker.get_maze(), Maze)
 
 
 def test_generate_backtracker_dimensions(
-        gen_backtracker: MazeGenerator) -> None:
+    gen_backtracker: MazeGenerator,
+) -> None:
     gen_backtracker.generate()
     maze = gen_backtracker.get_maze()
     assert maze.width == 11
@@ -75,56 +77,61 @@ def test_generate_backtracker_dimensions(
 
 
 def test_generate_backtracker_track_nonempty(
-        gen_backtracker: MazeGenerator) -> None:
+    gen_backtracker: MazeGenerator,
+) -> None:
     gen_backtracker.generate()
     assert len(gen_backtracker.tracks) > 0
 
 
 def test_generate_backtracker_maze_is_valid(
-        gen_backtracker: MazeGenerator) -> None:
+    gen_backtracker: MazeGenerator,
+) -> None:
     gen_backtracker.generate()
     validator = MazeValidator(gen_backtracker.get_maze())
     assert validator.validate() is True
 
 
 def test_generate_backtracker_forty_two_cells_populated(
-        gen_backtracker: MazeGenerator) -> None:
+    gen_backtracker: MazeGenerator,
+) -> None:
     """For an 11x11 maze (>= min 11x9), the pattern must be placed."""
     gen_backtracker.generate()
     assert len(gen_backtracker.forty_two_cells) > 0
 
 
-# ── generate() — kruskal ──────────────────────────────────────────────
+# ── generate() — kruksal ──────────────────────────────────────────────
 
 
-def test_generate_kruskal_returns_maze_instance(
-        gen_kruskal: MazeGenerator) -> None:
-    gen_kruskal.generate()
-    assert isinstance(gen_kruskal.get_maze(), Maze)
+def test_generate_kruksal_returns_maze_instance(
+    gen_kruksal: MazeGenerator,
+) -> None:
+    gen_kruksal.generate()
+    assert isinstance(gen_kruksal.get_maze(), Maze)
 
 
-def test_generate_kruskal_dimensions(gen_kruskal: MazeGenerator) -> None:
-    gen_kruskal.generate()
-    maze = gen_kruskal.get_maze()
+def test_generate_kruksal_dimensions(gen_kruksal: MazeGenerator) -> None:
+    gen_kruksal.generate()
+    maze = gen_kruksal.get_maze()
     assert maze.width == 11
     assert maze.height == 11
 
 
-def test_generate_kruskal_track_nonempty(gen_kruskal: MazeGenerator) -> None:
-    gen_kruskal.generate()
-    assert len(gen_kruskal.tracks) > 0
+def test_generate_kruksal_track_nonempty(gen_kruksal: MazeGenerator) -> None:
+    gen_kruksal.generate()
+    assert len(gen_kruksal.tracks) > 0
 
 
-def test_generate_kruskal_maze_is_valid(gen_kruskal: MazeGenerator) -> None:
-    gen_kruskal.generate()
-    validator = MazeValidator(gen_kruskal.get_maze())
+def test_generate_kruksal_maze_is_valid(gen_kruksal: MazeGenerator) -> None:
+    gen_kruksal.generate()
+    validator = MazeValidator(gen_kruksal.get_maze())
     assert validator.validate() is True
 
 
-def test_generate_kruskal_forty_two_cells_populated(
-        gen_kruskal: MazeGenerator) -> None:
-    gen_kruskal.generate()
-    assert len(gen_kruskal.forty_two_cells) > 0
+def test_generate_kruksal_forty_two_cells_populated(
+    gen_kruksal: MazeGenerator,
+) -> None:
+    gen_kruksal.generate()
+    assert len(gen_kruksal.forty_two_cells) > 0
 
 
 # ── Determinism (seed) ───────────────────────────────────────────────────
@@ -140,7 +147,7 @@ def test_same_seed_same_maze_backtracker() -> None:
     assert gen_a.get_maze().grid == gen_b.get_maze().grid
 
 
-def test_same_seed_same_maze_kruskal() -> None:
+def test_same_seed_same_maze_kruksal() -> None:
     gen_a = MazeGenerator(width=11, height=11, seed=7, perfect=False)
     gen_b = MazeGenerator(width=11, height=11, seed=7, perfect=False)
     gen_a.generate()
@@ -169,7 +176,7 @@ def test_perfect_true_generates_valid_maze() -> None:
 
 
 def test_perfect_false_generates_valid_maze() -> None:
-    """perfect=False uses Kruskal and generates a valid maze."""
+    """perfect=False uses Kruksal and generates a valid maze."""
     gen = MazeGenerator(width=11, height=11, seed=1, perfect=False)
     gen.generate()
     assert isinstance(gen.get_maze(), Maze)
@@ -182,22 +189,24 @@ def test_perfect_false_generates_valid_maze() -> None:
 
 def test_unknown_algorithm_raises() -> None:
     """An unknown algorithm name raises ValueError at generate()."""
-    gen = MazeGenerator(width=5, height=5, perfect=True,
-                        algorithm='unknown_algo')
+    gen = MazeGenerator(
+        width=5, height=5, perfect=True, algorithm="unknown_algo"
+    )
     with pytest.raises(ValueError):
         gen.generate()
 
 
 # ── Petits labyrinthes (sans motif 42) ────────────────────────────────
 
+
 def test_small_maze_no_forty_two_cells() -> None:
     """Tout labyrinthe < 11 cols ou < 9 lignes ne doit pas contenir le motif."""
     for w, h in [(4, 4), (7, 7), (8, 8), (10, 10), (11, 8)]:
         gen = MazeGenerator(width=w, height=h, seed=1, perfect=True)
         gen.generate()
-        assert gen.forty_two_cells == set(), (
-            f"{w}x{h} ne devrait pas avoir de cellules 42"
-        )
+        assert (
+            gen.forty_two_cells == set()
+        ), f"{w}x{h} ne devrait pas avoir de cellules 42"
 
 
 def test_maze_with_forty_two_cells_at_minimum_size() -> None:
@@ -250,30 +259,34 @@ def test_reset_preserves_42_cells_in_maze() -> None:
     assert cells_before == cells_after
 
 
-# ── Algorithme Kruskal explicite ──────────────────────────────────────
+# ── Algorithme Kruksal explicite ──────────────────────────────────────
 
 
-def test_kruskal_explicit_generates_valid_maze() -> None:
-    """algorithm='kruskal' + perfect=True generates a valid maze."""
-    gen = MazeGenerator(width=11, height=11, seed=3, perfect=True,
-                        algorithm='kruskal')
+def test_kruksal_explicit_generates_valid_maze() -> None:
+    """algorithm='kruksal' + perfect=True generates a valid maze."""
+    gen = MazeGenerator(
+        width=11, height=11, seed=3, perfect=True, algorithm="kruksal"
+    )
     gen.generate()
     assert MazeValidator(gen.get_maze()).validate() is True
 
 
-def test_kruskal_imperfect_generates_valid_maze() -> None:
-    """algorithm='kruskal' + perfect=False (second_loop) reste valide."""
-    gen = MazeGenerator(width=11, height=11, seed=3, perfect=False,
-                        algorithm='kruskal')
+def test_kruksal_imperfect_generates_valid_maze() -> None:
+    """algorithm='kruksal' + perfect=False (second_loop) reste valide."""
+    gen = MazeGenerator(
+        width=11, height=11, seed=3, perfect=False, algorithm="kruksal"
+    )
     gen.generate()
     assert MazeValidator(gen.get_maze()).validate() is True
 
 
-def test_kruskal_imperfect_has_cycle() -> None:
-    """Un labyrinthe Kruskal imparfait contient au moins un cycle."""
+def test_kruksal_imperfect_has_cycle() -> None:
+    """Un labyrinthe Kruksal imparfait contient au moins un cycle."""
     from model.cycle_checker import CycleChecker
-    gen = MazeGenerator(width=11, height=11, seed=3, perfect=False,
-                        algorithm='kruskal')
+
+    gen = MazeGenerator(
+        width=11, height=11, seed=3, perfect=False, algorithm="kruksal"
+    )
     gen.generate()
     assert CycleChecker(gen.get_maze()).has_cycle() is True
 
@@ -283,8 +296,9 @@ def test_kruskal_imperfect_has_cycle() -> None:
 
 def test_backtracker_imperfect_generates_valid_maze() -> None:
     """Backtracker + perfect=False triggers second_loop without error."""
-    gen = MazeGenerator(width=11, height=11, seed=5, perfect=False,
-                        algorithm='backtracker')
+    gen = MazeGenerator(
+        width=11, height=11, seed=5, perfect=False, algorithm="backtracker"
+    )
     gen.generate()
     assert MazeValidator(gen.get_maze()).validate() is True
 
@@ -292,7 +306,9 @@ def test_backtracker_imperfect_generates_valid_maze() -> None:
 def test_backtracker_imperfect_has_cycle() -> None:
     """Un labyrinthe Backtracker imparfait contient au moins un cycle."""
     from model.cycle_checker import CycleChecker
-    gen = MazeGenerator(width=11, height=11, seed=5, perfect=False,
-                        algorithm='backtracker')
+
+    gen = MazeGenerator(
+        width=11, height=11, seed=5, perfect=False, algorithm="backtracker"
+    )
     gen.generate()
     assert CycleChecker(gen.get_maze()).has_cycle() is True

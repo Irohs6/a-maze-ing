@@ -25,7 +25,7 @@ class Menu:
         "OUTPUT_FILE",
         "PERFECT",
         "SEED",
-        "ALGORITHM"
+        "ALGORITHM",
     ]
 
     def __init__(self, controller: MazeController):
@@ -90,22 +90,25 @@ class Menu:
         if self._controller._generator is None:
             raise RuntimeError("Generator not initialized")
         options = [
-                f"Width (current: {self._controller._config.WIDTH})",
-                f"Height (current: {self._controller._config.HEIGHT})",
-                f"Entry (current: {self._controller._config.ENTRY})",
-                f"Exit (current: {self._controller._config.EXIT})",
-                "Output File (current: "
-                f"{self._controller._config.OUTPUT_FILE})",
-                f"Perfect (current: {self._controller._config.PERFECT})",
-                f"Seed (current: {self._controller._generator.seed})",
-                f"Algorithm (current: {self._controller._config.ALGORITHM})",
-                "Go  Back"
+            f"Width (current: {self._controller._config.WIDTH})",
+            f"Height (current: {self._controller._config.HEIGHT})",
+            f"Entry (current: {self._controller._config.ENTRY})",
+            f"Exit (current: {self._controller._config.EXIT})",
+            "Output File (current: "
+            f"{self._controller._config.OUTPUT_FILE})",
+            f"Perfect (current: {self._controller._config.PERFECT})",
+            f"Seed (current: {self._controller._generator.seed})",
+            f"Algorithm (current: {self._controller._config.ALGORITHM})",
+            "Go  Back",
         ]
         max_len = len(max(options, key=lambda option: len(option)))
         max_len += 10 if max_len % 2 == 0 else 11
         print("╭" + "─" * max_len + "╮")
-        print("│" +
-              f"{Fore.RED}Settings{Style.RESET_ALL}".center(max_len + 9) + "│")
+        print(
+            "│"
+            + f"{Fore.RED}Settings{Style.RESET_ALL}".center(max_len + 9)
+            + "│"
+        )
         print("├" + "─" * max_len + "┤")
         for i, option in enumerate(options):
             center = max_len
@@ -183,9 +186,11 @@ class Menu:
             elif self.index == 7:
                 self._ask_for_value(f"Choose {field}")
                 algo = click.prompt(
-                    " ", prompt_suffix="",
-                    type=click.Choice(["kruskal", "backtracker"],
-                                      case_sensitive=False)
+                    " ",
+                    prompt_suffix="",
+                    type=click.Choice(
+                        ["kruksal", "backtracker"], case_sensitive=False
+                    ),
                 )
                 setattr(self._controller._config, field, algo)
         except ValidationError as error:
@@ -244,7 +249,7 @@ class Menu:
             str(self._controller._config.ENTRY).strip("()"),
             str(self._controller._config.EXIT).strip("()"),
         )
-        output += f"Seed: {self._controller._generator.seed}" + '\n'
+        output += f"Seed: {self._controller._generator.seed}" + "\n"
         output += f"Entry: {entry}" + "\n"
         output += f"Exit: {exit}" + "\n"
         output += "Solution: "
@@ -252,16 +257,18 @@ class Menu:
             output += directions[-1]
         output = output[:-1]
         output += "\n"
-        output += f"Perfect: {is_perfect}" + '\n'
+        output += f"Perfect: {is_perfect}" + "\n"
         print("Maze Output:")
         print(output, end="")
         try:
             with open(self._controller._config.OUTPUT_FILE, "w") as file:
                 file.write(output)
         except PermissionError:
-            print(Fore.RED +
-                  "Error: You don't have the permission to write in the "
-                  "output file" + Style.RESET_ALL)
+            print(
+                Fore.RED
+                + "Error: You don't have the permission to write in the "
+                "output file" + Style.RESET_ALL
+            )
         self._press_enter_continue()
         self._controller._generator.reset(seed=time.time_ns())
         print("\033c", end="")

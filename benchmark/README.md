@@ -1,13 +1,13 @@
-# Benchmark — Kruskal (A-Maze-ing)
+# Benchmark — Kruksal (A-Maze-ing)
 
-Dossier contenant les outils pour mesurer les performances de l'algorithme **Kruskal** implémenté dans `mazegen/kruksal.py`.
+Dossier contenant les outils pour mesurer les performances de l'algorithme **Kruksal** implémenté dans `mazegen/kruksal.py`.
 
 ## Structure
 
 ```
 benchmark/
 ├── run_benchmark.py          ← script principal
-├── fiche_technique_kruskal.md ← fiche technique avec résultats du benchmark
+├── fiche_technique_kruksal.md ← fiche technique avec résultats du benchmark
 ├── README.md                 ← ce fichier
 └── results/                  ← résultats générés automatiquement
     ├── benchmark_YYYYMMDD_HHMMSS.csv
@@ -92,4 +92,4 @@ Chaque exécution crée deux fichiers dans `benchmark/results/` :
 > ⚠️ Au-delà de **71×71**, les temps et la variance deviennent imprévisibles.
 > Au-delà de **101×101**, des `ValueError` peuvent survenir (divergence).
 
-Voir [fiche_technique_kruskal.md](fiche_technique_kruskal.md) pour l'analyse complète.
+Voir [fiche_technique_kruksal.md](fiche_technique_kruksal.md) pour l'analyse complète.

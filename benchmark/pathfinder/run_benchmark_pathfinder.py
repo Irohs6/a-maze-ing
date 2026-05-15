@@ -375,7 +375,7 @@ def main() -> None:
     parser.add_argument(
         "--imperfect-only",
         action="store_true",
-        help="Test only imperfect mazes (Kruskal)",
+        help="Test only imperfect mazes (Kruksal)",
     )
     args = parser.parse_args()
 

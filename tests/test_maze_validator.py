@@ -14,7 +14,6 @@ from model.maze import Maze
 from model.maze_validator import MazeValidator
 from mazegen.maze_generator import MazeGenerator
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────
 
 
@@ -45,7 +44,7 @@ def test_validate_perfect_maze_5x5(valid_5x5: Maze) -> None:
     assert MazeValidator(valid_5x5).validate() is True
 
 
-def test_validate_kruskal_maze_is_valid() -> None:
+def test_validate_kruksal_maze_is_valid() -> None:
     gen = MazeGenerator(width=11, height=11, seed=3, perfect=False)
     gen.generate()
     assert MazeValidator(gen.get_maze()).validate() is True

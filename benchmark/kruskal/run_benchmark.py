@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-benchmark/run_benchmark.py — Full benchmark of the Kruskal algorithm
+benchmark/run_benchmark.py — Full benchmark of the Kruksal algorithm
 (A-Maze-ing).
 
 Measurement for each maze size:
@@ -34,7 +34,7 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from mazegen.kruskal import Kruskal  # noqa: E402
+from mazegen.kruksal import Kruksal  # noqa: E402
 from model.maze import Maze  # noqa: E402
 from model.maze_validator import MazeValidator  # noqa: E402
 
@@ -43,7 +43,7 @@ from model.maze_validator import MazeValidator  # noqa: E402
 # =============================================================================
 
 # Tested maze sizes (width, height)
-# Kruskal is very slow on mazes > 101×101
+# Kruksal is very slow on mazes > 101×101
 DEFAULT_SIZES = [
     (5, 5),
     (7, 7),
@@ -66,12 +66,12 @@ TIMEOUT_SECONDS = 5.0  # abort if generation > N seconds
 
 
 # =============================================================================
-# Instrumented Kruskal (counts _second_loop iterations)
+# Instrumented Kruksal (counts _second_loop iterations)
 # =============================================================================
 
 
-class InstrumentedKruskal(Kruskal):
-    """Kruskal with instrumentation counters."""
+class InstrumentedKruksal(Kruksal):
+    """Kruksal with instrumentation counters."""
 
     def __init__(self, maze: Maze, is_perfect: bool = False) -> None:
         super().__init__(maze, is_perfect=is_perfect)
@@ -100,7 +100,7 @@ def bench_one(
     benchmark a single configuration (w × h, seed)
     """
     maze = Maze(width, height, entry=(0, 0), exit=(width - 1, height - 1))
-    algo = InstrumentedKruskal(maze)
+    algo = InstrumentedKruksal(maze)
 
     t_start = time.perf_counter()
     success = False
@@ -258,7 +258,7 @@ def export_markdown(
     total_elapsed: float,
 ) -> None:
     lines = [
-        "# Benchmark Kruskal — A-Maze-ing",
+        "# Benchmark Kruksal — A-Maze-ing",
         "",
         f"> Generated on {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}  ",
         f"> Seeds per size: **{n_seeds}** | Max size: **{
@@ -338,7 +338,7 @@ def export_markdown(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Benchmark of the Kruskal algorithm (A-Maze-ing)"
+        description="Benchmark of the Kruksal algorithm (A-Maze-ing)"
     )
     parser.add_argument(
         "--seeds",
@@ -372,7 +372,7 @@ def main() -> None:
     seeds = list(range(1, n_seeds + 1))
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    results_dir = Path(__file__).parent / "results" / f"kruskal_{timestamp}"
+    results_dir = Path(__file__).parent / "results" / f"kruksal_{timestamp}"
     results_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"\n{'='*72}")

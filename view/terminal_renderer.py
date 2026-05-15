@@ -96,7 +96,12 @@ class TerminalRenderer:
             else:
                 if forty_two:
                     sys.stdout.write(self._EMOJI_LIST[1][self._EMOJI_INDEX])
-                    sys.stdout.write("  ")
+                    if x == self.entry[0] and y == self.entry[1]:
+                        sys.stdout.write(self._EMOJI_ENTRY)
+                    elif x == self.exit_pos[0] and y == self.exit_pos[1]:
+                        sys.stdout.write(self._EMOJI_EXIT)
+                    else:
+                        sys.stdout.write("  ")
                     forty_two = False
                 else:
                     sys.stdout.write(self._EMOJI_LIST[0][self._EMOJI_INDEX])

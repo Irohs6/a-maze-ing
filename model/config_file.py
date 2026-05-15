@@ -33,8 +33,9 @@ class ConfigFile(BaseModel):
     PERFECT: bool
     SEED: int | None = None
 
-    ALGORITHM: str = Field(default="backtracker",
-                           pattern="^(?i)(backtracker|kruskal)$")
+    ALGORITHM: str = Field(
+        default="backtracker", pattern="^(?i)(backtracker|kruksal)$"
+    )
 
     @field_validator("ALGORITHM")
     @classmethod
@@ -135,7 +136,8 @@ class ConfigFile(BaseModel):
                 config[key] = int(config[key])
             except ValueError:
                 error_list.append(
-                    f"{key} must be an integer, got '{config[key]}'")
+                    f"{key} must be an integer, got '{config[key]}'"
+                )
 
         for key in ["ENTRY", "EXIT"]:
             try:
@@ -163,8 +165,8 @@ class ConfigFile(BaseModel):
                         config[key] = False
                     else:
                         config[key] = config[key].strip().lower() == "true"
-        except ValueError as error:
-            raise ValueError(error)
+        except ValueError:
+            raise ValueError(f"{key} must be an integer, got '{config[key]}'")
 
     @model_validator(mode="after")
     def _parse_output(self) -> "ConfigFile":
