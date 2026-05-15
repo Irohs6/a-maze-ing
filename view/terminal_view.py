@@ -44,8 +44,11 @@ class TerminalView:
 
     def _display_input(self, speed, is_perfect):
         is_perfect_message = Fore.GREEN + "Perfect Maze !" + Style.RESET_ALL if is_perfect else Fore.RED + "Imperfect Maze !" + Style.RESET_ALL
-        print(f"\r{is_perfect_message}\nCOLOR: C   SHOW/HIDE SOLUTION: S   "
-              f"REPLAY: R   SPEED LEVEL ({speed}): +/-   QUIT: Q", end="")
+        sys.stdout.write(f"\r{is_perfect_message}\n")
+        sys.stdout.write(f"COLOR: C   SHOW/HIDE SOLUTION: S   "
+                         f"REPLAY: R   SPEED LEVEL ({speed}): +/-   QUIT: Q")
+        sys.stdout.write("\033[A")
+        sys.stdout.flush()
 
     def draw_grid(self, tracks, paths, is_perfect) -> None:
         solution_visible = False
