@@ -49,7 +49,7 @@ check_untyped_defs = true
 
 # ── flake8 (via flake8-pyproject) ───────────────────────
 [tool.flake8]
-max-line-length = 80
+max-line-length = 79
 exclude = [".venv", "__pycache__", ".mypy_cache", "build", "dist"]
 
 [project]

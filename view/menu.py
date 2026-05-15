@@ -243,6 +243,17 @@ class Menu:
         tracks = self._controller._generator.tracks
         paths = self._controller._finder.find()
         is_perfect = not self._controller._cycle_checker.has_cycle()
+        if is_perfect != self._controller._config.PERFECT:
+            print(
+                Fore.RED
+                + f"{'Imperfect' if not self._controller._config.PERFECT else 'Perfect'} could not be generated..."
+                + Style.RESET_ALL
+            )
+            print(f"Cursed Seed: {self._controller._generator.seed}")
+            self._press_enter_continue()
+            self._controller._generator.reset(seed=time.time_ns())
+            print("\033c", end="")
+            pass
         self._controller._view.draw_grid(tracks, paths, is_perfect)
         output = self._controller._generator.maze.encode_hex() + "\n"
         entry, exit = (
