@@ -10,6 +10,7 @@
 import sys
 from colorama import Fore, Style
 from controller.maze_controller import MazeController
+from pydantic import ValidationError
 
 
 def main() -> None:
@@ -23,6 +24,10 @@ def main() -> None:
     except FileNotFoundError as error:
         print(error)
         sys.exit(3)
+    except ValidationError as errors:
+        for error in errors.errors():
+            print(f" - {error['loc'][0]}: {error['msg']}")
+        sys.exit(5)
     except (ValueError, KeyError) as error:
         print(f"Error: {error}")
         sys.exit(4)

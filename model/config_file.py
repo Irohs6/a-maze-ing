@@ -129,14 +129,25 @@ class ConfigFile(BaseModel):
     @staticmethod
     def _parse_types(config: dict[str, Any]) -> None:
         """Convert string values to their proper Python types."""
-        try:
-            for key in ["WIDTH", "HEIGHT"]:
+        error_list = []
+        for key in ["WIDTH", "HEIGHT"]:
+            try:
                 config[key] = int(config[key])
-            for key in ["ENTRY", "EXIT"]:
+            except ValueError:
+                error_list.append(
+                    f"{key} must be an integer, got '{config[key]}'")
+
+        for key in ["ENTRY", "EXIT"]:
+            try:
                 config[key] = tuple(int(v) for v in config[key].split(","))
-            config["PERFECT"] = config["PERFECT"].strip().lower() == "true"
-        except ValueError as error:
-            raise ValueError(error)
+            except ValueError:
+                error_list.append(
+                    f"{key} must be in the format 'x,y' with integer values, "
+                    f"got '{config[key]}'"
+                )
+        config["PERFECT"] = config["PERFECT"].strip().lower() == "true"
+        if error_list:
+            raise ValueError("; ".join(error_list))
 
     @staticmethod
     def _parse_optionals(config: dict[str, Any]) -> None:
