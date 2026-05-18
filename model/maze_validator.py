@@ -237,8 +237,8 @@ class MazeValidator:
         maze = self._maze
         # Horizontal passages (East direction) between adjacent columns
         # representation visuel de la zone 3x3 interdite :
-        #   x0,y0 E x1,y0 E x2,y0
         #     0   |   1   |   2
+        #   x0,y0 E x1,y0 E x2,y0|
         #   x0,y1 | x1,y1 | x2,y1
         #   x0,y2 | x1,y2 | x2,y2
         for y in range(start_y, start_y + 3):

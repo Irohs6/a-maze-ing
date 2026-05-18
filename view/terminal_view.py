@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 import tty
 import termios
+
 if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parents[1]))
 from colorama import Fore, Style
@@ -23,7 +24,7 @@ class TerminalView:
         maze: Maze,
         entry: tuple[int, int] = (0, 0),
         exit: tuple[int, int] = (0, 0),
-        forty_two_cells: set[tuple[int, int]] | None = None
+        forty_two_cells: set[tuple[int, int]] | None = None,
     ) -> None:
         self.maze = maze
         self.entry = entry
@@ -42,15 +43,33 @@ class TerminalView:
         finally:
             termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old)
 
-    def _display_input(self, speed, is_perfect):
-        is_perfect_message = Fore.GREEN + "Perfect Maze !" + Style.RESET_ALL if is_perfect else Fore.RED + "Imperfect Maze !" + Style.RESET_ALL
-        sys.stdout.write(f"\r{is_perfect_message}\n")
-        sys.stdout.write(f"COLOR: C   SHOW/HIDE SOLUTION: S   "
-                         f"REPLAY: R   SPEED LEVEL ({speed}): +/-   QUIT: Q")
+    def _display_input(self, speed: int, is_perfect: bool) -> None:
+        is_perfect_message = (
+            Fore.GREEN + "Perfect Maze !" + Style.RESET_ALL
+            if is_perfect
+            else Fore.RED + "Imperfect Maze !" + Style.RESET_ALL
+        )
+        is_forty_two_message = (
+            Fore.YELLOW
+            + " (Couldn't place 42 pattern because maze is too small) "
+            + Style.RESET_ALL
+            if self.forty_two == set()
+            else ""
+        )
+        sys.stdout.write(f"\r{is_perfect_message}{is_forty_two_message}\n")
+        sys.stdout.write(
+            f"COLOR: C   SHOW/HIDE SOLUTION: S   "
+            f"REPLAY: R   SPEED LEVEL ({speed}): +/-   QUIT: Q"
+        )
         sys.stdout.write("\033[A")
         sys.stdout.flush()
 
-    def draw_grid(self, tracks, paths, is_perfect) -> None:
+    def draw_grid(
+        self,
+        tracks: list[tuple[int, int, str]],
+        paths: list[tuple[int, int, str]],
+        is_perfect: bool,
+    ) -> None:
         solution_visible = False
         speed = self.render._DEFAULT_SPEED_IDX + 1
         try:
@@ -64,7 +83,8 @@ class TerminalView:
                     print("\033c", end="")
                     self.render._EMOJI_INDEX += 1
                     if self.render._EMOJI_INDEX == len(
-                            self.render._EMOJI_LIST[0]):
+                        self.render._EMOJI_LIST[0]
+                    ):
                         self.render._EMOJI_INDEX = 0
                     self.render._final_grid()
                     self._display_input(speed, is_perfect)
@@ -75,15 +95,17 @@ class TerminalView:
                 if self.input in ("+"):
                     self.render._DEFAULT_SPEED_IDX += 1
                     if self.render._DEFAULT_SPEED_IDX == len(
-                            self.render._SPEED_LEVELS):
+                        self.render._SPEED_LEVELS
+                    ):
                         self.render._DEFAULT_SPEED_IDX = 0
                     speed = self.render._DEFAULT_SPEED_IDX + 1
                     self._display_input(speed, is_perfect)
                 if self.input in ("-"):
                     self.render._DEFAULT_SPEED_IDX -= 1
                     if self.render._DEFAULT_SPEED_IDX == -1:
-                        self.render._DEFAULT_SPEED_IDX = len(
-                                self.render._SPEED_LEVELS) - 1
+                        self.render._DEFAULT_SPEED_IDX = (
+                            len(self.render._SPEED_LEVELS) - 1
+                        )
                     speed = self.render._DEFAULT_SPEED_IDX + 1
                     self._display_input(speed, is_perfect)
                 if self.input in ("s", "S"):

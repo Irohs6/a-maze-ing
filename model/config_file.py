@@ -25,8 +25,8 @@ class ConfigFile(BaseModel):
     ]
     OPTIONAL_KEYS: ClassVar[list[str]] = ["SEED"]
 
-    WIDTH: int = Field(ge=4)
-    HEIGHT: int = Field(ge=4)
+    WIDTH: int = Field(ge=4, le=100)
+    HEIGHT: int = Field(ge=4, le=100)
     ENTRY: tuple[NonNegativeInt, NonNegativeInt]
     EXIT: tuple[NonNegativeInt, NonNegativeInt]
     OUTPUT_FILE: str
@@ -76,6 +76,10 @@ class ConfigFile(BaseModel):
         """
         raw: dict[str, Any] = {}
         cls._read_file(config_file_path, raw)
+        if not raw:
+            raise ValueError(
+                f"Configuration file '{config_file_path}' is empty."
+            )
         cls._validate_required_keys(raw)
         cls._parse_types(raw)
         cls._parse_optionals(raw)
@@ -88,6 +92,10 @@ class ConfigFile(BaseModel):
     @staticmethod
     def _read_file(config_file_path: str, config: dict[str, Any]) -> None:
         """Read KEY=VALUE pairs from the file into *config*."""
+        if not guess_type(config_file_path)[0] == "text/plain":
+            raise ValueError(
+                f"Configuration file '{config_file_path}' is not a text file."
+            )
         try:
             with open(config_file_path, "r") as file:
                 for line in file:
@@ -154,7 +162,7 @@ class ConfigFile(BaseModel):
                 )
         config["PERFECT"] = config["PERFECT"].strip().lower() == "true"
         if error_list:
-            raise ValueError("; ".join(error_list))
+            raise ValueError(";\n ".join(error_list))
 
     @staticmethod
     def _parse_optionals(config: dict[str, Any]) -> None:

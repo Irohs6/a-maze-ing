@@ -167,7 +167,7 @@ def test_exit_out_of_bounds(tmp_path: Path) -> None:
 
 
 def test_exit_x_equals_width_rejected(tmp_path: Path) -> None:
-    """x=WIDTH est hors limites (indices valides : 0..WIDTH-1)."""
+    """x=WIDTH is out of bounds (valid indices: 0..WIDTH-1)."""
     content = VALID.replace("EXIT=9,4", "EXIT=10,4")
     with pytest.raises(Exception):
         ConfigFile.parse(make_config(tmp_path, content))

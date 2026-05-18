@@ -21,21 +21,21 @@ def main() -> None:
     try:
         controller = MazeController(sys.argv[1])
         controller.run()
-    except FileNotFoundError as error:
-        print(error)
+    except FileNotFoundError as file_error:
+        print(f"Error: {file_error}")
         sys.exit(1)
-    except PermissionError as error:
-        print(f"Error: {error}")
+    except PermissionError as perm_error:
+        print(f"Error: {perm_error}")
         sys.exit(2)
-    except OSError as error:
-        print(f"Error: {error}")
+    except OSError as os_error:
+        print(f"Error: {os_error}")
         sys.exit(3)
-    except ValidationError as errors:
-        for error in errors.errors():
+    except ValidationError as validation_error:
+        for error in validation_error.errors():
             print(f" - {error['loc'][0]}: {error['msg']}")
         sys.exit(4)
-    except (ValueError, KeyError) as error:
-        print(f"Error: {error}")
+    except (ValueError, KeyError) as key_error:
+        print(f"Error: {key_error}")
         sys.exit(5)
     except KeyboardInterrupt:
         print("\033c")

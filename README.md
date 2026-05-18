@@ -157,11 +157,6 @@ a-maze-ing/
 │   ├── test_maze_validator.py
 │   └── test_path_finder.py
 │
-├── benchmark/                     # Benchmarks de performance par algorithme
-│   ├── backtracker/
-│   ├── kruskal/
-│   └── pathfinder/
-│
 ├── config.txt                     # Configuration par défaut
 ├── Makefile
 ├── pyproject.toml

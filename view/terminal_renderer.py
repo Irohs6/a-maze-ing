@@ -1,5 +1,3 @@
-from importlib.metadata import entry_points
-from re import I
 import time
 import sys
 from model.maze import Maze
@@ -50,7 +48,8 @@ class TerminalRenderer:
     _EMOJI_ENTRY = "🏃"
     _EMOJI_EXIT = "🏆"
 
-    def __init__(self, maze: Maze, entry, exit_pos):
+    def __init__(self, maze: Maze, entry: tuple[int, int],
+                 exit_pos: tuple[int, int]) -> None:
         self.maze = maze
         self.entry = entry
         self.exit_pos = exit_pos
@@ -70,7 +69,7 @@ class TerminalRenderer:
         except (OSError, ValueError):
             self.input = None
 
-    def _print_full(self, y):
+    def _print_full(self, y: int) -> None:
         forty_two = False
         for x in range(self.maze.width):
             if (x, y) in self.maze.forty_two_cells or (
@@ -87,7 +86,7 @@ class TerminalRenderer:
                     sys.stdout.write(self._EMOJI_LIST[0][self._EMOJI_INDEX])
         sys.stdout.write(f"{self._EMOJI_LIST[0][self._EMOJI_INDEX]}\n")
 
-    def _print_middle(self, y):
+    def _print_middle(self, y: int) -> None:
         forty_two = False
         for x in range(self.maze.width):
             if (x, y) in self.maze.forty_two_cells:
@@ -113,7 +112,7 @@ class TerminalRenderer:
                         sys.stdout.write("  ")
         sys.stdout.write(f"{self._EMOJI_LIST[0][self._EMOJI_INDEX]}\n")
 
-    def _print_cells_lign(self, y):
+    def _print_cells_lign(self, y: int) -> None:
         self._print_full(y)
         self._print_middle(y)
 
@@ -149,16 +148,17 @@ class TerminalRenderer:
         sys.stdout.write(f"\033[{ty};{1}f")
         sys.stdout.flush()
 
-    def dispaly_shorcuts(self, speed: int) -> None:
+    def display_shortcuts(self, speed: int) -> None:
         _, ty = self._get_terminal_coordinates(
                         0, self.maze.height + 1)
         sys.stdout.write(f"\033[{ty + 1};{1}f")
         sys.stdout.write(f"SPEED LEVEL ({speed}): +/- ")
 
-    def _animate_grid(self, tracks, speed: int) -> None:
+    def _animate_grid(self, tracks: list[tuple[int, int, str]], speed: int
+                      ) -> int:
 
         self._display_grid()
-        self.dispaly_shorcuts(speed)
+        self.display_shortcuts(speed)
         try:
             tty.setraw(self.fd)
             for x, y, direction in tracks:
@@ -186,14 +186,14 @@ class TerminalRenderer:
                                 self._SPEED_LEVELS):
                             self._DEFAULT_SPEED_IDX = 0
                         speed = self._DEFAULT_SPEED_IDX + 1
-                        self.dispaly_shorcuts(speed)
+                        self.display_shortcuts(speed)
                     if self.input in ("-"):
                         self._DEFAULT_SPEED_IDX -= 1
                         if self._DEFAULT_SPEED_IDX == -1:
                             self._DEFAULT_SPEED_IDX = len(
                                     self._SPEED_LEVELS) - 1
                         speed = self._DEFAULT_SPEED_IDX + 1
-                        self.dispaly_shorcuts(speed)
+                        self.display_shortcuts(speed)
                     sys.stdout.write(f"\033[{ty};{tx}f")
                     sys.stdout.flush()
 
@@ -202,27 +202,28 @@ class TerminalRenderer:
             sys.stdout.flush()
         finally:
             termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old)
-
         return speed
 
-    def _animate_solution(self, paths: list[dict[tuple[int, int], list[str]]]):
-        for (x, y), directions in paths[0].items():
-            if x == self.entry[0] and y == self.entry[1] or x == self.exit_pos[0] and y == self.exit_pos[1]:
+    def _animate_solution(self, paths: list[tuple[int, int, str]]) -> None:
+        for (x, y, directions) in paths:
+            if (x == self.entry[0] and y == self.entry[1] or x ==
+                    self.exit_pos[0] and y == self.exit_pos[1]):
                 continue
             else:
                 tx, ty = self._get_terminal_coordinates(x, y)
                 sys.stdout.write(f"\033[{ty};{tx}f")
-                sys.stdout.write(self._DIRECTION_ARROWS[directions[-1]])
+                sys.stdout.write(self._DIRECTION_ARROWS[directions])
                 sys.stdout.flush()
                 time.sleep(0.05)
         _, ty = self._get_terminal_coordinates(0, self.maze.height + 1)
         sys.stdout.write(f"\033[{ty};{1}f")
         sys.stdout.flush()
 
-    def _erase_solution(self, paths: list[dict[tuple[int, int], list[str]]]):
-        reversed = [key for key in paths[0].keys()][::-1]
+    def _erase_solution(self, paths: list[tuple[int, int, str]]) -> None:
+        reversed = [(x, y) for x, y, _ in paths[::-1]]
         for x, y in reversed:
-            if x == self.entry[0] and y == self.entry[1] or x == self.exit_pos[0] and y == self.exit_pos[1]:
+            if (x == self.entry[0] and y == self.entry[1] or x ==
+                    self.exit_pos[0] and y == self.exit_pos[1]):
                 continue
             else:
                 tx, ty = self._get_terminal_coordinates(x, y)

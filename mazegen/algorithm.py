@@ -84,14 +84,14 @@ class Algorithm(ABC):
 
     def _no_open_area_around(self, original_x: int, original_y: int) -> bool:
         """Returns True if there is no fully open 3x3 block (without internal
-        walls) in the 9x9 area centered on (original_x, original_y).
+        walls) in the 5x5 area centered on (original_x, original_y).
         Returns False if at least one forbidden 3x3 open block is found.
         Uses MazeValidator._is_3x3_open for detection.
         """
 
         validator = MazeValidator(self.maze)
 
-        # Check all 3x3 blocks in the 9x9 area around the original cell
+        # Check all 3x3 blocks in the 5x5 area around the original cell
         for dy in range(-2, 1):
             for dx in range(-2, 1):
                 top_left_x = original_x + dx

@@ -41,42 +41,29 @@ class PathFinder:
         self.entry = entry
         self.exit = exit
 
-    def _build_connections_dict(
+    def _build_connections(
         self, path: list[str]
-    ) -> dict[tuple[int, int], list[str]]:
-        """Converts a path (list of directions) into a connections dictionary.
-
-        For each traversed cell, records the open directions:
-        the exit direction (towards the next cell) and the entry direction
-        (from the previous cell, via REVERSE).
+    ) -> list[tuple[int, int, str]]:
+        """Converts a path (list of directions)
+            into a list of positioned moves.
 
         Args:
             path : List of directions (e.g., ``['E', 'S', 'S', 'W']``) from
                    the entry to the exit.
 
         Returns:
-            Dictionary ``{(x, y): {open directions}}`` used by the view
-            to color the cells of the solution path.
+            List of tuples ``(x, y, direction)`` where each tuple represents
+            the cell coordinates and the direction taken to leave that cell.
         """
-        connections: dict[tuple[int, int], list[str]] = {}
+        connections: list[tuple[int, int, str]] = []
         x, y = self.entry
-
-        # Initialize the entry cell
-        connections[(x, y)] = []
 
         for direction in path:
             # The current cell can exit in this direction
-            connections[(x, y)].append(direction)
+            connections.append((x, y, direction))
 
             dx, dy = self.maze._DIRECTIONS[direction]
             x, y = x + dx, y + dy
-
-            # Initialize the next cell if it hasn't been visited yet
-            if (x, y) not in connections:
-                connections[(x, y)] = []
-
-            # The destination cell knows where it came from (reverse direction)
-            connections[(x, y)].append(self.REVERSE[direction])
 
         return connections
 
@@ -137,21 +124,3 @@ class PathFinder:
 
         path.reverse()
         return path
-
-    def find(self) -> list[dict[tuple[int, int], list[str]]]:
-        """Finds the shortest path from entry to exit and
-        returns a connections dictionary.
-
-        Returns:
-            List containing a single dictionary ``{(x, y): [directions]}``
-            representing the shortest path found, or an empty list if
-            no path exists.
-        """
-
-        path = self._shortest_path()
-        if path is None:
-            return []
-
-        connections = self._build_connections_dict(path)
-
-        return [connections]

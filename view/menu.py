@@ -241,62 +241,59 @@ class Menu:
             raise RuntimeError("Config not initialized")
         self._controller._generator.generate()
         tracks = self._controller._generator.tracks
-        paths = self._controller._finder.find()
-        is_perfect = not self._controller._cycle_checker.has_cycle()
-        if is_perfect != self._controller._config.PERFECT:
-            print(
-                Fore.RED
-                + f"{'Imperfect' if not self._controller._config.PERFECT else 'Perfect'} could not be generated..."
-                + Style.RESET_ALL
-            )
-            print(f"Cursed Seed: {self._controller._generator.seed}")
-            self._press_enter_continue()
-            self._controller._generator.reset(seed=time.time_ns())
-            print("\033c", end="")
-            pass
-        self._controller._view.draw_grid(tracks, paths, is_perfect)
-        output = self._controller._generator.maze.encode_hex() + "\n"
-        entry, exit = (
-            str(self._controller._config.ENTRY).strip("()"),
-            str(self._controller._config.EXIT).strip("()"),
-        )
-        output += f"Seed: {self._controller._generator.seed}" + "\n"
-        output += f"Entry: {entry}" + "\n"
-        output += f"Exit: {exit}" + "\n"
-        if not paths:
-            print(
-                Fore.RED
-                + "Error: No path found between entry and exit."
-                + Style.RESET_ALL
-            )
-            self._press_enter_continue()
-            return
-        output += "Solution: "
-        for directions in paths[0].values():
-            output += directions[-1]
-        output = output[:-1]
-        output += "\n"
-        output += f"Perfect: {is_perfect}" + "\n"
-        print("Maze Output:")
-        print(output, end="")
-        try:
-            with open(self._controller._config.OUTPUT_FILE, "w") as file:
-                file.write(output)
-        except PermissionError:
-            raise PermissionError(
-                Fore.RED
-                + "Error: You don't have the permission to write in the "
-                "output file" + Style.RESET_ALL
-            )
-        except OSError as e:
-            raise OSError(
-                Fore.RED
-                + f"Error: Could not write output file: {e}"
-                + Style.RESET_ALL
-            )
-        self._press_enter_continue()
-        self._controller._generator.reset(seed=time.time_ns())
-        print("\033c", end="")
+        path = self._controller._finder._shortest_path()
+        if path:
+            paths = self._controller._finder._build_connections(path)
+            is_perfect = not self._controller._cycle_checker.has_cycle()
+            if is_perfect != self._controller._config.PERFECT:
+                print(
+                    Fore.RED
+                    + f"{'Imperfect' if not self._controller._config.PERFECT
+                         else 'Perfect'} could not be generated..."
+                    + Style.RESET_ALL
+                )
+                print(f"Cursed Seed: {self._controller._generator.seed}")
+                self._press_enter_continue()
+                self._controller._generator.reset(seed=time.time_ns())
+                print("\033c", end="")
+            else:
+                self._controller._view.draw_grid(tracks, paths, is_perfect)
+                output = self._controller._generator.maze.encode_hex() + "\n"
+                entry, exit = (
+                    str(self._controller._config.ENTRY).strip("()"),
+                    str(self._controller._config.EXIT).strip("()"),
+                )
+                output += f"Seed: {self._controller._generator.seed}" + "\n"
+                output += f"Entry: {entry}" + "\n"
+                output += f"Exit: {exit}" + "\n"
+                output += "Solution: "
+                for direction in path:
+                    output += direction
+                output += "\n"
+                output += f"Perfect: {is_perfect}" + "\n"
+                print("Maze Output:")
+                print(output, end="")
+                try:
+                    with open(
+                        self._controller._config.OUTPUT_FILE, "w"
+                    ) as file:
+                        file.write(output)
+                except PermissionError:
+                    raise PermissionError(
+                        Fore.RED
+                        + "Error: You don't have the permission to write in "
+                        "the "
+                        "output file" + Style.RESET_ALL
+                    )
+                except OSError as e:
+                    raise OSError(
+                        Fore.RED
+                        + f"Error: Could not write output file: {e}"
+                        + Style.RESET_ALL
+                    )
+                self._press_enter_continue()
+                self._controller._generator.reset(seed=time.time_ns())
+                print("\033c", end="")
 
     def _execute(self) -> None:
         if self.index == 0:

@@ -12,7 +12,6 @@ from model.maze import Maze
 from model.path_finder import PathFinder
 from mazegen.maze_generator import MazeGenerator
 
-
 # ── Helpers ───────────────────────────────────────────────────────────
 
 
@@ -131,121 +130,121 @@ def test_shortest_path_is_deterministic() -> None:
     assert pf_a._shortest_path() == pf_b._shortest_path()
 
 
-# ── find() — returns list[dict[tuple, list[str]]] ────────────────────
+# ── _shortest_path() — returns list[str] | None ─────────────────────
 
 
-def test_find_corridor_returns_one_element(pf_corridor: PathFinder) -> None:
-    """find() returns a list containing exactly one dict."""
-    result = pf_corridor.find()
-    assert len(result) == 1
+def test_corridor_shortest_path_returns_directions(
+    pf_corridor: PathFinder,
+) -> None:
+    """_shortest_path() on 3×1 corridor returns the two East steps."""
+    path = pf_corridor._shortest_path()
+    assert path == ["E", "E"]
 
 
-def test_find_corridor_connections_dict(pf_corridor: PathFinder) -> None:
-    """The connections dict contains the entry and exit."""
-    conn = pf_corridor.find()[0]
-    assert isinstance(conn, dict)
-    assert (0, 0) in conn
-    assert (2, 0) in conn
+def test_entry_cell_first_move_east(pf_corridor: PathFinder) -> None:
+    """First move in the 3×1 corridor is East from (0,0)."""
+    path = pf_corridor._shortest_path()
+    assert path is not None
+    conn = pf_corridor._build_connections(path)
+    assert conn[0] == (0, 0, "E")
 
 
-def test_find_entry_cell_direction_east_only(pf_corridor: PathFinder) -> None:
-    """The cell (0,0) only goes East in the 3×1 corridor."""
-    conn = pf_corridor.find()[0]
-    assert conn[(0, 0)] == ["E"]
+def test_find_middle_cell_traversed(pf_corridor: PathFinder) -> None:
+    """The cell (1,0) is traversed going East in the 3×1 corridor."""
+    path = pf_corridor._shortest_path()
+    assert path is not None
+    conn = pf_corridor._build_connections(path)
+    assert (1, 0, "E") in conn
 
 
-def test_find_middle_cell_has_west_and_east(pf_corridor: PathFinder) -> None:
-    """The cell (1,0): entry from the West, exit to the East."""
-    conn = pf_corridor.find()[0]
-    assert conn[(1, 0)] == ["W", "E"]
+def test_find_exit_cell_not_in_moves(pf_corridor: PathFinder) -> None:
+    """The exit cell (2,0) is the destination, not a departure cell."""
+    path = pf_corridor._shortest_path()
+    assert path is not None
+    conn = pf_corridor._build_connections(path)
+    assert not any(x == 2 and y == 0 for x, y, _ in conn)
 
 
-def test_find_exit_cell_direction_west_only(pf_corridor: PathFinder) -> None:
-    """The cell (2,0) only comes from the West."""
-    conn = pf_corridor.find()[0]
-    assert conn[(2, 0)] == ["W"]
+def test_find_covers_all_corridor_moves(pf_corridor: PathFinder) -> None:
+    """3×1 corridor: 2 departure cells (not counting the exit)."""
+    path = pf_corridor._shortest_path()
+    assert path is not None
+    conn = pf_corridor._build_connections(path)
+    assert len(conn) == 2
 
 
-def test_find_covers_all_corridor_cells(pf_corridor: PathFinder) -> None:
-    """3×1 corridor → 3 cells in the dict."""
-    conn = pf_corridor.find()[0]
-    assert len(conn) == 3
+def test_shortest_path_all_directions_valid(
+    pf_corridor: PathFinder,
+) -> None:
+    """All directions returned by _shortest_path() are in {N, E, S, W}."""
+    path = pf_corridor._shortest_path()
+    assert path is not None
+    for d in path:
+        assert d in ("N", "E", "S", "W")
 
 
-def test_find_all_directions_valid(pf_corridor: PathFinder) -> None:
-    """All directions in the dict are in {N, E, S, W}."""
-    conn = pf_corridor.find()[0]
-    for dirs in conn.values():
-        for d in dirs:
-            assert d in ("N", "E", "S", "W")
-
-
-def test_find_vertical_corridor_directions() -> None:
-    """Vertical corridor 1×3: N/S connections are correct."""
+def test_shortest_path_vertical_corridor_directions_() -> None:
+    """Vertical corridor 1×3: path is [S, S]."""
     pf = PathFinder(make_corridor_1x3(), entry=(0, 0), exit=(0, 2))
-    conn = pf.find()[0]
-    assert conn[(0, 0)] == ["S"]
-    assert conn[(0, 1)] == ["N", "S"]
-    assert conn[(0, 2)] == ["N"]
+    assert pf._shortest_path() == ["S", "S"]
 
 
-def test_find_unreachable_returns_empty_list() -> None:
-    """No passage → find() returns []."""
+def test_shortest_path_unreachable_returns_none_() -> None:
+    """No passage → _shortest_path() returns None."""
     maze = Maze(3, 3)
     pf = PathFinder(maze, entry=(0, 0), exit=(2, 2))
-    assert pf.find() == []
+    assert pf._shortest_path() is None
 
 
-def test_find_entry_equals_exit_returns_empty_list() -> None:
-    """Entry == exit → _shortest_path() None → find() returns []."""
+def test_shortest_path_entry_equals_exit_returns_none_() -> None:
+    """Entry == exit → _shortest_path() returns None."""
     maze = make_corridor_3x1()
     pf = PathFinder(maze, entry=(0, 0), exit=(0, 0))
-    assert pf.find() == []
+    assert pf._shortest_path() is None
 
 
-def test_find_generated_maze_has_entry_and_exit(
+def test_shortest_path_generated_maze_has_entry(
     pf_generated: PathFinder,
 ) -> None:
-    """The 11×11 maze has the entry and exit in the connections."""
-    conn = pf_generated.find()[0]
-    assert (0, 0) in conn
-    assert (10, 10) in conn
+    """The 11×11 maze path starts at entry."""
+    path = pf_generated._shortest_path()
+    assert path is not None and len(path) > 0
+    conn = pf_generated._build_connections(path)
+    assert conn[0][:2] == (0, 0)
 
 
-def test_find_generated_maze_is_deterministic() -> None:
-    """Same maze → same find() result on each call."""
+def test_shortest_path_generated_maze_is_deterministic() -> None:
+    """Same maze → same _shortest_path() result on each call."""
     gen = MazeGenerator(width=11, height=11, seed=42, perfect=True)
     gen.generate()
     maze = gen.get_maze()
     pf_a = PathFinder(maze, entry=(0, 0), exit=(10, 10))
     pf_b = PathFinder(maze, entry=(0, 0), exit=(10, 10))
-    assert pf_a.find() == pf_b.find()
+    assert pf_a._shortest_path() == pf_b._shortest_path()
 
 
-# ── _build_connections_dict ─────────────────────────────────────────--
+# ── _build_connections ───────────────────────────────────────────────
 
 
 def test_build_connections_from_empty_path() -> None:
-    """An empty path (entry == exit) → dict with only the entry."""
+    """An empty path → empty list."""
     maze = make_corridor_3x1()
     pf = PathFinder(maze, entry=(0, 0), exit=(0, 0))
-    conn = pf._build_connections_dict([])
-    assert conn == {(0, 0): []}
+    conn = pf._build_connections([])
+    assert conn == []
 
 
 def test_build_connections_single_move_east() -> None:
-    """One step East → entry has ['E'], exit has ['W']."""
+    """One step East → [(0, 0, 'E')]."""
     maze = make_corridor_3x1()
     pf = PathFinder(maze, entry=(0, 0), exit=(1, 0))
-    conn = pf._build_connections_dict(["E"])
-    assert "E" in conn[(0, 0)]
-    assert "W" in conn[(1, 0)]
+    conn = pf._build_connections(["E"])
+    assert conn == [(0, 0, "E")]
 
 
 def test_build_connections_covers_full_path() -> None:
-    """Path E,E → dict has keys (0,0), (1,0), (2,0) with correct directions."""
+    """Path E,E → [(0,0,'E'), (1,0,'E')] (exit cell not included)."""
     maze = make_corridor_3x1()
     pf = PathFinder(maze, entry=(0, 0), exit=(2, 0))
-    conn = pf._build_connections_dict(["E", "E"])
-    assert set(conn.keys()) == {
-        (0, 0), (1, 0), (2, 0)}
+    conn = pf._build_connections(["E", "E"])
+    assert conn == [(0, 0, "E"), (1, 0, "E")]

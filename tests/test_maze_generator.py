@@ -200,25 +200,24 @@ def test_unknown_algorithm_raises() -> None:
 
 
 def test_small_maze_no_forty_two_cells() -> None:
-    """Tout labyrinthe < 11 cols ou < 9 lignes ne doit pas contenir le motif."""
+    """Any maze with < 11 cols or < 9 rows must not contain the pattern."""
     for w, h in [(4, 4), (7, 7), (8, 8), (10, 10), (11, 8)]:
         gen = MazeGenerator(width=w, height=h, seed=1, perfect=True)
         gen.generate()
         assert (
             gen.forty_two_cells == set()
-        ), f"{w}x{h} ne devrait pas avoir de cellules 42"
+        ), f"{w}x{h} should not have 42 cells"
 
 
 def test_maze_with_forty_two_cells_at_minimum_size() -> None:
-    """Un labyrinthe 11x9 (taille minimale) doit contenir le motif."""
+    """An 11x9 maze (minimum size) must contain the pattern."""
     gen = MazeGenerator(width=11, height=9, seed=1, perfect=True)
     gen.generate()
     assert len(gen.forty_two_cells) > 0
 
 
 def test_small_maze_is_still_valid() -> None:
-    """Un labyrinthe trop petit pour le motif 42
-    reste structurellement valide."""
+    """A maze too small for the 42 pattern is still structurally valid."""
     gen = MazeGenerator(width=4, height=4, seed=1, perfect=True)
     gen.generate()
     validator = MazeValidator(gen.get_maze())
@@ -272,7 +271,7 @@ def test_kruksal_explicit_generates_valid_maze() -> None:
 
 
 def test_kruksal_imperfect_generates_valid_maze() -> None:
-    """algorithm='kruksal' + perfect=False (second_loop) reste valide."""
+    """algorithm='kruksal' + perfect=False (second_loop) remains valid."""
     gen = MazeGenerator(
         width=11, height=11, seed=3, perfect=False, algorithm="kruksal"
     )
@@ -281,7 +280,7 @@ def test_kruksal_imperfect_generates_valid_maze() -> None:
 
 
 def test_kruksal_imperfect_has_cycle() -> None:
-    """Un labyrinthe Kruksal imparfait contient au moins un cycle."""
+    """An imperfect Kruksal maze contains at least one cycle."""
     from model.cycle_checker import CycleChecker
 
     gen = MazeGenerator(
@@ -304,7 +303,7 @@ def test_backtracker_imperfect_generates_valid_maze() -> None:
 
 
 def test_backtracker_imperfect_has_cycle() -> None:
-    """Un labyrinthe Backtracker imparfait contient au moins un cycle."""
+    """An imperfect Backtracker maze contains at least one cycle."""
     from model.cycle_checker import CycleChecker
 
     gen = MazeGenerator(

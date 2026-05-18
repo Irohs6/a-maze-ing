@@ -134,7 +134,8 @@ def test_adjacent_cells_consistent_after_remove_wall() -> None:
 
 
 def test_adjacent_cells_asymmetric_east_west_fails() -> None:
-    """Remove the East wall of (1,1) without removing the West wall of (2,1)."""
+    """Remove the East wall of (1,1) without
+        removing the West wall of (2,1)."""
     maze = Maze(5, 5)
     maze.grid[1][1] &= ~2  # direct manipulation, no symmetry
     assert MazeValidator(maze)._validate_adjacent_cells() is False
