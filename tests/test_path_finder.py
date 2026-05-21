@@ -7,7 +7,15 @@
 #   - validation of output path format (only N, E, S, W letters)
 #   - reproducibility: same seed produces the same solution path
 
-import pytest
+import sys
+try:
+    import pytest
+except ImportError:
+    print("\033c", end="")
+    print(
+        "Pytest not found, try starting the program with 'make run' command."
+    )
+    sys.exit(7)
 from model.maze import Maze
 from model.path_finder import PathFinder
 from mazegen.maze_generator import MazeGenerator

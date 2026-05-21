@@ -10,7 +10,15 @@
 #   - handling of invalid parameters (negative dimensions,
 # non-integer seed, etc.)
 
-import pytest
+import sys
+try:
+    import pytest
+except ImportError:
+    print("\033c", end="")
+    print(
+        "Pytest not found, try starting the program with 'make run' command."
+    )
+    sys.exit(7)
 from model.maze import Maze
 from model.maze_validator import MazeValidator
 from mazegen.maze_generator import MazeGenerator

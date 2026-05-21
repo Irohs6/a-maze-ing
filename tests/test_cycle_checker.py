@@ -3,7 +3,15 @@
 # Method: edges >= nodes (spanning tree = nodes-1 edges, cycle = nodes+)
 # Cells of the "42" pattern (value 15 = isolated) are excluded from the count.
 
-import pytest
+import sys
+try:
+    import pytest
+except ImportError:
+    print("\033c", end="")
+    print(
+        "Pytest not found, try starting the program with 'make run' command."
+    )
+    sys.exit(7)
 from model.maze import Maze
 from model.cycle_checker import CycleChecker
 from mazegen.maze_generator import MazeGenerator

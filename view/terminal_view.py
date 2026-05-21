@@ -12,7 +12,14 @@ import termios
 
 if __package__ in {None, ""}:
     sys.path.append(str(Path(__file__).resolve().parents[1]))
-from colorama import Fore, Style
+try:
+    from colorama import Fore, Style
+except ImportError:
+    print("\033c", end="")
+    print(
+        "Colorama not found, try starting the program with 'make run' command."
+    )
+    sys.exit(7)
 from model.maze import Maze
 from .terminal_renderer import TerminalRenderer
 

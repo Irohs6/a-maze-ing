@@ -1,10 +1,17 @@
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    model_validator,
-    field_validator,
-)
+import sys
+try:
+    from pydantic import (
+        BaseModel,
+        ConfigDict,
+        Field,
+        model_validator,
+        field_validator,
+    )
+except ImportError:
+    print("\033c", end="")
+    print("Pydantic not found, try starting the program with 'make run' "
+          "command.")
+    sys.exit(7)
 from typing import Annotated, Any, ClassVar
 from time import time_ns
 from mimetypes import guess_type
@@ -41,6 +48,17 @@ class ConfigFile(BaseModel):
     @classmethod
     def normalize_algorithm(cls, value: str) -> str:
         return value.lower()
+
+    @model_validator(mode="before")
+    def validate_python_environment(self) -> "ConfigFile":
+        """Ensure the user is in a python virtual environment."""
+        if sys.base_prefix != sys.prefix:
+            return self
+        else:
+            raise EnvironmentError(
+                "You are currently not in a virtual environment, "
+                "please use the 'make run' command."
+            )
 
     @model_validator(mode="after")
     def validate_entry_exit_bounds(self) -> "ConfigFile":

@@ -1,5 +1,13 @@
 # tests/test_config_parser.py — Tests unitaires de ConfigFile.parse().
-import pytest
+import sys
+try:
+    import pytest
+except ImportError:
+    print("\033c", end="")
+    print(
+        "Pytest not found, try starting the program with 'make run' command."
+    )
+    sys.exit(7)
 from pathlib import Path
 from model.config_file import ConfigFile
 

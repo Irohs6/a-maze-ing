@@ -5,9 +5,30 @@ from typing import TYPE_CHECKING
 import tty
 import termios
 import sys
-from colorama import Back, init, Style, Fore
-import click
-from pydantic import ValidationError
+try:
+    from colorama import Back, init, Style, Fore
+except ImportError:
+    print("\033c", end="")
+    print(
+        "Colorama not found, try starting the program with 'make run' command."
+    )
+    sys.exit(7)
+try:
+    import click
+except ImportError:
+    print("\033c", end="")
+    print(
+        "Click not found, try starting the program with 'make run' command."
+    )
+    sys.exit(7)
+try:
+    from pydantic import ValidationError
+except ImportError:
+    print("\033c", end="")
+    print(
+        "Pydantic not found, try starting the program with 'make run' command."
+    )
+    sys.exit(7)
 
 if TYPE_CHECKING:
     from controller.maze_controller import MazeController
@@ -248,8 +269,8 @@ class Menu:
             if is_perfect != self._controller._config.PERFECT:
                 print(
                     Fore.RED
-                    + f"{'Imperfect' if not self._controller._config.PERFECT
-                         else 'Perfect'} could not be generated..."
+                    + ('Imperfect' if not self._controller._config.PERFECT
+                        else 'Perfect') + " maze could not be generated..."
                     + Style.RESET_ALL
                 )
                 print(f"Cursed Seed: {self._controller._generator.seed}")
