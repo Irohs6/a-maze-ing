@@ -1,11 +1,15 @@
-from model.maze import Maze
+from .maze import Maze
 
 
 class CycleChecker:
+    """Detects cycles in a maze using an edge/node count heuristic."""
+
     def __init__(self, maze: Maze) -> None:
+        """Initialize the checker with a generated maze."""
         self.maze = maze
 
     def has_cycle(self) -> bool:
+        """Return True if the maze contains at least one cycle."""
 
         width = self.maze.width
         height = self.maze.height

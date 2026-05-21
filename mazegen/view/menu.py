@@ -31,12 +31,13 @@ except ImportError:
     sys.exit(7)
 
 if TYPE_CHECKING:
-    from controller.maze_controller import MazeController
+    from ..controller.maze_controller import MazeController
 
 init(autoreset=False)
 
 
 class Menu:
+    """Interactive terminal menu for maze generation and settings."""
 
     SETTINGS_FIELDS = [
         "WIDTH",
@@ -49,7 +50,8 @@ class Menu:
         "ALGORITHM",
     ]
 
-    def __init__(self, controller: MazeController):
+    def __init__(self, controller: MazeController) -> None:
+        """Initialize the menu with the given controller."""
         self._controller = controller
         self.copy_config = deepcopy(self._controller._config)
         self.fd = sys.stdin.fileno()
@@ -60,12 +62,14 @@ class Menu:
         self.current_menu = 0
 
     def _update_objects(self) -> None:
+        """Rebuild the generator, pathfinder, cycle checker, and view."""
         self._controller._create_gen()
         self._controller._create_pathfinder()
         self._controller._create_cycles_checker()
         self._controller._create_view()
 
     def _get_key(self) -> None:
+        """Read a single key (or escape sequence) from stdin."""
         try:
             tty.setraw(self.fd)
             self.input = sys.stdin.read(1)
@@ -75,12 +79,14 @@ class Menu:
             termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old)
 
     def _move(self) -> None:
+        """Update the cursor index based on arrow-key input."""
         if self.input == "\x1b[A":
             self.index = (self.index - 1) % self.len_menu[self.current_menu]
         elif self.input == "\x1b[B":
             self.index = (self.index + 1) % self.len_menu[self.current_menu]
 
     def _print_base_menu(self) -> None:
+        """Render the main menu to stdout."""
         print("╭" + "─" * 30 + "╮")
         print(
             "│" + f"{Fore.YELLOW}A-Maze-Ing{Style.RESET_ALL}".center(39) + "│"
@@ -99,6 +105,7 @@ class Menu:
         print("╰" + "─" * 30 + "╯")
 
     def _press_enter_continue(self) -> None:
+        """Block until the user presses Enter."""
         print("\nPress Enter to continue...")
         while True:
             self._get_key()
@@ -106,6 +113,7 @@ class Menu:
                 break
 
     def _print_settings_menu(self) -> None:
+        """Render the settings menu to stdout."""
         if self._controller._config is None:
             raise RuntimeError("Config not initialized")
         if self._controller._generator is None:
@@ -144,11 +152,13 @@ class Menu:
         print("╰" + "─" * max_len + "╯")
 
     def _ask_for_value(self, value: str) -> None:
+        """Display a prompt box asking for a value."""
         print("╭" + "─" * 30 + "╮")
         print("│" + value.center(30) + "│" + " :")
         print("╰" + "─" * 30 + "╯")
 
     def _change_setting(self) -> None:
+        """Prompt the user to change the currently selected setting."""
         if self._controller._config is None:
             raise RuntimeError("Config not initialized")
         try:
@@ -232,6 +242,7 @@ class Menu:
                 self.copy_config = deepcopy(self._controller._config)
 
     def _settings_menu(self) -> None:
+        """Run the settings submenu loop."""
         try:
             while True:
                 print("\033[?25l", end="")
@@ -252,6 +263,8 @@ class Menu:
             self.current_menu = 0
 
     def _generate_maze(self) -> None:
+        """Generate a maze and display it, writing the result
+             to the output file."""
         if self._controller._generator is None:
             raise RuntimeError("Generator not initialized")
         if self._controller._finder is None:
@@ -262,7 +275,7 @@ class Menu:
             raise RuntimeError("Config not initialized")
         self._controller._generator.generate()
         tracks = self._controller._generator.tracks
-        path = self._controller._finder._shortest_path()
+        path = self._controller._finder.shortest_path()
         if path:
             paths = self._controller._finder._build_connections(path)
             is_perfect = not self._controller._cycle_checker.has_cycle()
@@ -317,6 +330,7 @@ class Menu:
                 print("\033c", end="")
 
     def _execute(self) -> None:
+        """Dispatch to the action selected in the main menu."""
         if self.index == 0:
             self._generate_maze()
         elif self.index == 1:
@@ -324,6 +338,7 @@ class Menu:
             self._settings_menu()
 
     def _run(self) -> None:
+        """Run the main menu loop until the user exits."""
         try:
             while True:
                 print("\033[?25l", end="")

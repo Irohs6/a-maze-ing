@@ -12,9 +12,9 @@ except ImportError:
         "Pytest not found, try starting the program with 'make run' command."
     )
     sys.exit(7)
-from model.maze import Maze
-from model.cycle_checker import CycleChecker
-from mazegen.maze_generator import MazeGenerator
+from mazegen.model.maze import Maze
+from mazegen.model.cycle_checker import CycleChecker
+from mazegen.generation.maze_generator import MazeGenerator
 
 # ── Fixtures ──────────────────────────────────────────────────────────
 
@@ -44,11 +44,11 @@ def imperfect_backtracker_11x11() -> Maze:
     return gen.get_maze()
 
 
-# ── Labyrinthe plein (aucun passage) ──────────────────────────────────
+# ── Full-wall maze (no passages) ─────────────────────────────────────
 
 
 def test_full_wall_maze_has_no_cycle() -> None:
-    """Aucun passage → edges=0, nodes>0 → pas de cycle."""
+    """No passage → edges=0, nodes>0 → no cycle."""
     maze = Maze(5, 5)
     assert CycleChecker(maze).has_cycle() is False
 
@@ -58,11 +58,11 @@ def test_single_cell_has_no_cycle() -> None:
     assert CycleChecker(maze).has_cycle() is False
 
 
-# ── Labyrinthe parfait (arbre couvrant) ───────────────────────────────
+# ── Perfect maze (spanning tree) ─────────────────────────────────────
 
 
 def test_perfect_maze_has_no_cycle(perfect_11x11: Maze) -> None:
-    """Labyrinthe parfait = arbre → edges = nodes-1 → pas de cycle."""
+    """Perfect maze = spanning tree → edges = nodes-1 → no cycle."""
     assert CycleChecker(perfect_11x11).has_cycle() is False
 
 
@@ -87,11 +87,11 @@ def test_imperfect_backtracker_has_cycle(
     assert CycleChecker(imperfect_backtracker_11x11).has_cycle() is True
 
 
-# ── Cas construits manuellement ───────────────────────────────────────
+# ── Manually constructed cases ───────────────────────────────────────
 
 
 def test_two_cells_one_connection_no_cycle() -> None:
-    """2 cellules, 1 connexion : edges=1, nodes=2 → 1 < 2 → pas de cycle."""
+    """2 cells, 1 connection: edges=1, nodes=2 → 1 < 2 → no cycle."""
     maze = Maze(2, 1)
     maze.remove_wall(0, 0, "E")
     assert CycleChecker(maze).has_cycle() is False
@@ -131,7 +131,7 @@ def test_tree_3x3_no_cycle() -> None:
     assert CycleChecker(maze).has_cycle() is False
 
 
-# ── Exclusion des cellules 42 ─────────────────────────────────────────
+# ── 42-pattern cells excluded from node count ───────────────────────────────
 
 
 def test_42_cells_excluded_from_node_count() -> None:

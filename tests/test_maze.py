@@ -17,7 +17,7 @@ except ImportError:
         "Pytest not found, try starting the program with 'make run' command."
     )
     sys.exit(7)
-from model.maze import Maze
+from mazegen.model.maze import Maze
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ def maze_3x3() -> Maze:
     return Maze(3, 3, entry=(0, 0), exit=(2, 2))
 
 
-# ── Initialisation ────────────────────────────────────────────────────
+# ── Initialization ────────────────────────────────────────────────────
 
 
 def test_init_dimensions(maze_5x5: Maze) -> None:
@@ -84,7 +84,8 @@ def test_has_wall_invalid_direction_raises(maze_3x3: Maze) -> None:
 
 
 def test_remove_wall_east_is_symmetric(maze_5x5: Maze) -> None:
-    """Retirer le mur Est de (1,1) doit aussi retirer le mur Ouest de (2,1)."""
+    """Removing the East wall of (1,1) must also remove the West wall
+        of (2,1)."""
     maze_5x5.remove_wall(1, 1, 'E')
     assert maze_5x5.has_wall(1, 1, 'E') is False
     assert maze_5x5.has_wall(2, 1, 'W') is False
@@ -94,21 +95,24 @@ def test_remove_wall_east_is_symmetric(maze_5x5: Maze) -> None:
 
 
 def test_remove_wall_west_is_symmetric(maze_5x5: Maze) -> None:
-    """Retirer le mur Ouest de (2,2) doit aussi retirer le mur Est de (1,2)."""
+    """Removing the West wall of (2,2) must also remove the East wall
+        of (1,2)."""
     maze_5x5.remove_wall(2, 2, 'W')
     assert maze_5x5.has_wall(2, 2, 'W') is False
     assert maze_5x5.has_wall(1, 2, 'E') is False
 
 
 def test_remove_wall_north_is_symmetric(maze_5x5: Maze) -> None:
-    """Retirer le mur Nord de (2,2) doit aussi retirer le mur Sud de (2,1)."""
+    """Removing the North wall of (2,2) must also remove the South wall
+         of (2,1)."""
     maze_5x5.remove_wall(2, 2, 'N')
     assert maze_5x5.has_wall(2, 2, 'N') is False
     assert maze_5x5.has_wall(2, 1, 'S') is False
 
 
 def test_remove_wall_south_is_symmetric(maze_5x5: Maze) -> None:
-    """Retirer le mur Sud de (1,1) doit aussi retirer le mur Nord de (1,2)."""
+    """Removing the South wall of (1,1) must also remove the North wall
+        of (1,2)."""
     maze_5x5.remove_wall(1, 1, 'S')
     assert maze_5x5.has_wall(1, 1, 'S') is False
     assert maze_5x5.has_wall(1, 2, 'N') is False
@@ -164,7 +168,7 @@ def test_encode_hex_initial_all_f(maze_3x3: Maze) -> None:
 
 
 def test_encode_hex_changes_after_remove(maze_3x3: Maze) -> None:
-    """Retirer un mur change la valeur hex correspondante."""
+    """Removing a wall must change the corresponding hex value."""
     before = maze_3x3.encode_hex()
     maze_3x3.remove_wall(1, 1, 'E')
     after = maze_3x3.encode_hex()
@@ -186,7 +190,7 @@ def test_encode_hex_format(maze_3x3: Maze) -> None:
 
 
 def test_add_wall_east_is_symmetric(maze_5x5: Maze) -> None:
-    """add_wall(E) doit aussi remettre le mur Ouest du voisin."""
+    """add_wall(E) must also restore the West wall of the neighbour."""
     maze_5x5.remove_wall(1, 1, 'E')
     maze_5x5.add_wall(1, 1, 'E')
     assert maze_5x5.has_wall(1, 1, 'E') is True
@@ -221,28 +225,28 @@ def test_add_wall_invalid_direction_raises(maze_5x5: Maze) -> None:
 
 def test_add_wall_at_border_raises(maze_5x5: Maze) -> None:
     """add_wall on a boundary raises ValueError
-    (condition de garde non remplie)."""
+    (guard condition not met)."""
     with pytest.raises(ValueError):
-        maze_5x5.add_wall(0, 0, 'N')  # y=0, condition y>0 fausse
+        maze_5x5.add_wall(0, 0, 'N')  # y=0, condition y>0 is False
 
 
 # ── place_42_center ───────────────────────────────────────────────────
 
 
 def test_place_42_center_empty_for_small_maze() -> None:
-    """Maze 4×4 trop petit → forty_two_cells vide."""
+    """A 4×4 maze is too small → forty_two_cells must be empty."""
     maze = Maze(4, 4)
     assert maze.forty_two_cells == set()
 
 
 def test_place_42_center_populates_for_large_maze() -> None:
-    """Maze 11×11 (≥ pw+4, ph+4) → forty_two_cells non vide."""
+    """An 11×11 maze (≥ pw+4, ph+4) → forty_two_cells must be non-empty."""
     maze = Maze(11, 11)
     assert len(maze.forty_two_cells) > 0
 
 
 def test_place_42_center_cells_have_value_15() -> None:
-    """Toutes les cellules du motif doivent valoir 15."""
+    """All cells of the 42 pattern must have value 15."""
     maze = Maze(11, 11)
     for (x, y) in maze.forty_two_cells:
         assert maze.grid[y][x] == 15

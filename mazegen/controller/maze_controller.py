@@ -1,9 +1,9 @@
-from model.path_finder import PathFinder
-from model.cycle_checker import CycleChecker
-from mazegen.maze_generator import MazeGenerator
-from view.terminal_view import TerminalView
-from model.config_file import ConfigFile
-from view.menu import Menu
+from ..model.path_finder import PathFinder
+from ..model.cycle_checker import CycleChecker
+from ..generation.maze_generator import MazeGenerator
+from ..view.terminal_view import TerminalView
+from ..model.config_file import ConfigFile
+from ..view.menu import Menu
 
 
 class MazeController:
@@ -11,6 +11,7 @@ class MazeController:
     renders view."""
 
     def __init__(self, config_file: str) -> None:
+        """Initialize the controller with the path to the config file."""
         self._config_file: str = config_file
         self._config: ConfigFile | None = None
         self._generator: MazeGenerator | None = None
@@ -18,6 +19,7 @@ class MazeController:
         self._finder: PathFinder | None = None
 
     def _load_config(self) -> None:
+        """Parse the config file and store the resulting ConfigFile object."""
         self._config = ConfigFile.parse(self._config_file)
 
     def _create_gen(self) -> None:

@@ -17,11 +17,12 @@ except ImportError:
         "Colorama not found, try starting the program with 'make run' command."
     )
     sys.exit(7)
-from model.maze import Maze
+from ..model.maze import Maze
 from .terminal_renderer import TerminalRenderer
 
 
 class TerminalView:
+    """High-level view facade: delegates rendering to TerminalRenderer."""
 
     def __init__(
         self,
@@ -30,6 +31,7 @@ class TerminalView:
         exit: tuple[int, int] = (0, 0),
         forty_two_cells: set[tuple[int, int]] | None = None,
     ) -> None:
+        """Initialize the view with maze data and entry/exit positions."""
         self.maze = maze
         self.entry = entry
         self.exit_pos = exit
@@ -39,6 +41,7 @@ class TerminalView:
         self.old = termios.tcgetattr(self.fd)
 
     def _get_key(self) -> None:
+        """Read a single key or escape sequence from stdin."""
         try:
             tty.setraw(self.fd)
             self.input = sys.stdin.read(1)
@@ -48,6 +51,8 @@ class TerminalView:
             termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old)
 
     def _display_input(self, speed: int, is_perfect: bool) -> None:
+        """Print the status line (perfect/imperfect, shortcuts)
+             below the maze."""
         is_perfect_message = (
             Fore.GREEN + "Perfect Maze !" + Style.RESET_ALL
             if is_perfect
@@ -74,6 +79,7 @@ class TerminalView:
         paths: list[tuple[int, int, str]],
         is_perfect: bool,
     ) -> None:
+        """Animate maze generation and handle interactive keyboard input."""
         solution_visible = False
         speed = self.render._DEFAULT_SPEED_IDX + 1
         try:

@@ -20,6 +20,8 @@ NonNegativeInt = Annotated[int, Field(ge=0)]
 
 
 class ConfigFile(BaseModel):
+    """Pydantic model representing the validated content of a config file."""
+
     model_config = ConfigDict(validate_assignment=True)
 
     REQUIRED_KEYS: ClassVar[list[str]] = [
@@ -47,6 +49,7 @@ class ConfigFile(BaseModel):
     @field_validator("ALGORITHM")
     @classmethod
     def normalize_algorithm(cls, value: str) -> str:
+        """Normalize the algorithm name to lowercase."""
         return value.lower()
 
     @model_validator(mode="after")
@@ -173,6 +176,7 @@ class ConfigFile(BaseModel):
 
     @staticmethod
     def _parse_optionals(config: dict[str, Any]) -> None:
+        """Parse optional keys (SEED and others) with defaults if absent."""
         try:
             for key in ConfigFile.OPTIONAL_KEYS:
                 if key == "SEED":
@@ -190,6 +194,7 @@ class ConfigFile(BaseModel):
 
     @model_validator(mode="after")
     def _parse_output(self) -> "ConfigFile":
+        """Validate that OUTPUT_FILE has a .txt extension."""
         if (
             self.OUTPUT_FILE.lower().endswith(".txt")
             and guess_type(self.OUTPUT_FILE)[0] == "text/plain"

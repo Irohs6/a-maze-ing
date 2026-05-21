@@ -15,7 +15,7 @@ from collections import deque
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from model.maze import Maze
+    from .maze import Maze
 
 
 class PathFinder:
@@ -67,7 +67,7 @@ class PathFinder:
 
         return connections
 
-    def _shortest_path(self) -> list[str] | None:
+    def shortest_path(self) -> list[str] | None:
         """Finds the shortest path from entry to exit via BFS.
 
         Returns:

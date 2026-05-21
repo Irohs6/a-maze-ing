@@ -18,7 +18,7 @@ except ImportError:
         end="",
     )
     sys.exit(7)
-from controller.maze_controller import MazeController
+from mazegen import MazeController
 try:
     from pydantic import ValidationError
 except ImportError:

@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 # if TYPE_CHECKING is True, we can import Maze for type hints without
 # causing circular import issues at runtime.
 if TYPE_CHECKING:
-    from model.maze import Maze
+    from .maze import Maze
 
 
 class MazeValidator:
@@ -236,7 +236,7 @@ class MazeValidator:
         has no inner walls."""
         maze = self._maze
         # Horizontal passages (East direction) between adjacent columns
-        # representation visuel de la zone 3x3 interdite :
+        # Visual representation of the forbidden 3x3 open area:
         #     0   |   1   |   2
         #   x0,y0 E x1,y0 E x2,y0|
         #   x0,y1 | x1,y1 | x2,y1

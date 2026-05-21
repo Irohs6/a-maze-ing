@@ -2,6 +2,6 @@
 # Exposes MazeController to simplify its import
 # from the main entry point (a_maze_ing.py).
 
-from controller.maze_controller import MazeController
+from .maze_controller import MazeController
 
 __all__ = ['MazeController']

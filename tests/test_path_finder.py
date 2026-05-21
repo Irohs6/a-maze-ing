@@ -16,9 +16,9 @@ except ImportError:
         "Pytest not found, try starting the program with 'make run' command."
     )
     sys.exit(7)
-from model.maze import Maze
-from model.path_finder import PathFinder
-from mazegen.maze_generator import MazeGenerator
+from mazegen.model.maze import Maze
+from mazegen.model.path_finder import PathFinder
+from mazegen.generation.maze_generator import MazeGenerator
 
 # ── Helpers ───────────────────────────────────────────────────────────
 
@@ -76,30 +76,30 @@ def pf_generated() -> PathFinder:
     return PathFinder(gen.get_maze(), entry=(0, 0), exit=(10, 10))
 
 
-# ── _shortest_path() — returns list[str] | None ──────────────────────
+# ── shortest_path() — returns list[str] | None ──────────────────────
 
 
 def test_shortest_path_corridor_returns_list(pf_corridor: PathFinder) -> None:
-    """_shortest_path() returns a list of directions."""
-    path = pf_corridor._shortest_path()
+    """shortest_path() returns a list of directions."""
+    path = pf_corridor.shortest_path()
     assert isinstance(path, list)
 
 
 def test_shortest_path_corridor_directions(pf_corridor: PathFinder) -> None:
     """Corridor 3×1 (0,0)→(2,0) : two steps to the East."""
-    path = pf_corridor._shortest_path()
+    path = pf_corridor.shortest_path()
     assert path == ["E", "E"]
 
 
 def test_shortest_path_vertical_corridor() -> None:
     """Vertical corridor 1×3 : two steps to the South."""
     pf = PathFinder(make_corridor_1x3(), entry=(0, 0), exit=(0, 2))
-    assert pf._shortest_path() == ["S", "S"]
+    assert pf.shortest_path() == ["S", "S"]
 
 
 def test_shortest_path_only_valid_directions(pf_generated: PathFinder) -> None:
     """All returned directions are in {N, E, S, W}."""
-    path = pf_generated._shortest_path()
+    path = pf_generated.shortest_path()
     assert path is not None
     for d in path:
         assert d in ("N", "E", "S", "W")
@@ -109,23 +109,23 @@ def test_shortest_path_nonempty_for_generated_maze(
     pf_generated: PathFinder,
 ) -> None:
     """A perfect 11×11 maze has a non-empty path."""
-    path = pf_generated._shortest_path()
+    path = pf_generated.shortest_path()
     assert path is not None
     assert len(path) > 0
 
 
 def test_shortest_path_unreachable_returns_none() -> None:
-    """No path exists → _shortest_path() returns None."""
+    """No path exists → shortest_path() returns None."""
     maze = Maze(3, 3)
     pf = PathFinder(maze, entry=(0, 0), exit=(2, 2))
-    assert pf._shortest_path() is None
+    assert pf.shortest_path() is None
 
 
 def test_shortest_path_entry_equals_exit_returns_none() -> None:
     """Entry == exit → None (pred[goal] is None, no path to reconstruct)."""
     maze = make_corridor_3x1()
     pf = PathFinder(maze, entry=(0, 0), exit=(0, 0))
-    assert pf._shortest_path() is None
+    assert pf.shortest_path() is None
 
 
 def test_shortest_path_is_deterministic() -> None:
@@ -135,7 +135,7 @@ def test_shortest_path_is_deterministic() -> None:
     maze = gen.get_maze()
     pf_a = PathFinder(maze, entry=(0, 0), exit=(10, 10))
     pf_b = PathFinder(maze, entry=(0, 0), exit=(10, 10))
-    assert pf_a._shortest_path() == pf_b._shortest_path()
+    assert pf_a.shortest_path() == pf_b.shortest_path()
 
 
 # ── _shortest_path() — returns list[str] | None ─────────────────────
@@ -144,14 +144,14 @@ def test_shortest_path_is_deterministic() -> None:
 def test_corridor_shortest_path_returns_directions(
     pf_corridor: PathFinder,
 ) -> None:
-    """_shortest_path() on 3×1 corridor returns the two East steps."""
-    path = pf_corridor._shortest_path()
+    """shortest_path() on 3×1 corridor returns the two East steps."""
+    path = pf_corridor.shortest_path()
     assert path == ["E", "E"]
 
 
 def test_entry_cell_first_move_east(pf_corridor: PathFinder) -> None:
     """First move in the 3×1 corridor is East from (0,0)."""
-    path = pf_corridor._shortest_path()
+    path = pf_corridor.shortest_path()
     assert path is not None
     conn = pf_corridor._build_connections(path)
     assert conn[0] == (0, 0, "E")
@@ -159,7 +159,7 @@ def test_entry_cell_first_move_east(pf_corridor: PathFinder) -> None:
 
 def test_find_middle_cell_traversed(pf_corridor: PathFinder) -> None:
     """The cell (1,0) is traversed going East in the 3×1 corridor."""
-    path = pf_corridor._shortest_path()
+    path = pf_corridor.shortest_path()
     assert path is not None
     conn = pf_corridor._build_connections(path)
     assert (1, 0, "E") in conn
@@ -167,7 +167,7 @@ def test_find_middle_cell_traversed(pf_corridor: PathFinder) -> None:
 
 def test_find_exit_cell_not_in_moves(pf_corridor: PathFinder) -> None:
     """The exit cell (2,0) is the destination, not a departure cell."""
-    path = pf_corridor._shortest_path()
+    path = pf_corridor.shortest_path()
     assert path is not None
     conn = pf_corridor._build_connections(path)
     assert not any(x == 2 and y == 0 for x, y, _ in conn)
@@ -175,7 +175,7 @@ def test_find_exit_cell_not_in_moves(pf_corridor: PathFinder) -> None:
 
 def test_find_covers_all_corridor_moves(pf_corridor: PathFinder) -> None:
     """3×1 corridor: 2 departure cells (not counting the exit)."""
-    path = pf_corridor._shortest_path()
+    path = pf_corridor.shortest_path()
     assert path is not None
     conn = pf_corridor._build_connections(path)
     assert len(conn) == 2
@@ -184,8 +184,8 @@ def test_find_covers_all_corridor_moves(pf_corridor: PathFinder) -> None:
 def test_shortest_path_all_directions_valid(
     pf_corridor: PathFinder,
 ) -> None:
-    """All directions returned by _shortest_path() are in {N, E, S, W}."""
-    path = pf_corridor._shortest_path()
+    """All directions returned by shortest_path() are in {N, E, S, W}."""
+    path = pf_corridor.shortest_path()
     assert path is not None
     for d in path:
         assert d in ("N", "E", "S", "W")
@@ -194,41 +194,41 @@ def test_shortest_path_all_directions_valid(
 def test_shortest_path_vertical_corridor_directions_() -> None:
     """Vertical corridor 1×3: path is [S, S]."""
     pf = PathFinder(make_corridor_1x3(), entry=(0, 0), exit=(0, 2))
-    assert pf._shortest_path() == ["S", "S"]
+    assert pf.shortest_path() == ["S", "S"]
 
 
 def test_shortest_path_unreachable_returns_none_() -> None:
-    """No passage → _shortest_path() returns None."""
+    """No passage → shortest_path() returns None."""
     maze = Maze(3, 3)
     pf = PathFinder(maze, entry=(0, 0), exit=(2, 2))
-    assert pf._shortest_path() is None
+    assert pf.shortest_path() is None
 
 
 def test_shortest_path_entry_equals_exit_returns_none_() -> None:
-    """Entry == exit → _shortest_path() returns None."""
+    """Entry == exit → shortest_path() returns None."""
     maze = make_corridor_3x1()
     pf = PathFinder(maze, entry=(0, 0), exit=(0, 0))
-    assert pf._shortest_path() is None
+    assert pf.shortest_path() is None
 
 
 def test_shortest_path_generated_maze_has_entry(
     pf_generated: PathFinder,
 ) -> None:
     """The 11×11 maze path starts at entry."""
-    path = pf_generated._shortest_path()
+    path = pf_generated.shortest_path()
     assert path is not None and len(path) > 0
     conn = pf_generated._build_connections(path)
     assert conn[0][:2] == (0, 0)
 
 
 def test_shortest_path_generated_maze_is_deterministic() -> None:
-    """Same maze → same _shortest_path() result on each call."""
+    """Same maze → same shortest_path() result on each call."""
     gen = MazeGenerator(width=11, height=11, seed=42, perfect=True)
     gen.generate()
     maze = gen.get_maze()
     pf_a = PathFinder(maze, entry=(0, 0), exit=(10, 10))
     pf_b = PathFinder(maze, entry=(0, 0), exit=(10, 10))
-    assert pf_a._shortest_path() == pf_b._shortest_path()
+    assert pf_a.shortest_path() == pf_b.shortest_path()
 
 
 # ── _build_connections ───────────────────────────────────────────────

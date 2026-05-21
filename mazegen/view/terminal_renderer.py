@@ -1,12 +1,13 @@
 import time
 import sys
-from model.maze import Maze
+from ..model.maze import Maze
 import tty
 import termios
 import select
 
 
 class TerminalRenderer:
+    """Handles low-level terminal rendering and animation of the maze."""
 
     _DIRECTION_ARROWS: dict[str, str] = {
         "N": "⮝",
@@ -50,6 +51,7 @@ class TerminalRenderer:
 
     def __init__(self, maze: Maze, entry: tuple[int, int],
                  exit_pos: tuple[int, int]) -> None:
+        """Initialize the renderer with a maze, entry, and exit positions."""
         self.maze = maze
         self.entry = entry
         self.exit_pos = exit_pos
@@ -57,6 +59,7 @@ class TerminalRenderer:
         self.old = termios.tcgetattr(self.fd)
 
     def _get_key_or_timeout(self, timeout: float = 0.0) -> None:
+        """Read a key from stdin, waiting up to *timeout* seconds."""
         try:
             # Use select to wait for input up to 'timeout' seconds
             rlist, _, _ = select.select([sys.stdin], [], [], timeout)
@@ -70,6 +73,7 @@ class TerminalRenderer:
             self.input = None
 
     def _print_full(self, y: int) -> None:
+        """Print the top or bottom border row of maze row *y*."""
         forty_two = False
         for x in range(self.maze.width):
             if (x, y) in self.maze.forty_two_cells or (
@@ -87,6 +91,7 @@ class TerminalRenderer:
         sys.stdout.write(f"{self._EMOJI_LIST[0][self._EMOJI_INDEX]}\n")
 
     def _print_middle(self, y: int) -> None:
+        """Print the middle (cell content) row of maze row *y*."""
         forty_two = False
         for x in range(self.maze.width):
             if (x, y) in self.maze.forty_two_cells:
@@ -113,22 +118,26 @@ class TerminalRenderer:
         sys.stdout.write(f"{self._EMOJI_LIST[0][self._EMOJI_INDEX]}\n")
 
     def _print_cells_lign(self, y: int) -> None:
+        """Print the full and middle rows for maze row *y*."""
         self._print_full(y)
         self._print_middle(y)
 
     def _display_grid(self) -> None:
+        """Print the full maze grid to stdout."""
         for y in range(self.maze.height):
             self._print_cells_lign(y)
         self._print_full(y)
         sys.stdout.flush()
 
     def _get_terminal_coordinates(self, x: int, y: int) -> tuple[int, int]:
+        """Convert maze cell (x, y) to terminal cursor coordinates."""
         tx, ty = 3, 2
         tx += x * 4
         ty += y * 2
         return (tx, ty)
 
     def _final_grid(self) -> None:
+        """Render the final maze grid with all walls removed as passages."""
         directions = ["E", "S"]
         self._display_grid()
         for y in range(self.maze.height):
@@ -149,6 +158,7 @@ class TerminalRenderer:
         sys.stdout.flush()
 
     def display_shortcuts(self, speed: int) -> None:
+        """Print the keyboard shortcut hint line below the maze."""
         _, ty = self._get_terminal_coordinates(
                         0, self.maze.height + 1)
         sys.stdout.write(f"\033[{ty + 1};{1}f")
@@ -156,7 +166,8 @@ class TerminalRenderer:
 
     def _animate_grid(self, tracks: list[tuple[int, int, str]], speed: int
                       ) -> int:
-
+        """Animate the maze carving step by step; return the
+             final speed index."""
         self._display_grid()
         self.display_shortcuts(speed)
         try:
@@ -205,6 +216,7 @@ class TerminalRenderer:
         return speed
 
     def _animate_solution(self, paths: list[tuple[int, int, str]]) -> None:
+        """Animate the solution path by overlaying direction arrows."""
         for (x, y, directions) in paths:
             if (x == self.entry[0] and y == self.entry[1] or x ==
                     self.exit_pos[0] and y == self.exit_pos[1]):
@@ -220,6 +232,7 @@ class TerminalRenderer:
         sys.stdout.flush()
 
     def _erase_solution(self, paths: list[tuple[int, int, str]]) -> None:
+        """Erase the previously drawn solution arrows from the display."""
         reversed = [(x, y) for x, y, _ in paths[::-1]]
         for x, y in reversed:
             if (x == self.entry[0] and y == self.entry[1] or x ==

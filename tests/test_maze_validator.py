@@ -18,9 +18,9 @@ except ImportError:
         "Pytest not found, try starting the program with 'make run' command."
     )
     sys.exit(7)
-from model.maze import Maze
-from model.maze_validator import MazeValidator
-from mazegen.maze_generator import MazeGenerator
+from mazegen.model.maze import Maze
+from mazegen.model.maze_validator import MazeValidator
+from mazegen.generation.maze_generator import MazeGenerator
 
 # ── Fixtures ──────────────────────────────────────────────────────────
 
@@ -41,7 +41,7 @@ def valid_5x5() -> Maze:
     return gen.get_maze()
 
 
-# ── validate() — orchestration globale ───────────────────────────────
+# ── validate() — full orchestration ──────────────────────────────────
 
 
 def test_validate_perfect_maze_11x11(valid_11x11: Maze) -> None:

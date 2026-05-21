@@ -19,9 +19,9 @@ except ImportError:
         "Pytest not found, try starting the program with 'make run' command."
     )
     sys.exit(7)
-from model.maze import Maze
-from model.maze_validator import MazeValidator
-from mazegen.maze_generator import MazeGenerator
+from mazegen.model.maze import Maze
+from mazegen.model.maze_validator import MazeValidator
+from mazegen.generation.maze_generator import MazeGenerator
 
 # ── Fixtures ──────────────────────────────────────────────────────────
 
@@ -38,7 +38,7 @@ def gen_kruksal() -> MazeGenerator:
     )
 
 
-# ── Initialisation ────────────────────────────────────────────────────
+# ── Initialization ────────────────────────────────────────────────────
 
 
 def test_init_default_perfect() -> None:
@@ -171,7 +171,7 @@ def test_different_seeds_different_mazes_backtracker() -> None:
     assert gen_a.get_maze().grid != gen_b.get_maze().grid
 
 
-# ── Alias d'algorithmes ───────────────────────────────────────────────
+# ── Algorithm selection ───────────────────────────────────────────────
 
 
 def test_perfect_true_generates_valid_maze() -> None:
@@ -204,11 +204,12 @@ def test_unknown_algorithm_raises() -> None:
         gen.generate()
 
 
-# ── Petits labyrinthes (sans motif 42) ────────────────────────────────
+# ── Small mazes (no 42 pattern) ──────────────────────────────────────
 
 
 def test_small_maze_no_forty_two_cells() -> None:
-    """Any maze with < 11 cols or < 9 rows must not contain the pattern."""
+    """Any maze with fewer than 11 cols or 9 rows must not contain the 42
+        pattern."""
     for w, h in [(4, 4), (7, 7), (8, 8), (10, 10), (11, 8)]:
         gen = MazeGenerator(width=w, height=h, seed=1, perfect=True)
         gen.generate()
@@ -266,7 +267,7 @@ def test_reset_preserves_42_cells_in_maze() -> None:
     assert cells_before == cells_after
 
 
-# ── Algorithme Kruksal explicite ──────────────────────────────────────
+# ── Explicit Kruskal algorithm ────────────────────────────────────────
 
 
 def test_kruksal_explicit_generates_valid_maze() -> None:
@@ -289,7 +290,7 @@ def test_kruksal_imperfect_generates_valid_maze() -> None:
 
 def test_kruksal_imperfect_has_cycle() -> None:
     """An imperfect Kruksal maze contains at least one cycle."""
-    from model.cycle_checker import CycleChecker
+    from mazegen.model.cycle_checker import CycleChecker
 
     gen = MazeGenerator(
         width=11, height=11, seed=3, perfect=False, algorithm="kruksal"
@@ -298,7 +299,7 @@ def test_kruksal_imperfect_has_cycle() -> None:
     assert CycleChecker(gen.get_maze()).has_cycle() is True
 
 
-# ── Algorithme Backtracker imparfait (second_loop) ────────────────────
+# ── Imperfect Backtracker (second_loop) ────────────────────────────────
 
 
 def test_backtracker_imperfect_generates_valid_maze() -> None:
@@ -312,7 +313,7 @@ def test_backtracker_imperfect_generates_valid_maze() -> None:
 
 def test_backtracker_imperfect_has_cycle() -> None:
     """An imperfect Backtracker maze contains at least one cycle."""
-    from model.cycle_checker import CycleChecker
+    from mazegen.model.cycle_checker import CycleChecker
 
     gen = MazeGenerator(
         width=11, height=11, seed=5, perfect=False, algorithm="backtracker"

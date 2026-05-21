@@ -1,0 +1,107 @@
+# mazegen/maze_generator.py — Reusable maze generation module.
+# Contains the MazeGenerator class,
+# designed to be imported into any project.
+# The class encapsulates the full generation logic
+# and exposes a clean API:
+#   - __init__(width, height, seed, perfect, algorithm): initialise
+#   - generate(): generate the maze and store it internally
+#   - get_maze(): return the cell grid
+#   - reset(seed): reset and regenerate with a new seed
+# Logic is delegated to Backtracker and Kruksal,
+# both of which inherit from Algorithm (abstract base class).
+
+import random
+from typing import Any
+from ..model.maze import Maze
+from ..model.maze_validator import MazeValidator
+from .algorithm import Algorithm
+
+from .backtracker import Backtracker
+from .kruksal import Kruksal
+
+# Mapping algorithm name to class
+ALGO_MAP = {
+    "backtracker": Backtracker,
+    "kruksal": Kruksal,
+}
+
+
+class MazeGenerator:
+    """Generates a maze based on specified parameters.
+
+    This class encapsulates the entire maze generation logic, allowing for
+    easy reuse in any project. It supports multiple algorithms and ensures
+    that generated mazes meet the required constraints.
+
+    Example usage:
+        generator = MazeGenerator(width=10, height=10, seed=42, perfect=True,
+        algorithm='backtracker')
+        generator.generate()
+        maze_grid = generator.get_maze()
+    """
+
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        entry: tuple[int, int] = (0, 0),
+        exit: tuple[int, int] | None = None,
+        perfect: bool = True,
+        seed: int | None = None,
+        algorithm: str = "backtracker",
+    ) -> None:
+        """Initialize the maze generator with given parameters."""
+        self.algorithm = algorithm
+        self.width = width
+        self.height = height
+        self.entry = entry
+        self.exit = exit if exit is not None else (width - 1, height - 1)
+        self.seed = seed
+        if seed is not None:
+            random.seed(seed)
+        self.perfect = perfect
+        self.maze = Maze(self.width, self.height, self.entry, self.exit)
+        self.tracks: list[Any] = []
+        self.forty_two_cells: set[tuple[int, int]] = set()
+
+    def generate(self) -> None:
+        """Generate the maze using the specified algorithm."""
+        if self.seed is not None:
+            random.seed(self.seed)
+        algo = self._build_algorithm()
+        self.tracks = algo.generate()
+        self.forty_two_cells = algo.forty_two_cells
+        self.maze = algo.maze
+
+        validator = MazeValidator(self.maze)
+        if not validator.validate():
+            # Print detailed errors if available
+            if hasattr(validator, "errors"):
+                print("Validation errors:", validator.errors)
+            else:
+                print("Validation failed, no error details available.")
+            raise ValueError("Generated maze is invalid.")
+
+    def _build_algorithm(self) -> Algorithm:
+        """Instantiate the algorithm class based on self.algorithm name."""
+        algo_cls = ALGO_MAP.get(self.algorithm)
+        if not algo_cls:
+            raise ValueError(f"Unknown algorithm: {self.algorithm}")
+        return algo_cls(self.maze, self.perfect)
+
+    def get_maze(self) -> Maze:
+        """Return the generated maze."""
+        return self.maze
+
+    def reset(self, seed: int | None = None) -> None:
+        """Reset the maze and optionally apply a new seed."""
+        if seed is not None:
+            self.seed = seed
+            random.seed(seed)
+
+        for i in range(len(self.maze.grid)):
+            for j in range(len(self.maze.grid[i])):
+                self.maze.grid[i][j] = 15
+
+        self.tracks = []
+        self.forty_two_cells = set()
