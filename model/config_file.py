@@ -49,17 +49,6 @@ class ConfigFile(BaseModel):
     def normalize_algorithm(cls, value: str) -> str:
         return value.lower()
 
-    @model_validator(mode="before")
-    def validate_python_environment(self) -> "ConfigFile":
-        """Ensure the user is in a python virtual environment."""
-        if sys.base_prefix != sys.prefix:
-            return self
-        else:
-            raise EnvironmentError(
-                "You are currently not in a virtual environment, "
-                "please use the 'make run' command."
-            )
-
     @model_validator(mode="after")
     def validate_entry_exit_bounds(self) -> "ConfigFile":
         """Ensure ENTRY and EXIT positions are within the maze dimensions."""

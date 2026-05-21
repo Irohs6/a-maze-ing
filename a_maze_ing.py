@@ -8,16 +8,38 @@
 # to the user in case of incorrect usage.
 
 import sys
+
 try:
     from colorama import Fore, Style
 except ImportError:
     print(
         "Error: Colorama not found, try starting the program "
-        "with 'make run' command.", end=""
+        "with 'make run' command.",
+        end="",
     )
     sys.exit(7)
 from controller.maze_controller import MazeController
-from pydantic import ValidationError
+try:
+    from pydantic import ValidationError
+except ImportError:
+    print("\033c", end="")
+    print(
+        "Pydantic not found, try starting the program with 'make run' command."
+    )
+    sys.exit(7)
+
+
+def validate_python_environment() -> bool:
+    """Ensure the user is in a python virtual environment."""
+    if sys.base_prefix != sys.prefix:
+        return True
+    else:
+        print(
+            "Warning: You are currently not in a Python virtual environment."
+            "\nPlease launch the program with 'make run' command to ensure all"
+            " dependencies are installed and available."
+        )
+        return False
 
 
 def main() -> None:
@@ -26,6 +48,8 @@ def main() -> None:
         sys.exit(1)
 
     try:
+        if not validate_python_environment():
+            sys.exit(8)
         controller = MazeController(sys.argv[1])
         controller.run()
     except FileNotFoundError as file_error:
@@ -44,9 +68,6 @@ def main() -> None:
     except (ValueError, KeyError) as key_error:
         print(f"Error: {key_error}")
         sys.exit(6)
-    except EnvironmentError as env_error:
-        print(f"Error: {env_error}")
-        sys.exit(7)
     except KeyboardInterrupt:
         print("\033c")
         print(Fore.BLUE + "Bye-bye" + Style.RESET_ALL, end="")

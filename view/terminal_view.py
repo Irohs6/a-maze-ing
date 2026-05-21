@@ -6,12 +6,9 @@
 #   - rendering and animation   → view.terminal_renderer
 
 import sys
-from pathlib import Path
 import tty
 import termios
 
-if __package__ in {None, ""}:
-    sys.path.append(str(Path(__file__).resolve().parents[1]))
 try:
     from colorama import Fore, Style
 except ImportError:
