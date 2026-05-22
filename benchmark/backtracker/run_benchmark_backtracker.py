@@ -23,13 +23,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-# --- Path to the project root ---
-from mazegen.backtracker import Backtracker
-from model.maze import Maze
-from model.maze_validator import MazeValidator
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+# --- Path to the project root ---
+from mazegen.backtracker import Backtracker
+from mazegen.model.maze import Maze
+from mazegen.model.maze_validator import MazeValidator
+
 
 # =============================================================================
 # Configuration

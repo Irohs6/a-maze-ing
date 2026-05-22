@@ -34,7 +34,7 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from mazegen.kruksal import Kruksal  # noqa: E402
+from mazegen.generation.kruksal import Kruksal  # noqa: E402
 from model.maze import Maze  # noqa: E402
 from model.maze_validator import MazeValidator  # noqa: E402
 
